@@ -1,110 +1,116 @@
-using PseudoArcLengthContinuation, LinearAlgebra, Plots
-using DifferentialEquations, Flux, DiffEqFlux
-const Cont = PseudoArcLengthContinuation
+using Flux, Plots, NLsolve, LinearAlgebra
+using Flux.Tracker: gradient, update!
 
-Plots.scatter(curve::ContResult; kwargs...) = scatter(curve.branch[1,:],curve.branch[2,:]; kwargs...)
-function steady_state( rates, u, θ ; kwargs...)
-	"""computes limit curve saddle using parameter continuation methods"""
+function initial_tangent( rates, u₀, p₀ ; kwargs...)
 
-	# integrate until steady state
-	steady_state, _, stable = Cont.newton(
-		u -> rates(u,-2.0,θ), u, Cont.NewtonPar(tol = 1e-11) )
+	constraint = (p₀,u,p) -> p-p₀
+	u,p,dp = u₀,p₀,kwargs[:dp]
+	P = p+dp
 
-	branches, _, _ = Cont.continuation( (u,x) -> rates(u,x,θ),
-		steady_state, θ, ContinuationPar(maxSteps=0))
+	u,p = nlsolve( z -> ( rates(z...), constraint(p,z...) ), [u,p] ).zero
+	U,P = nlsolve( z -> ( rates(z...), constraint(P,z...) ), [u,P] ).zero
 
-	#################################################################################
-	if stable # find fold points on forward/backward branches
-		for σ ∈ [-1,1]
-
-			branch, _, _ = Cont.continuation(
-				(u,x) -> rates(u,x,θ),
-
-				steady_state, θ, ContinuationPar(ds=σ*0.01; kwargs...),
-				printsolution = u -> u[1] )
-
-			append!( branches.branch, branch.branch )
-			append!( branches.bifpoint, branch.bifpoint )
-		end
-	else
-		printstyled(color=:red,"[error] integration to steady state failed\n")
-		return branches
-	end
-	return branches
+	∂ₚu = (U-u) / dp
+	return u,p, ∂ₚu
 end
 
+function steady_state( rates, u₀, p₀ ; kwargs...)
 
-function rates(u,θ1,θ2)
-	return  Array([ θ2-θ1 + (θ2+θ1)*u[1] - u[1]^3 ])
-end
+	# initial tangent from simulation
+	u₀,p₀, ∂ₚu = initial_tangent( rates, u₀, p₀ ; kwargs... )
+	ds = kwargs[:dp]
 
-function target(u)
-	return u-u^3
-end
+	# psuedo-arclength constraint
+	∂ₛu,∂ₛp = ∂ₚu,1.0
+	constraint = (u₀,p₀,u,p) -> (u-u₀)*∂ₛu + (p-p₀)*∂ₛp - ds
 
-function cost(curve::ContResult)
-	norm( curve.branch[1,:] - map(u -> target(u), curve.branch[2,:] ) )
-end
+	# main continuation loop
+	U,P = [],[]
+	while p₀ < kwargs[:pMax]
 
-θ = 0.1
-u = [0.0]
+		# predictor
+		u,p = u₀ + ∂ₛu * ds, p₀ + ∂ₛp * ds
 
-curve = steady_state(
-	(u,a,b) -> rates(u,a,b), u,θ;
-	maxSteps=2000, pMin=-2.0, pMax=2.0 )
+		# corrector
+		u,p = nlsolve( z -> ( rates(z...), constraint(u₀,p₀,z...) ), [u,p] ).zero
 
-scatter( curve, label="inferred", color="darkblue",
-	markerstrokewidth=0,markersize=3)
+		# update
+		∂ₛu,∂ₛp = ( u - u₀ ) / ds, ( p - p₀ ) / ds
+		u₀,p₀ = u,p
 
-scatter!( map(u -> target(u), curve.branch[2,:] ), curve.branch[2,:],
-	label="target", color="gold", markersize=3, markerstrokewidth=0,
-	xlabel="parameter", ylabel="steady state")
-
-
-function fit(u,θ1,θ2)
-
-	θ1,θ2 = param(θ1),param(θ2)
-	u = param([u])
-
-	function loss()
-
-		curve = steady_state(
-			(u,a,b) -> rates(u,a,b), u,θ1,θ2;
-			maxSteps=2000, pMin=-2.0, pMax=2.0 )
-
-		return cost(curve)
+		# store
+		push!(U,u); push!(P,p)
 	end
 
-  iter = Iterators.repeated((), 20)
-  # Callback function to observe training
-  function cb()
-
-	  scatter( curve, label="inferred", color="darkblue",
-	  	markerstrokewidth=0,markersize=3)
-
-	  scatter!( map(u -> target(u), curve.branch[2,:] ), curve.branch[2,:],
-	  	label="target", color="gold", markersize=3, markerstrokewidth=0,
-	  	xlabel="parameter", ylabel="steady state")
-  end
-
-  @time Flux.train!(loss, Flux.Params([θ2]), iter, ADAM(0.2), cb=cb)
+	return Tracker.collect(U),Tracker.collect(P)
 end
 
-fit(0.0,-1.0,-1.0)
-
-θ2 = param([θ2])
-
-function loss()
-
-	# curve = steady_state(
-	# 	(u,θ1,θ2) -> rates(u,θ1,θ2), u,θ1,θ2;
-	# 	maxSteps=2000, pMin=-2.0, pMax=2.0 )
-
-	return cost(curve)+θ2
+function rates( u, θ₁=0.0, θ₂=0.0, θ₃=-1.0 )
+	return θ₁ + θ₂*u + θ₃*u^3
 end
 
-loss()
 
-u = param(0.0)
+function fit(u,p,θ; iter=100)
+	u,p,θ = param(u),param(p),param(θ)
 
-u^3
+	predictor(u,p) = steady_state(
+		(u,p) -> rates(u,p,θ...),
+		u,p; dp=0.01, pMax=2.0 )
+	target(u) = u.^3-u
+	loss(u,p) = norm(p-target(u))
+
+	function progress(u,p)
+		loss(u,p) |> display
+		plot( Flux.data(p),Flux.data(u),
+			label="inferred", color="darkblue",linewidth=3)
+		plot!( Flux.data(target(u)), Flux.data(u),
+			label="target", color="gold",linewidth=2,
+			xlabel="parameter", ylabel="steady state",
+			xlim=(-2,2), ylim=(-2,2)) |> display
+	end
+
+	@time train!(loss, predictor, u,p,[θ], ADAM(0.1); iter=iter, progress=progress)
+end
+
+function train!(loss, predictor, u,p,θ, optimiser; iter=100, progress = () -> ())
+	θ = Flux.Params(θ)
+	@progress for _ in Iterators.repeated((),iter)
+
+		U,P = predictor(u,p)
+		∂θ = gradient(θ) do
+			loss(U,P) end
+
+		update!(optimiser, θ, ∂θ)
+		progress(U,P)
+	end
+end
+
+u,p = -1.0,-2.0
+θ = [1.0,-3.0]
+fit(u,p,θ; iter=100)
+
+
+
+
+
+
+
+
+
+
+
+
+function Π(x,width=1.0,ϵ=1e-3)
+	return σ.((x .+ width/2)/ϵ) .* σ.((width/2 .- x)/ϵ)
+end
+
+function ρ( A; dx=0.01 )
+
+	xmin,xmax = minimum(A),maximum(A)
+	x = range(xmin.data,xmax.data,step=dx)
+
+	ρₓ = map( x -> sum(Π(A.-x,dx)), x)
+	ρₓ ./= sum(ρₓ)*dx
+
+	return x,Tracker.collect(ρₓ)
+end
