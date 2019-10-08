@@ -1,14 +1,28 @@
-using Flux, Plots, NLsolve, LinearAlgebra
+using Flux, CuArrays, Plots, NLsolve, LinearAlgebra, StatsBase, Printf
 using Flux.Tracker: gradient, update!
+CuArrays.allowscalar(true)
+
+# kernel density estimator on the gpu
+rbf(x) = exp.(-x.^2/2)/sqrt(2π)
+kde(x,data;width=0.05) = mean(rbf((x.-data')/width),dims=2)/width
 
 function initial_tangent( rates, u₀, p₀ ; kwargs...)
 
-	constraint = (p₀,u,p) -> p-p₀
+
 	u,p,dp = u₀,p₀,kwargs[:dp]
 	P = p+dp
 
+	constraint = (p₀,u,p) -> p-p₀
 	u,p = nlsolve( z -> ( rates(z...), constraint(p,z...) ), [u,p] ).zero
 	U,P = nlsolve( z -> ( rates(z...), constraint(P,z...) ), [u,P] ).zero
+
+	if u < u₀
+
+		constraint = (u₀,u,p) -> u-u₀
+		u,p = nlsolve( z -> ( rates(z...), constraint(u₀,z...) ), [u,p] ).zero
+		U,P = nlsolve( z -> ( rates(z...), constraint(u₀,z...) ), [u,P] ).zero
+
+	end
 
 	∂ₚu = (U-u) / dp
 	return u,p, ∂ₚu
@@ -26,7 +40,7 @@ function steady_state( rates, u₀, p₀ ; kwargs...)
 
 	# main continuation loop
 	U,P = [],[]
-	while p₀ < kwargs[:pMax]
+	while (p₀ < kwargs[:pMax]) & (u₀ < kwargs[:uMax])
 
 		# predictor
 		u,p = u₀ + ∂ₛu * ds, p₀ + ∂ₛp * ds
@@ -45,72 +59,51 @@ function steady_state( rates, u₀, p₀ ; kwargs...)
 	return Tracker.collect(U),Tracker.collect(P)
 end
 
-function rates( u, θ₁=0.0, θ₂=0.0, θ₃=-1.0 )
-	return θ₁ + θ₂*u + θ₃*u^3
+function rates( u, θ₁=0.0, θ₂=0.0, θ₃=-1.0, θ₀=0.0 )
+	return θ₁ + θ₂*u + θ₃*u^3 + θ₀
 end
 
 
-function fit(u,p,θ; iter=100)
+function infer(u,p,θ; iter=100)
 	u,p,θ = param(u),param(p),param(θ)
+	Ugrid,Pgrid = collect(-2:0.005:2) ,collect(-2:0.01:2)
+
+	target(u) = u.^3-u.+1.0
+	data = kde(Pgrid,target(Ugrid))
 
 	predictor(u,p) = steady_state(
 		(u,p) -> rates(u,p,θ...),
-		u,p; dp=0.01, pMax=2.0 )
-	target(u) = u.^3-u
-	loss(u,p) = norm(p-target(u))
+		u,p; dp=0.01, pMax=2.0, uMax=2.0 )
+	loss(p) = mean(kde(Pgrid,p).*log.(kde(Pgrid,p)./data))
 
 	function progress(u,p)
-		loss(u,p) |> display
-		plot( Flux.data(p),Flux.data(u),
-			label="inferred", color="darkblue",linewidth=3)
-		plot!( Flux.data(target(u)), Flux.data(u),
-			label="target", color="gold",linewidth=2,
-			xlabel="parameter", ylabel="steady state",
-			xlim=(-2,2), ylim=(-2,2)) |> display
+		@printf("Loss = %f, θ = %f,%f,%f\n", loss(p), θ.data...)
+
+		plot( p.data,u.data, label="inferred", color="darkblue",linewidth=3)
+		plot!( target(Ugrid), Ugrid, label="target", color="gold",linewidth=2,
+			xlabel="parameter", ylabel="steady state", xlim=(-2,2), ylim=(-2,2))
+
+		plot!( Pgrid,kde(Pgrid,p).data, label="inferred", color="darkblue", linestyle=:dash )
+		plot!( Pgrid,data, label="target", color="gold", linestyle=:dash )
 	end
 
-	@time train!(loss, predictor, u,p,[θ], ADAM(0.1); iter=iter, progress=progress)
+	@time train!(loss, predictor, u,p,[θ], ADAM(0.01);
+		iter=iter, progress=Flux.throttle(progress, 5.0))
 end
 
 function train!(loss, predictor, u,p,θ, optimiser; iter=100, progress = () -> ())
 	θ = Flux.Params(θ)
 	@progress for _ in Iterators.repeated((),iter)
-
 		U,P = predictor(u,p)
+
 		∂θ = gradient(θ) do
-			loss(U,P) end
+			loss(P) end
 
 		update!(optimiser, θ, ∂θ)
-		progress(U,P)
+		progress(U,P) |> display
 	end
 end
 
-u,p = -1.0,-2.0
-θ = [1.0,-3.0]
-fit(u,p,θ; iter=100)
-
-
-
-
-
-
-
-
-
-
-
-
-function Π(x,width=1.0,ϵ=1e-3)
-	return σ.((x .+ width/2)/ϵ) .* σ.((width/2 .- x)/ϵ)
-end
-
-function ρ( A; dx=0.01 )
-
-	xmin,xmax = minimum(A),maximum(A)
-	x = range(xmin.data,xmax.data,step=dx)
-
-	ρₓ = map( x -> sum(Π(A.-x,dx)), x)
-	ρₓ ./= sum(ρₓ)*dx
-
-	return x,Tracker.collect(ρₓ)
-end
+u,p = -2.0,-2.0
+θ = [1.0,-2.0,0.0]
+infer(u,p,θ; iter=250)
