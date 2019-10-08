@@ -74,36 +74,42 @@ function infer(u,p,θ; iter=100)
 	predictor(u,p) = steady_state(
 		(u,p) -> rates(u,p,θ...),
 		u,p; dp=0.01, pMax=2.0, uMax=2.0 )
-	loss(p) = mean(kde(Pgrid,p).*log.(kde(Pgrid,p)./data))
+	loss(state_density) = mean(state_density.*log.(state_density./data))
 
-	function progress(u,p)
-		@printf("Loss = %f, θ = %f,%f,%f\n", loss(p), θ.data...)
+	function progress(u,p,state_density)
+		@printf("Loss = %f, θ = %f,%f,%f\n", loss(state_density), θ.data...)
 
 		plot( p.data,u.data, label="inferred", color="darkblue",linewidth=3)
 		plot!( target(Ugrid), Ugrid, label="target", color="gold",linewidth=2,
-			xlabel="parameter", ylabel="steady state", xlim=(-2,2), ylim=(-2,2))
+			xlabel="parameter", ylabel="steady state", xlim=(-2.1,2.1), ylim=(-2.1,2.1))
 
-		plot!( Pgrid,kde(Pgrid,p).data, label="inferred", color="darkblue", linestyle=:dash )
-		plot!( Pgrid,data, label="target", color="gold", linestyle=:dash )
+		plot!( Pgrid,state_density.data, label="inferred", color="darkblue", linestyle=:dash )
+		display(plot!( Pgrid,data, label="target", color="gold", linestyle=:dash ))
 	end
 
-	@time train!(loss, predictor, u,p,[θ], ADAM(0.01);
-		iter=iter, progress=Flux.throttle(progress, 5.0))
+	@time train!(loss, predictor, u,p,[θ], ADAM(0.1);
+		iter=iter, progress=Flux.throttle(progress, 0.2))
 end
 
-function train!(loss, predictor, u,p,θ, optimiser; iter=100, progress = () -> ())
+function train!(loss, predictor, u,p,θ, optimiser;
+	iter=100, progress = () -> ())
+
+	Ugrid,Pgrid = collect(-2:0.005:2) ,collect(-2:0.01:2)
 	θ = Flux.Params(θ)
+
 	@progress for _ in Iterators.repeated((),iter)
+
 		U,P = predictor(u,p)
+		state_density = kde(Pgrid,P)
+		progress(U,P,state_density)
 
 		∂θ = gradient(θ) do
-			loss(P) end
+			loss(state_density) end
 
 		update!(optimiser, θ, ∂θ)
-		progress(U,P) |> display
 	end
 end
 
 u,p = -2.0,-2.0
-θ = [1.0,-2.0,0.0]
-infer(u,p,θ; iter=250)
+θ = [0.0,-2.0,1.0]
+infer(u,p,θ; iter=200)
