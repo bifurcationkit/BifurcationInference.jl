@@ -7,25 +7,23 @@ rbf(x) = exp.(-x.^2/2)/sqrt(2π)
 kde(x,data;width=0.05) = mean(rbf((x.-data')/width),dims=2)/width
 
 function initial_tangent( rates, u₀, p₀ ; kwargs...)
+	function solve(u₀,p)
 
+		solver = nlsolve( z -> ( rates(z...), z[2]-p ), [u₀,p],
+			factor=1.0/norm([u₀,p]), autoscale=false )
 
-	u,p,dp = u₀,p₀,kwargs[:dp]
-	P = p+dp
-
-	constraint = (p₀,u,p) -> p-p₀
-	u,p = nlsolve( z -> ( rates(z...), constraint(p,z...) ), [u,p] ).zero
-	U,P = nlsolve( z -> ( rates(z...), constraint(P,z...) ), [u,P] ).zero
-
-	if u < u₀
-
-		constraint = (u₀,u,p) -> u-u₀
-		u,p = nlsolve( z -> ( rates(z...), constraint(u₀,z...) ), [u,p] ).zero
-		U,P = nlsolve( z -> ( rates(z...), constraint(u₀,z...) ), [u,P] ).zero
-
+		if solver.f_converged return solver.zero
+		else throw("initial_tanget : not converged") end
 	end
 
-	∂ₚu = (U-u) / dp
-	return u,p, ∂ₚu
+	dp = kwargs[:dp]
+	p₁ = p₀ + dp
+
+	u₀,p₀ = solve(u₀,p₀)
+	u₁,p₁ = solve(u₀,p₁)
+
+	∂ₚu = (u₁-u₀) / dp
+	return u₀,p₀, ∂ₚu
 end
 
 function steady_state( rates, u₀, p₀ ; kwargs...)
@@ -43,19 +41,21 @@ function steady_state( rates, u₀, p₀ ; kwargs...)
 	while (p₀ < kwargs[:pMax]) & (u₀ < kwargs[:uMax])
 
 		# predictor
-		u,p = u₀ + ∂ₛu * ds, p₀ + ∂ₛp * ds
+		u₊,p₊ = u + ∂ₛu * ds, p + ∂ₛp * ds
 
 		# corrector
-		u,p = nlsolve( z -> ( rates(z...), constraint(u₀,p₀,z...) ), [u,p] ).zero
+		solver = nlsolve( z -> ( rates(z...), constraint(u,p,z...) ), [u₊,p₊],
+		 	factor=1.0/norm([u₊,p₊]), autoscale=false )
+		if ~solver.f_converged throw("continuation corrector : not converged") end
+		u₊,p₊ = solver.zero
 
 		# update
-		∂ₛu,∂ₛp = ( u - u₀ ) / ds, ( p - p₀ ) / ds
-		u₀,p₀ = u,p
+		∂ₛu,∂ₛp = ( u₊ - u ) / ds, ( p₊ - p ) / ds
+		u,p = u₊,p₊
 
 		# store
 		push!(U,u); push!(P,p)
 	end
-
 	return Tracker.collect(U),Tracker.collect(P)
 end
 
