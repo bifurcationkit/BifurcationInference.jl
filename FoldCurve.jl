@@ -1,115 +1,79 @@
-using Flux, CuArrays, Plots, NLsolve, LinearAlgebra, StatsBase, Printf
+using Flux, Plots, LinearAlgebra, StatsBase, Printf
 using Flux.Tracker: gradient, update!
-CuArrays.allowscalar(true)
+include("continuation.jl")
 
-# kernel density estimator on the gpu
-rbf(x) = exp.(-x.^2/2)/sqrt(2π)
-kde(x,data;width=0.05) = mean(rbf((x.-data')/width),dims=2)/width
+struct data
+	parameter::AbstractArray
+	density::AbstractArray
+end
 
-function initial_tangent( rates, u₀, p₀ ; kwargs...)
-	function solve(u₀,p)
+function rates( u, p=0.0, θ₂=0.0, θ₃=-1.0, θ₀=0.0 )
+	return p + θ₂*u + θ₃*u^3 + θ₀
+end
 
-		solver = nlsolve( z -> ( rates(z...), z[2]-p ), [u₀,p],
-			factor=1.0/norm([u₀,p]), autoscale=false )
+function infer( f,θ, data::data; iter=100, u₀=-2.0, uRange=1e3 )
 
-		if solver.f_converged return solver.zero
-		else throw("initial_tanget : not converged") end
+	# setting initial hyperparameters
+	ds = mean(diff(target.parameter))
+	p₀,pMax = minimum(data.parameter)-5*ds, maximum(data.parameter)+5*ds
+	u₀,p₀,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
+
+	function predictor()
+
+		# predict parameter curve
+		println(u₀,p₀)
+		curve = continuation( f,u₀,p₀; ds=ds, pMax=pMax, uRange=uRange )
+		u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
+
+		# compute multi-stability label
+		density = kde(data.parameter,curve[2,:],width=ds)
+		#density = (density.-minimum(density))./(maximum(density).-minimum(density))
+		return curve,density
 	end
 
-	dp = kwargs[:dp]
-	p₁ = p₀ + dp
-
-	u₀,p₀ = solve(u₀,p₀)
-	u₁,p₁ = solve(u₀,p₁)
-
-	∂ₚu = (u₁-u₀) / dp
-	return u₀,p₀, ∂ₚu
-end
-
-function steady_state( rates, u₀, p₀ ; kwargs...)
-
-	# initial tangent from simulation
-	u₀,p₀, ∂ₚu = initial_tangent( rates, u₀, p₀ ; kwargs... )
-	ds = kwargs[:dp]
-
-	# psuedo-arclength constraint
-	∂ₛu,∂ₛp = ∂ₚu,1.0
-	constraint = (u₀,p₀,u,p) -> (u-u₀)*∂ₛu + (p-p₀)*∂ₛp - ds
-
-	# main continuation loop
-	U,P = [],[]
-	while (p₀ < kwargs[:pMax]) & (u₀ < kwargs[:uMax])
-
-		# predictor
-		u₊,p₊ = u + ∂ₛu * ds, p + ∂ₛp * ds
-
-		# corrector
-		solver = nlsolve( z -> ( rates(z...), constraint(u,p,z...) ), [u₊,p₊],
-		 	factor=1.0/norm([u₊,p₊]), autoscale=false )
-		if ~solver.f_converged throw("continuation corrector : not converged") end
-		u₊,p₊ = solver.zero
-
-		# update
-		∂ₛu,∂ₛp = ( u₊ - u ) / ds, ( p₊ - p ) / ds
-		u,p = u₊,p₊
-
-		# store
-		push!(U,u); push!(P,p)
-	end
-	return Tracker.collect(U),Tracker.collect(P)
-end
-
-function rates( u, θ₁=0.0, θ₂=0.0, θ₃=-1.0, θ₀=0.0 )
-	return θ₁ + θ₂*u + θ₃*u^3 + θ₀
-end
-
-
-function infer(u,p,θ; iter=100)
-	u,p,θ = param(u),param(p),param(θ)
-	Ugrid,Pgrid = collect(-2:0.005:2) ,collect(-2:0.01:2)
-
-	target(u) = u.^3-u.+1.0
-	data = kde(Pgrid,target(Ugrid))
-
-	predictor(u,p) = steady_state(
-		(u,p) -> rates(u,p,θ...),
-		u,p; dp=0.01, pMax=2.0, uMax=2.0 )
-	loss(state_density) = mean(state_density.*log.(state_density./data))
-
-	function progress(u,p,state_density)
-		@printf("Loss = %f, θ = %f,%f,%f\n", loss(state_density), θ.data...)
-
-		plot( p.data,u.data, label="inferred", color="darkblue",linewidth=3)
-		plot!( target(Ugrid), Ugrid, label="target", color="gold",linewidth=2,
-			xlabel="parameter", ylabel="steady state", xlim=(-2.1,2.1), ylim=(-2.1,2.1))
-
-		plot!( Pgrid,state_density.data, label="inferred", color="darkblue", linestyle=:dash )
-		display(plot!( Pgrid,data, label="target", color="gold", linestyle=:dash ))
+	function loss(density,∂ₚU)
+		boundary_condition = norm(∂ₚU[1]) + norm(∂ₚU[end])
+		return norm(data.density.-density)+boundary_condition
 	end
 
-	@time train!(loss, predictor, u,p,[θ], ADAM(0.1);
-		iter=iter, progress=Flux.throttle(progress, 0.2))
+	function progress(u,p,density,∂ₚU)
+		@printf("Loss = %f, θ = %f,%f,%f\n", loss(density,∂ₚU), θ.data...)
+		plot( p.data,u.data,
+			label="inferred", color="darkblue",linewidth=3)
+		plot!( data.parameter, density.data,
+			label="inferred", color="darkblue", linestyle=:dash )
+		plot!( data.parameter,data.density,
+			label="target", color="gold", linestyle=:dash,
+			xlabel="parameter, p", ylabel="steady state",
+			xlim=(-2.1,2.1), ylim=(-2.1,2.1)) |> display
+	end
+
+	@time train!(loss, predictor, [θ], ADAM(0.1);
+		iter=iter, progress=progress)
 end
 
-function train!(loss, predictor, u,p,θ, optimiser;
-	iter=100, progress = () -> ())
-
-	Ugrid,Pgrid = collect(-2:0.005:2) ,collect(-2:0.01:2)
+function train!(loss, predictor, θ, optimiser; iter=100, progress = () -> ())
 	θ = Flux.Params(θ)
 
 	@progress for _ in Iterators.repeated((),iter)
 
-		U,P = predictor(u,p)
-		state_density = kde(Pgrid,P)
-		progress(U,P,state_density)
+		output,state_density = predictor()
+		U,P,∂ₚU = output[1,:],output[2,:],output[3,:]
+		progress(U,P,state_density,∂ₚU)
 
 		∂θ = gradient(θ) do
-			loss(state_density) end
+			loss(state_density,∂ₚU) end
 
 		update!(optimiser, θ, ∂θ)
 	end
 end
 
-u,p = -2.0,-2.0
-θ = [0.0,-2.0,1.0]
-infer(u,p,θ; iter=200)
+
+
+
+parameter = -2:0.05:2
+density = ones(length(parameter)).*(abs.(parameter.-1.0).<0.5)
+target = data(parameter,density)
+
+θ = param([0.0,-2.0,1.0])
+infer( (u,p)->rates(u,p,θ...), θ, target; iter=400)
