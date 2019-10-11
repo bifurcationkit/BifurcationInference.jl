@@ -1,10 +1,4 @@
-using NLsolve, StatsBase, LinearAlgebra
-
-"""
-kernel density estimate of data on xgrid, with radial basis functions of given width
-"""
-kde(xgrid,data;width=0.05) = mean(rbf((xgrid.-data')/width),dims=2)/width
-rbf(x) = exp.(-x.^2/2)/sqrt(2π)
+using NLsolve, LinearAlgebra
 
 """
 estimate tangent ∂ₚu at (u₀,p₀) such that f(u,p) = 0 with trust region method

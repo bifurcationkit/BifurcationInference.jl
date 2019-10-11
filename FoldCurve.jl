@@ -1,5 +1,6 @@
-using Flux, Plots, LinearAlgebra, StatsBase, Printf
+using Flux, Plots, KernelDensity, LinearAlgebra, Printf
 using Flux.Tracker: gradient, update!
+using Flux: binarycrossentropy,crossentropy
 include("continuation.jl")
 
 struct data
@@ -14,26 +15,25 @@ end
 function infer( f,θ, data::data; iter=100, u₀=-2.0, uRange=1e3 )
 
 	# setting initial hyperparameters
-	ds = mean(diff(target.parameter))
-	p₀,pMax = minimum(data.parameter)-5*ds, maximum(data.parameter)+5*ds
+	ds = step(data.parameter)
+	p₀,pMax = minimum(data.parameter), maximum(data.parameter)
 	u₀,p₀,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
 
 	function predictor()
 
 		# predict parameter curve
-		println(u₀,p₀)
 		curve = continuation( f,u₀,p₀; ds=ds, pMax=pMax, uRange=uRange )
 		u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
 
 		# compute multi-stability label
-		density = kde(data.parameter,curve[2,:],width=ds)
-		#density = (density.-minimum(density))./(maximum(density).-minimum(density))
-		return curve,density
+		kernel = kde(curve[2,:],data.parameter,bandwidth=1.05*ds)
+		label = kernel.density
+		return curve,label
 	end
 
 	function loss(density,∂ₚU)
 		boundary_condition = norm(∂ₚU[1]) + norm(∂ₚU[end])
-		return norm(data.density.-density)+boundary_condition
+		return norm(density.-data.density) + boundary_condition
 	end
 
 	function progress(u,p,density,∂ₚU)
@@ -49,7 +49,7 @@ function infer( f,θ, data::data; iter=100, u₀=-2.0, uRange=1e3 )
 	end
 
 	@time train!(loss, predictor, [θ], ADAM(0.1);
-		iter=iter, progress=progress)
+		iter=iter, progress=Flux.throttle(progress,5.0))
 end
 
 function train!(loss, predictor, θ, optimiser; iter=100, progress = () -> ())
@@ -69,11 +69,9 @@ function train!(loss, predictor, θ, optimiser; iter=100, progress = () -> ())
 end
 
 
-
-
 parameter = -2:0.05:2
-density = ones(length(parameter)).*(abs.(parameter.-1.0).<0.5)
-target = data(parameter,density)
+density = ones(length(parameter)).*(abs.(parameter.+1.0).<0.2)
 
-θ = param([0.0,-2.0,1.0])
-infer( (u,p)->rates(u,p,θ...), θ, target; iter=400)
+θ = param(randn(3))
+infer( (u,p)->rates(u,p,θ...)/(norm(rates(u,p,θ...))+1), θ,
+	data(parameter,density); iter=1000)
