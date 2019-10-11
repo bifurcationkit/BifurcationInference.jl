@@ -14,17 +14,25 @@ function tangent( f, u₀, p₀ ; kwargs...)
 	"""
 	function solve(u₀,p; maxTry=1000, searchstd=1.0)
 
-		u = NaN
+		u,converged = NaN,false
 		for _=1:maxTry
 
-			solver = nlsolve( z -> ( f(z...), z[2]-p ), [u₀,p],
-				factor=1.0/norm([u₀,p]), autoscale=false )
+			try
+				solver = nlsolve( z -> ( f(z...), z[2]-p ), [u₀,p],
+					factor=1.0/norm([u₀,p]), autoscale=false )
 
-			if solver.f_converged
-				u,p = solver.zero
-				break
+				converged = solver.f_converged
+				u,_ = solver.zero
 
-			else u₀ += searchstd*randn() end
+			catch
+				converged = false
+				u₀ += searchstd*randn()
+				continue
+
+			finally
+				if converged break
+				else u₀ += searchstd*randn() end
+			end
 		end
 
 		if isnan(u) throw("initial_tanget solver : not converged")
