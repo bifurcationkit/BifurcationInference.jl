@@ -12,12 +12,12 @@ function infer( f::Function, θ::TrackedArray, data::StateDensity; optimiser=ADA
 	# setting initial hyperparameters
 	p₀,pMax,ds = minimum(data.parameter), maximum(data.parameter), step(data.parameter)
 	u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
-	U,P,∂ₚU = continuation( (u,p)->f(u,p).data ,u₀,p₀; ds=ds, pMax=pMax, uRange=uRange )
+	U,P = continuation( (u,p)->f(u,p).data ,u₀,p₀; ds=ds, pMax=pMax, uRange=uRange )
 
 	function predictor()
 
 		# predict parameter curve
-		U,P,∂ₚU = continuation( f,u₀,p₀; ds=ds, pMax=pMax, uRange=uRange )
+		U,P = continuation( f,u₀,p₀; ds=ds, pMax=pMax, uRange=uRange )
 		u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
 
 		# state density as multi-stability label
@@ -25,16 +25,14 @@ function infer( f::Function, θ::TrackedArray, data::StateDensity; optimiser=ADA
 		return kernel.density
 	end
 
-	function loss()
-		density = predictor()
-		boundary_condition = norm(∂ₚU[1]) + norm(∂ₚU[end])
-		return norm(density.-data.density) + boundary_condition
-	end
+	loss() = norm( predictor() .- data.density )
 
 	function progress()
 		@printf("Loss = %f, θ = %f,%f,%f\n", loss(), θ.data...)
 		plot( P.data,U.data,
 			label="inferred", color="darkblue",linewidth=3)
+		plot!( data.parameter,predictor().data,
+			label="inferred", color="darkblue")
 		plot!( data.parameter,data.density,
 			label="target", color="gold",
 			xlabel="parameter, p", ylabel="steady state") |> display
@@ -42,5 +40,5 @@ function infer( f::Function, θ::TrackedArray, data::StateDensity; optimiser=ADA
 
 	@time Flux.train!(loss, Flux.Params([θ]),
 		Iterators.repeated((),iter), optimiser;
-		cb=Flux.throttle(progress,5.0))
+		cb=progress)
 end

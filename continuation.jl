@@ -20,11 +20,11 @@ function continuation( f, u₀, p₀ ; kwargs...)
 			factor=1.0/norm([u,p]), autoscale=false )
 
 		if solver.f_converged return solver.zero
-		else throw("corrector solver : not converged") end
+		else throw("corrector solver : not converged, try decreasing ds") end
 	end
 
 	# main continuation loop
-	U,P,∂ₚU = typeof(u)[u],typeof(u)[p],typeof(u)[∂ₚu]
+	U,P = typeof(u)[u],typeof(u)[p]
 	while (p <= kwargs[:pMax]) & (abs(u) <= kwargs[:uRange])
 
 		# predictor
@@ -38,14 +38,14 @@ function continuation( f, u₀, p₀ ; kwargs...)
 		∂ₛu = ( u₊ - u ) / ds
 		∂ₛp = ( p₊ - p ) / ds
 
-		u,p, ∂ₚu = u₊,p₊, ∂ₛu/∂ₛp
-		push!(U,u); push!(P,p); push!(∂ₚU,∂ₚu)
+		u,p = u₊,p₊
+		push!(U,u); push!(P,p)
 	end
 
 	if typeof(u) <: Tracker.TrackedReal
-		return Tracker.collect(U),Tracker.collect(P),Tracker.collect(∂ₚU) # TrackedArrays
+		return Tracker.collect(U),Tracker.collect(P) # TrackedArrays
 
 	else
-		return U,P,∂ₚU # Arrays
+		return U,P # Arrays
 	end
 end
