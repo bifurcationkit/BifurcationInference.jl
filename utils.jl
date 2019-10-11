@@ -12,21 +12,23 @@ function tangent( f, u₀, p₀ ; kwargs...)
 	"""
 	find point u such that f(u,p) = 0 from initial guess u₀ with trust region method
 	"""
-	function solve(u₀,p)
+	function solve(u₀,p; maxTry=1000, searchstd=1.0)
 
-		solver = nlsolve( z -> ( f(z...), z[2]-p ), [u₀,p],
-			factor=1.0/norm([u₀,p]), autoscale=false )
-		u,p = solver.zero
+		u = NaN
+		for _=1:maxTry
 
-		if solver.f_converged return u else
+			solver = nlsolve( z -> ( f(z...), z[2]-p ), [u₀,p],
+				factor=1.0/norm([u₀,p]), autoscale=false )
 
-			solver = nlsolve( z -> ( f(z...), z[2]-p ), [-u₀,p],
-				factor=1.0/norm([-u₀,p]), autoscale=false )
-			u,p = solver.zero
+			if solver.f_converged
+				u,p = solver.zero
+				break
 
-			if solver.f_converged return u
-			else throw("initial_tanget solver : not converged") end
+			else u₀ += searchstd*randn() end
 		end
+
+		if isnan(u) throw("initial_tanget solver : not converged")
+		else return u end
 	end
 
 	u₀ = solve(u₀,p₀)
