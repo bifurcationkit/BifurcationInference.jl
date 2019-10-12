@@ -18,7 +18,7 @@ using Flux.Tracker: update!
 global u₀,U,P
 θ = param([-2,1,-2])
 
-f = (u,p)->rates(u,p,θ...)
+
 data = StateDensity(parameter,density)
 u₀,uRange=1.0,1e3
 
@@ -35,10 +35,10 @@ function predictor()
 	u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
 
 	# state density as multi-stability label
-	kernel = kde(P,data.parameter,bandwidth=1.05*ds)
+	kernel = kde(P,data.parameter,bandwidth=1.4*ds)
 	return kernel.density
 end
-loss() = norm( predictor() .- data.density) + 10*(norm(θ)-1)^2
+loss() = norm( predictor() .- data.density)
 
 function progress()
 	@printf("Loss = %f, θ = %f,%f,%f\n", loss(), θ.data...)
@@ -57,11 +57,15 @@ function ℒoss(a,b)
 	return loss().data
 end
 
+# parametrised hypothesis
+function rates( u, p=0.0, θ₂=0.0, θ₃=-1.0, θ₀=0.0 )
+	return p + u*θ₂ + θ₃*u^3 + θ₀
+end
+f = (u,p)->rates(u,p,θ...)
+
 θ = param([-1,-1,0])
 u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
-x = range(-1,1,length=24)
-y = range(-1,1,length=24)
+x = y = range(-1,1,length=12)
 contourf(x,y, (x,y) -> ℒoss(x,y), size=(500,500))
 
-ℒoss(-1,1)
 progress()

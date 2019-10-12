@@ -24,7 +24,7 @@ function continuation( f, u₀, p₀ ; kwargs...)
 	end
 
 	# main continuation loop
-	U,P = typeof(u)[u],typeof(u)[p]
+	U,P = typeof(u)[u],typeof(u)[p]; dp = 0.0
 	while (p <= kwargs[:pMax]) & (abs(u) <= kwargs[:uRange])
 
 		# predictor
@@ -38,8 +38,13 @@ function continuation( f, u₀, p₀ ; kwargs...)
 		∂ₛu = ( u₊ - u ) / ds
 		∂ₛp = ( p₊ - p ) / ds
 
+		dp += abs(p₊ - p)
 		u,p = u₊,p₊
-		push!(U,u); push!(P,p)
+
+		if dp > ds # record at equal dp intervals
+			push!(U,u); push!(P,p)
+			dp = 0.0
+		end
 	end
 
 	if typeof(u) <: Tracker.TrackedReal

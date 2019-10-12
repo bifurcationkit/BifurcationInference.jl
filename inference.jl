@@ -21,7 +21,7 @@ function infer( f::Function, θ::TrackedArray, data::StateDensity; optimiser=ADA
 		u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
 
 		# state density as multi-stability label
-		kernel = kde(P,data.parameter,bandwidth=1.05*ds)
+		kernel = kde(P,data.parameter,bandwidth=1.4*ds)
 		return kernel.density
 	end
 
