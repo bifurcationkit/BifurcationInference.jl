@@ -1,4 +1,3 @@
-using Revise
 include("inference.jl")
 
 # parametrised hypothesis
