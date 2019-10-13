@@ -1,8 +1,8 @@
 include("inference.jl")
 
 # parametrised hypothesis
-function rates( u, p=0.0, θ₂=0.0, θ₃=-1.0, θ₀=0.0 )
-	return p + θ₂*u + θ₃*u^3 + θ₀
+function rates( u,p, θ₁=0.0, θ₂=0.0, θ₃=0.0)
+	return Array([ p + θ₁*u[1] + θ₂*u[1]^3 + θ₃, u[2]^2 ])
 end
 
 # target state density
@@ -11,61 +11,58 @@ density = ones(length(parameter)).*(abs.(parameter).<0.5)
 
 # run inference
 θ = param(randn(3))
-infer( (u,p)->rates(u,p,θ...), θ,
-	StateDensity(parameter,density); iter=1000)
-
-using Flux.Tracker: update!
-global u₀,U,P
-θ = param([-2,1,-2])
+infer( (u,p)->rates(u,p,θ...), θ, StateDensity(parameter,density); iter=200)
 
 
-data = StateDensity(parameter,density)
-u₀,uRange=1.0,1e3
 
-# setting initial hyperparameters
-p₀,pMax,ds = minimum(data.parameter), maximum(data.parameter), step(data.parameter)
-u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
-U,P = continuation( (u,p)->f(u,p).data ,u₀,p₀; ds=ds, pMax=pMax, uRange=uRange )
-
-function predictor()
-
-	# predict parameter curve
-	global u₀,U,P
-	U,P = continuation( f,u₀,p₀; ds=ds, pMax=pMax, uRange=uRange )
-	u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
-
-	# state density as multi-stability label
-	kernel = kde(P,data.parameter,bandwidth=1.4*ds)
-	return kernel.density
-end
-loss() = norm( predictor() .- data.density)
-
-function progress()
-	@printf("Loss = %f, θ = %f,%f,%f\n", loss(), θ.data...)
-	plot( P.data,U.data,
-		label="inferred", color="darkblue",linewidth=3)
-	plot!( data.parameter,predictor().data,
-		label="inferred", color="darkblue")
-	plot!( data.parameter,data.density,
-		label="target", color="gold",
-		xlabel="parameter, p", ylabel="steady state") |> display
-end
-
-
-function ℒoss(a,b)
-	copyto!(θ.data,[a,b,0.0])
-	return loss().data
-end
-
-# parametrised hypothesis
-function rates( u, p=0.0, θ₂=0.0, θ₃=-1.0, θ₀=0.0 )
-	return p + u*θ₂ + θ₃*u^3 + θ₀
-end
-f = (u,p)->rates(u,p,θ...)
-
-θ = param([-1,-1,0])
-u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
-x = y = range(-1,1,length=12)
-contourf(x,y, (x,y) -> ℒoss(x,y), size=(500,500))
-
-progress()
+# visualising loss landscape
+# using Flux.Tracker: update!
+# global u₀,U,P
+#
+# θ = param([-2,1,-2])
+# f = (u,p)->rates(u,p,θ...)
+#
+# data = StateDensity(parameter,density)
+# maxSteps=1000
+#
+# # setting initial hyperparameters
+# u₀ = param([-2.0])
+# p₀ = param(minimum(parameter))
+# pMax,ds = maximum(parameter), step(parameter)
+# u₀,P,U = continuation( f,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds, maxSteps=maxSteps )
+#
+# function predictor()
+# 	global u₀,U,P
+# 	try
+# 		u₀,P,U = continuation( f,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds, maxSteps=maxSteps )
+# 		kernel = kde(P,data.parameter,bandwidth=1.4*ds) # density as label
+# 		return kernel.density
+# 	catch
+# 		return NaN
+# 	end
+# end
+#
+# loss() = norm( predictor() .- data.density )
+#
+# function progress()
+# 	@printf("Loss = %f, θ = %f,%f,%f\n", loss(), θ.data...)
+# 	plot( P.data,U.data,
+# 		label="inferred", color="darkblue",linewidth=3)
+# 	plot!( data.parameter,predictor().data,
+# 		label="inferred", color="darkblue")
+# 	plot!( data.parameter,data.density,
+# 		label="target", color="gold",
+# 		xlabel="parameter, p", ylabel="steady state") |> display
+# end
+#
+#
+# function ℒoss(a,b)
+# 	copyto!(θ.data,[a,b,0.0])
+# 	return Tracker.data(loss())
+# end
+#
+#
+# θ = param([-1,-1,0])
+# u₀,P,U = continuation( f,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds, maxSteps=maxSteps )
+# x = y = range(-1,1,length=40)
+# contourf(x,y, (x,y) -> ℒoss(x,y), size=(500,500))

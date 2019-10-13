@@ -7,20 +7,16 @@ struct StateDensity
 end
 
 function infer( f::Function, θ::TrackedArray, data::StateDensity; optimiser=ADAM(0.1),
-		iter::Int=100, u₀::AbstractFloat=-2.0, uRange::AbstractFloat=1e3 )
+		iter::Int=100, u₀::TrackedArray=param([-2.0,0.0]), maxSteps::Int=1000 )
 
 	# setting initial hyperparameters
-	p₀,pMax,ds = minimum(data.parameter), maximum(data.parameter), step(data.parameter)
-	u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
-	U,P = continuation( (u,p)->f(u,p).data ,u₀,p₀; ds=ds, pMax=pMax, uRange=uRange )
+	p₀ = param(minimum(data.parameter))
+	pMax,ds = maximum(data.parameter), step(data.parameter)
+	u₀,P,U = continuation( f,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds, maxSteps=maxSteps )
 
 	function predictor()
 
-		# predict parameter curve
-		U,P = continuation( f,u₀,p₀; ds=ds, pMax=pMax, uRange=uRange )
-		u₀,_,_= tangent( (u,p)->f(u,p).data ,u₀,p₀; ds=ds)
-
-		# state density as multi-stability label
+		u₀,P,U = continuation( f,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds, maxSteps=maxSteps )
 		kernel = kde(P,data.parameter,bandwidth=1.4*ds)
 		return kernel.density
 	end
