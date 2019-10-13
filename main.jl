@@ -1,3 +1,4 @@
+using Revise
 include("inference.jl")
 
 # parametrised hypothesis
@@ -12,8 +13,6 @@ density = ones(length(parameter)).*(abs.(parameter).<0.5)
 # run inference
 θ = param(randn(3))
 infer( (u,p)->rates(u,p,θ...), θ, StateDensity(parameter,density); iter=200)
-
-
 
 # visualising loss landscape
 # using Flux.Tracker: update!
