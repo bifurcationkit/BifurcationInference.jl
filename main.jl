@@ -13,59 +13,60 @@ end
 parameter = -2:0.05:2
 density = ones(length(parameter)).*(abs.(parameter).<0.5)
 
-# run inference
+######################################################## run inference
 θ = param(randn(3))
-infer( (u,p)->rates(u,p,θ...), (u,p)->jacobian(u,p,θ...), θ,
-	StateDensity(parameter,density); iter=200)
+f = (u,p)->rates(u,p,θ...)
+J = (u,p)->jacobian(u,p,θ...)
 
-# visualising loss landscape
-# using Flux.Tracker: update!
-# global u₀,U,P
-#
-# θ = param([-2,1,-2])
-# f = (u,p)->rates(u,p,θ...)
-#
-# data = StateDensity(parameter,density)
-# maxSteps=1000
-#
-# # setting initial hyperparameters
-# u₀ = param([-2.0])
-# p₀ = param(minimum(parameter))
-# pMax,ds = maximum(parameter), step(parameter)
-# u₀,P,U = continuation( f,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds, maxSteps=maxSteps )
-#
-# function predictor()
-# 	global u₀,U,P
-# 	try
-# 		u₀,P,U = continuation( f,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds, maxSteps=maxSteps )
-# 		kernel = kde(P,data.parameter,bandwidth=1.4*ds) # density as label
-# 		return kernel.density
-# 	catch
-# 		return NaN
-# 	end
-# end
-#
-# loss() = norm( predictor() .- data.density )
-#
-# function progress()
-# 	@printf("Loss = %f, θ = %f,%f,%f\n", loss(), θ.data...)
-# 	plot( P.data,U.data,
-# 		label="inferred", color="darkblue",linewidth=3)
-# 	plot!( data.parameter,predictor().data,
-# 		label="inferred", color="darkblue")
-# 	plot!( data.parameter,data.density,
-# 		label="target", color="gold",
-# 		xlabel="parameter, p", ylabel="steady state") |> display
-# end
-#
-#
-# function ℒoss(a,b)
-# 	copyto!(θ.data,[a,b,0.0])
-# 	return Tracker.data(loss())
-# end
-#
-#
-# θ = param([-1,-1,0])
-# u₀,P,U = continuation( f,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds, maxSteps=maxSteps )
-# x = y = range(-1,1,length=40)
-# contourf(x,y, (x,y) -> ℒoss(x,y), size=(500,500))
+infer( f, J, θ, StateDensity(parameter,density); iter=200)
+
+
+######################################################## visualising loss landscape
+using Flux.Tracker: update!
+global u₀,U,P
+
+# setting initial hyperparameters
+data = StateDensity(parameter,density)
+maxSteps=1000
+maxIter=1000
+
+P,U = param([0.0]),param([0.0])
+u₀,p₀ = param([-2.0,0.0]),param(minimum(data.parameter))
+pMax,ds = maximum(data.parameter), step(data.parameter)
+
+function predictor()
+	global u₀,U,P
+
+	try u₀,P,U = continuation( f,J,u₀,p₀;
+			pMin=p₀-ds, pMax=pMax, ds=ds,
+			maxSteps=maxSteps, maxIter=maxIter )
+
+	catch AssertionError end
+
+	kernel = kde(P,data.parameter,bandwidth=1.4*ds)
+	return kernel.density
+end
+
+loss() = norm( predictor() .- data.density )
+
+function progress()
+	@printf("Loss = %f, θ = [%f,%f,%f], u₀ = [%f,%f]\n", loss(), θ.data...,u₀...)
+	plot( P.data,U.data,
+		label="inferred", color="darkblue",linewidth=3)
+	plot!( data.parameter,predictor().data,
+		label="inferred", color="darkblue")
+	plot!( data.parameter,data.density,
+		label="target", color="gold",
+		xlabel="parameter, p", ylabel="steady state") |> display
+end
+
+
+function ℒoss(a,b)
+	copyto!(θ.data,[a,b,0.0])
+	return Tracker.data(loss())
+end
+
+
+θ = param([-1,-1,0])
+x,y = range(-1,1,length=60),range(-1,1,length=40)
+contourf(x,y, (x,y) -> ℒoss(x,y), size=(500,500))

@@ -7,7 +7,7 @@ struct StateDensity
 end
 
 function infer( f::Function, J::Function, θ::TrackedArray, data::StateDensity; optimiser=ADAM(0.1),
-		iter::Int=100, u₀::TrackedArray=param([-2.0,0.0]), maxSteps::Int=1000 )
+		iter::Int=100, u₀=[-2.0,0.0], maxSteps::Int=1000, maxIter::Int=1000 )
 
 	# setting initial hyperparameters
 	P,U = param([0.0]),param([0.0])
@@ -16,7 +16,7 @@ function infer( f::Function, J::Function, θ::TrackedArray, data::StateDensity; 
 
 	function predictor()
 
-		u₀,P,U = continuation( f,J,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds, maxSteps=maxSteps )
+		u₀,P,U = continuation( f,J,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds, maxSteps=maxSteps, maxIter=maxIter )
 		kernel = kde(P,data.parameter,bandwidth=1.4*ds)
 		return kernel.density
 	end

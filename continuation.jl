@@ -6,8 +6,8 @@ unpack(curve::ContResult) = Tracker.collect(curve.branch[1,:]),Tracker.collect(c
 
 function continuation( f, J, u₀, p₀::T ; kwargs...) where T
 
-	options = Cont.NewtonPar{T,typeof(DefaultLS()), typeof(DefaultEig())}(verbose = false)
-	u₀, _, stable = Cont.newton( u -> f(u,p₀), u -> J(u,p₀), u₀, options )
+	options = Cont.NewtonPar{T,typeof(DefaultLS()), typeof(DefaultEig())}(verbose=false,maxIter=kwargs[:maxIter])
+	u₀, _, stable = Cont.newton( u -> f(u,p₀), u -> J(u,p₀), convert(Array{T},u₀), options )
 	branch, _, _ = Cont.continuation( f,J, u₀,p₀,
 
 		ContinuationPar{T,typeof(DefaultLS()), typeof(DefaultEig())}(
