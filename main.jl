@@ -2,7 +2,11 @@ include("inference.jl")
 
 # parametrised hypothesis
 function rates( u,p, θ₁=0.0, θ₂=0.0, θ₃=0.0)
-	return Array([ p + θ₁*u[1] + θ₂*u[1]^3 + θ₃, u[2]^2 ])
+	return [ p + θ₁*u[1] + θ₂*u[1]^3 + θ₃, -u[2] ]
+end
+
+function jacobian( u,p, θ₁=0.0, θ₂=0.0, θ₃=0.0)
+	return [[ θ₁ .+ 3 .*θ₂.*u[1].^2, 0.0 ] [ 0.0, -1.0 ]]
 end
 
 # target state density
@@ -11,7 +15,8 @@ density = ones(length(parameter)).*(abs.(parameter).<0.5)
 
 # run inference
 θ = param(randn(3))
-infer( (u,p)->rates(u,p,θ...), θ, StateDensity(parameter,density); iter=200)
+infer( (u,p)->rates(u,p,θ...), (u,p)->jacobian(u,p,θ...), θ,
+	StateDensity(parameter,density); iter=200)
 
 # visualising loss landscape
 # using Flux.Tracker: update!
