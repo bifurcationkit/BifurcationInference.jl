@@ -1,16 +1,16 @@
 # Fdb version 3
-["bibtex article"] 1571262698 "article.aux" "article.bbl" "article" 1571262699
+["bibtex article"] 1571262979 "article.aux" "article.bbl" "article" 1571263187
   "/usr/share/texlive/texmf-dist/bibtex/bst/base/ieeetr.bst" 1292289607 18361 1a00e58565e7f19bf2b3e1bfb82254ae ""
-  "article.aux" 1571262698 1886 f40a0c99b84d587124ecc4a545475b25 ""
+  "article.aux" 1571262993 1886 f40a0c99b84d587124ecc4a545475b25 ""
   "article.bcf" 0 -1 0 ""
-  "refs.bib" 0 -1 0 ""
+  "refs.bib" 1571262974 174389 f768d61e63efe485bc926db910871ce3 ""
   (generated)
-  "article.bbl"
   "article.blg"
-["pdflatex"] 1571262698 "/home/gszep/Documents/code/fold-inference/docs/article.tex" "/home/gszep/Documents/code/fold-inference/docs/article.pdf" "article" 1571262699
+  "article.bbl"
+["pdflatex"] 1571262992 "/home/gszep/Documents/code/fold-inference/docs/article.tex" "/home/gszep/Documents/code/fold-inference/docs/article.pdf" "article" 1571263187
   "/etc/texmf/web2c/texmf.cnf" 1554713224 1101 af7716885e081ab43982cab7b4672c1a ""
-  "/home/gszep/Documents/code/fold-inference/docs/article.aux" 1571262698 1886 f40a0c99b84d587124ecc4a545475b25 ""
-  "/home/gszep/Documents/code/fold-inference/docs/article.tex" 1571262697 5662 92f03a2de027e1b2c673f5bd83263f50 ""
+  "/home/gszep/Documents/code/fold-inference/docs/article.aux" 1571262993 1886 f40a0c99b84d587124ecc4a545475b25 ""
+  "/home/gszep/Documents/code/fold-inference/docs/article.tex" 1571263187 5662 92f03a2de027e1b2c673f5bd83263f50 ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1272929888 3287 e6b82fe08f5336d4d5ebc73fb1152e87 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
   "/usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1246382020 1004 54797486969f23fa377b128694d548df ""
@@ -237,14 +237,14 @@
   "/usr/share/texmf/web2c/texmf.cnf" 1503343927 31343 93828589fb0cea665e553ee5a17ad2d4 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1554713237 1863403 f3ff9a4253bcb5fb9a9baaf0c572cb01 ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1554713246 3858670 9ac0c93fff459ab6bcadd5f9d9e42d6b ""
-  "article.aux" 1571262698 1886 f40a0c99b84d587124ecc4a545475b25 ""
-  "article.bbl" 0 -1 0 "bibtex article"
-  "article.out" 1571262698 400 4ca18bd8506d583b023c50cbe1ae5034 ""
-  "article.tex" 1571262697 5662 92f03a2de027e1b2c673f5bd83263f50 ""
+  "article.aux" 1571262993 1886 f40a0c99b84d587124ecc4a545475b25 ""
+  "article.bbl" 1571262979 49 0eba253fc001332e731e8aba3f23127b "bibtex article"
+  "article.out" 1571262993 400 4ca18bd8506d583b023c50cbe1ae5034 ""
+  "article.tex" 1571263187 5662 92f03a2de027e1b2c673f5bd83263f50 ""
   (generated)
-  "article.out"
-  "/home/gszep/Documents/code/fold-inference/docs/article.log"
   "article.aux"
-  "article.log"
   "/home/gszep/Documents/code/fold-inference/docs/article.pdf"
   "article.pdf"
+  "article.log"
+  "/home/gszep/Documents/code/fold-inference/docs/article.log"
+  "article.out"
