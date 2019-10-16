@@ -1,18 +1,38 @@
-using PseudoArcLengthContinuation, Flux
+using Flux,PseudoArcLengthContinuation
 using PseudoArcLengthContinuation: ContResult, DefaultLS, DefaultEig
 const Cont = PseudoArcLengthContinuation
 
-unpack(curve::ContResult) = Tracker.collect(curve.branch[1,:]),Tracker.collect(curve.branch[2,:])
+import Base.vcat
+import Plots: plot, plot!
+import PseudoArcLengthContinuation: eigen!
+using Flux.Tracker: TrackedReal,TrackedArray
 
-function continuation( f, J, u₀, p₀::T ; kwargs...) where T
+unpack(curve::ContResult) = tuple([ curve.branch[i,:] for i=1:size(curve.branch)[1]-2 ]...)
+initial_state(curve::ContResult) = [ param(curve.branch[i,1].data) for i=2:size(curve.branch)[1]-2 ]
 
-	options = Cont.NewtonPar{T,typeof(DefaultLS()), typeof(DefaultEig())}(verbose=false,maxIter=kwargs[:maxIter])
-	u₀, _, stable = Cont.newton( u -> f(u,p₀), u -> J(u,p₀), convert(Array{T},u₀), options )
-	branch, _, _ = Cont.continuation( f,J, u₀,p₀,
+plot(x::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot( Tracker.data.(x); kwargs...)
+plot!(x::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot!( Tracker.data.(x); kwargs...)
 
-		ContinuationPar{T,typeof(DefaultLS()), typeof(DefaultEig())}(
+plot(x::Vector{TrackedReal{T}},y::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot( Tracker.data.(x), Tracker.data.(y); kwargs...)
+plot!(x::Vector{TrackedReal{T}},y::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot!( Tracker.data.(x), Tracker.data.(y); kwargs...)
+plot!(x::AbstractArray,y::TrackedArray; kwargs...) = plot!( x, y.data; kwargs...)
+
+vcat(p::TrackedReal{T}, u::Vector{TrackedReal{T}}, i::Int64, ds::TrackedReal{T}) where {T<:Real} = [ p, u..., i, ds ]
+eigen!(x::Array{TrackedReal{T}}; kwargs...) where {T<:Real} = eigen!( Tracker.data.(x); kwargs...)
+
+function continuation( f::Function, J::Function,
+	u₀::Vector{TrackedReal{T}}, p₀::TrackedReal{T},
+	printsolution = u->u ; kwargs...) where {T<:Real}
+
+	options = Cont.NewtonPar{TrackedReal{T}, typeof(DefaultLS()), typeof(DefaultEig())}(verbose=false,maxIter=kwargs[:maxIter])
+	return Cont.continuation( f,J, u₀,p₀,
+		ContinuationPar{TrackedReal{T},typeof(DefaultLS()), typeof(DefaultEig())}(
+
 			pMin=kwargs[:pMin],pMax=kwargs[:pMax],ds=kwargs[:ds],
-			maxSteps=kwargs[:maxSteps])
-	)
-	return Tracker.data.(u₀), unpack(branch)...
+			maxSteps=kwargs[:maxSteps], newtonOptions = options,
+
+			computeEigenValues = kwargs[:computeEigenValues]);
+			printsolution = printsolution )
 end
+
+	# return u₀, unpack(branch)...
