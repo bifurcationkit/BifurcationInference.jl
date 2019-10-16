@@ -34,5 +34,3 @@ function continuation( f::Function, J::Function,
 			computeEigenValues = kwargs[:computeEigenValues]);
 			printsolution = printsolution )
 end
-
-	# return u₀, unpack(branch)...
