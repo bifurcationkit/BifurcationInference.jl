@@ -42,18 +42,131 @@
 \begin{document}
 
 \title{
-Inference and Synthesis of\\
-co-dimension one Bifurcations
+	Inference and Synthesis of\\
+	co-dimension one Bifurcations
 }
 
-\author{Gregory Szep}
-\affil{King's College London}
+\author{Gregory Szep$^1$, Neil Dalchau$^2$ and Attila Csikasz-Nagy$^1$}
+\affil{$^1$King's College London, $^2$Microsoft Research Cambridge}
 \date{\today}
 \maketitle
 \vspace{-25pt}
-\section{State-space Density} \vspace{-10pt}
+\section{Introduction and Motivation}
+
+\begin{itemize}
+\item qualitative equivalence more important
+\item fitting to time courses not appropriate
+\item gradient information makes optimisation tractable
+\end{itemize}
+
+\section{Problem Statement}
+
+Suppose we would like to know the regions within paramter space
+$\theta\in\mathbb{R}^N$
+where the steady state of a set of differential equations
+takes on a specified target form $t(p)$ along a known parameter
+$p\in\mathbb{R}$. The target is a label $t\in\{0,1\}$ that indicates
+whether the system is monostable or multi-stable at given $p$. We begin with a known form
+for the differential equations for $u\in\mathbb{R}^M$
+\begin{align}
+	\partial_t u=F(u|\,p,\theta) 
+\end{align}
+and the set of steady states
+$U(\theta) := \left\{ (u,p)\in\mathbb{R}^{M+1} : F(u|\,p,\theta)=0\right\}$
+can be found in a local region numerically using
+pseudo-arclength continuation along $u(s|\theta),p(s|\theta)$ \cite{} where
+$s$ parametrises the one co-dimensional curve -- details in section
+\ref{sec:continuation}.
+In order to perform an optimisation 
+we need mapping from the states $U(\theta)$ to an output that can be
+compared to $t(p)$. Section \ref{sec:objective-function} motivates this mapping and
+constructs the objective function.
+
+\section{Pseudo-arclength Continuation}
+\label{sec:continuation}
+
+\begin{itemize}
+    \item predictor-corrector algorithm
+    \end{itemize}
+
+\section{Objective Function}
+\label{sec:objective-function}
+
+First we note that although $U(\theta)$ contains both $u,p$ we
+are only interested in how many unique $u$ there are for a given $p$.
+This can be done by taking a histogram of equally sized bins along $p$.
+Another way of getting a quantity that is proportional to count is
+by convolution $*$ of $p(s|\theta)$ along $s$ with a symmetric kernel
+$\phi(p\,|\alpha)$ with a bandwidth $\alpha$ indicating bin width.
+This way we get a smooth and differentiable version of the histogram
+operation.
+\begin{align}
+    \phi(p\,|\alpha)*U(\theta):=
+    \int_{\mathbb{R}}\!\phi(p-p(s|\theta)\,|\alpha)\,\mathrm{d}s
+\end{align}
+The result is now proportional to count, but needs to
+be mapped to the unit interval $[0,1]$ in such a way that high
+count regions that indicate multi-stability are mapped to one, and
+low counts which indicate monostability are mapped to zero. For
+this a sigmoidal activation function $\sigma(\frac{x-\mu}{\beta})$ with
+unknown smoothness $\beta$ and threshold $\mu$ will do. We
+are now ready to write down the objective function
+\begin{align}
+	\mathcal{J}(\theta\,|\,\alpha,\beta,\mu):=                            
+	\int_{\mathbb{R}}\left|\;                                                  
+    t(p) - \sigma\left(\frac{\phi(p\,|\alpha)*U(\theta)-\mu}{\beta}\right)
+	\,\right|^2\,\mathrm{d}p
+\end{align}
+where $\theta$ are the parameters to be optimised and $\alpha,\beta,\mu$
+are hyper-parameters. Note that $U(\theta)$ is the only $\theta$ dependence
+in the expression. When we apply
+\begin{align}
+    \partial_\theta\mathcal{J}
+    &=-2\int_{\mathbb{R}}
+    \sigma'\,\partial_\theta\left(
+        \frac{\phi(p\,|\alpha)*U(\theta)-\mu}{\beta}
+        \right)
+    \,\mathrm{d}p\\
+    &=-\frac{2}{\beta}\int_{\mathbb{R}}
+    \sigma'\,
+        \partial_\theta(\,\phi(p|\alpha)*U(\theta)\,)
+    \,\mathrm{d}p\\
+    &=\frac{2}{\beta}
+    \int_{\mathbb{R}}\sigma'\!\! \int_{\mathbb{R}}\phi'\,
+        \partial_\theta p(s|\theta)
+    \,\mathrm{d}s \,\mathrm{d}p
+\end{align}
+remarkably everything is differentiable including the algorithm in section
+\ref{sec:continuation}. This gradient information can be used in a
+gradient descent optimization to minimize $\mathcal{J}(\theta)$.
+
+\section{Normal Forms}
+\label{sec:normal-forms}
+
+\begin{itemize}
+    \item saddle-node, pitchfork, transcritical
+    \item optimisation landscape with changing hyperparams
+    \item benchmarks against other algos
+\end{itemize}
 
 
+\section{Chemical Reaction Networks}
+\label{sec:networks}
+
+\begin{itemize}
+    \item toggle switch
+    \item cell cycle
+    \item application to structure $\rightarrow$ function (Luca)
+\end{itemize}
+
+\section{Conclusions and Extensions}
+\label{sec:conclusions}
+
+\begin{itemize}
+    \item hyperparam optimization
+    \item hopf bifurcations
+    \item pattern formation in pdes
+\end{itemize}
 
 \bibliography{refs}
 \bibliographystyle{ieeetr}
