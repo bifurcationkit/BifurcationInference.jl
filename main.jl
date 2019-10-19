@@ -25,10 +25,10 @@ density = ones(length(parameter)).*(abs.(parameter).<0.5)
 
 ######################################################## run inference
 θ = param(randn(3))
-f = (u,p)->rates(u,p,θ...)
-J = (u,p)->jacobian(u,p,θ...)
+fx = (u,p)->rates(u,p,θ...)
+Jx = (u,p)->jacobian(u,p,θ...)
 
-infer( f, J, θ, StateDensity(parameter,density); iter=200)
+infer( fx, Jx, θ, StateDensity(parameter,density); iter=200)
 
 ######################################################## visualising loss landscape
 using Flux.Tracker: update!

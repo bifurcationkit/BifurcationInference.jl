@@ -4,21 +4,18 @@ const Cont = PseudoArcLengthContinuation
 
 import Base.vcat
 import Plots: plot, plot!
-import PseudoArcLengthContinuation: eigen!
+import PseudoArcLengthContinuation: eigen,eigen!
 using Flux.Tracker: TrackedReal,TrackedArray
 
+# data handling methods
 unpack(curve::ContResult) = tuple([ curve.branch[i,:] for i=1:size(curve.branch)[1]-2 ]...)
 initial_state(curve::ContResult) = [ param(curve.branch[i,1].data) for i=2:size(curve.branch)[1]-2 ]
 
-plot(x::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot( Tracker.data.(x); kwargs...)
-plot!(x::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot!( Tracker.data.(x); kwargs...)
-
-plot(x::Vector{TrackedReal{T}},y::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot( Tracker.data.(x), Tracker.data.(y); kwargs...)
-plot!(x::Vector{TrackedReal{T}},y::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot!( Tracker.data.(x), Tracker.data.(y); kwargs...)
-plot!(x::AbstractArray,y::TrackedArray; kwargs...) = plot!( x, y.data; kwargs...)
-
+# patches for continuation()
 vcat(p::TrackedReal{T}, u::Vector{TrackedReal{T}}, i::Int64, ds::TrackedReal{T}) where {T<:Real} = [ p, u..., i, ds ]
+eigen(x::Array{TrackedReal{T}}; kwargs...) where {T<:Real} = eigen( Tracker.data.(x); kwargs...)
 eigen!(x::Array{TrackedReal{T}}; kwargs...) where {T<:Real} = eigen!( Tracker.data.(x); kwargs...)
+
 
 function continuation( f::Function, J::Function,
 	u₀::Vector{TrackedReal{T}}, p₀::TrackedReal{T},
@@ -34,3 +31,11 @@ function continuation( f::Function, J::Function,
 			computeEigenValues = kwargs[:computeEigenValues]);
 			printsolution = printsolution )
 end
+
+# patches for plotBranch()
+plot(x::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot( Tracker.data.(x); kwargs...)
+plot!(x::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot!( Tracker.data.(x); kwargs...)
+
+plot(x::Vector{TrackedReal{T}},y::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot( Tracker.data.(x), Tracker.data.(y); kwargs...)
+plot!(x::Vector{TrackedReal{T}},y::Vector{TrackedReal{T}}; kwargs...) where {T<:Real} = plot!( Tracker.data.(x), Tracker.data.(y); kwargs...)
+plot!(x::AbstractArray,y::TrackedArray; kwargs...) = plot!( x, y.data; kwargs...)
