@@ -1,5 +1,6 @@
-using Flux, Plots, KernelDensity, LinearAlgebra, Printf
-include("continuation.jl")
+using Flux, Plots, LinearAlgebra, Printf
+include("patches/PseudoArcLengthContinuation.jl")
+include("patches/KernelDensity.jl")
 
 struct StateDensity
 	parameter::AbstractRange

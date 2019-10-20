@@ -25,10 +25,10 @@ density = ones(length(parameter)).*(abs.(parameter).<0.5)
 
 ######################################################## run inference
 θ = param(randn(3))
-fx = (u,p)->rates(u,p,θ...)
-Jx = (u,p)->jacobian(u,p,θ...)
+f = (u,p)->rates(u,p,θ...)
+J = (u,p)->jacobian(u,p,θ...)
 
-infer( fx, Jx, θ, StateDensity(parameter,density); iter=200)
+infer( f, J, θ, StateDensity(parameter,density); iter=200)
 
 ######################################################## visualising loss landscape
 using Flux.Tracker: update!
@@ -70,9 +70,6 @@ function loss()
 		return NaN end
 end
 
-ℒoss(1,-1)
-progress()
-
 function progress()
 	@printf("Loss = %f, θ = [%f,%f,%f], u₀ = [%f,%f]\n", loss(), θ.data...,u₀...)
 	bifurcations,prediction = predictor()
@@ -93,9 +90,3 @@ end
 θ = param([-1,-1,0])
 x,y = range(-1,1,length=60),range(-1,1,length=60)
 contourf(x,y, (x,y) -> ℒoss(x,y), size=(500,500))
-
-ℒoss(1,-1)
-progress()
-
-# toggle switch
-#
