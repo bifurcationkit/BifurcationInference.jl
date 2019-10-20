@@ -59,7 +59,7 @@ function predictor()
 	density = kde( unpack(bifurcations)[1], data.parameter, bandwidth=1.4*ds).density
 	u₀ = initial_state(bifurcations)
 
-	return bifurcations,σ.((density.-0.5)./0.01)
+	return bifurcations,density#σ.((density.-0.5)./0.01)
 end
 
 function loss()
