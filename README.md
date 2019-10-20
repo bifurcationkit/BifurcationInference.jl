@@ -5,8 +5,13 @@ The purpose of this library is to extend the methods provided in `PseudoArcLengt
 ## Co-dimension one methods
 Extending the one parameter continuation `Cont.continuation` which returns a `ContResult` type and now also contains `TrackedReal` types. This can be called in the same way `Cont.continuation` is called. See `tests/continuation.jl` for an example.
 ```
-function continuation( f::Function, J::Function, u₀::Vector{T}, p₀::T,
-    printsolution = u->u[1] ; kwargs...)
+continuation( f::Function, J::Function, u₀::Vector{T}, p₀::T, printsolution = u->u[1] ; kwargs...)
+```
+
+## Kernel Density Estimation
+These methods are extended so that we may essentially have a differenitable histogram method.
+```
+kde( ::Array{TrackedReal},  ... )
 ```
 
 ## Dependencies
