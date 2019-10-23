@@ -1,7 +1,6 @@
 using Test
-using Distributions
 include("../patches/KernelDensity.jl")
-using KernelDensity
+using Distributions,KernelDensity,Flux
 
 import KernelDensity: kernel_dist, default_bandwidth, kde_boundary, kde_range, tabulate
 

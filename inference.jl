@@ -1,6 +1,7 @@
 include("src/patches/KernelDensity.jl")
 using FluxContinuation: continuation,unpack
-using Flux, Plots, LinearAlgebra, Printf
+using PseudoArcLengthContinuation: plotBranch
+using Flux, KernelDensity, Plots, LinearAlgebra, Printf
 
 struct StateDensity
     parameter::AbstractRange

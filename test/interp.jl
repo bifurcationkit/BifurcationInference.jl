@@ -1,6 +1,6 @@
 using Test
 include("../patches/KernelDensity.jl")
-using KernelDensity
+using Distributions,KernelDensity,Flux
 
 X = param.(randn(100))
 Y = param.(randn(100))
