@@ -20,7 +20,7 @@ function loss(f,J,u₀,p₀)
 	bifurcations, = continuation( f,J, u₀,p₀;
 		pMin=-2.1, pMax=2, ds=0.01,
 		maxSteps=1000, maxIter=1000,
-		computeEigenValues=true )
+		computeEigenValues=true, tol=1e-10 )
 
 	P,U, = unpack(bifurcations)
 	return norm( P .- target(U) )
@@ -46,13 +46,13 @@ function infer( f::Function, J::Function, θ::TrackedArray, target )
 	bifurcations, = continuation( f,J,u₀,p₀;
 		pMin=-2.1, pMax=2, ds=0.01,
 		maxSteps=1000, maxIter=1000,
-		computeEigenValues=true )
+		computeEigenValues=true, tol=1e-10 )
 
 	function loss()
 		bifurcations, = continuation( f,J,u₀,p₀;
 			pMin=-2.1, pMax=2, ds=0.01,
 			maxSteps=1000, maxIter=1000,
-			computeEigenValues=true )
+			computeEigenValues=true, tol=1e-10 )
 
 		P,U, = unpack(bifurcations)
 		return norm( P .- target(U) )
