@@ -22,7 +22,7 @@ infer( f, J, θ, StateDensity(parameter,density); iter=200)
 
 ######################################################## visualising loss landscape
 using Flux.Tracker: update!
-global u₀,U,P
+global u₀
 
 # setting initial hyperparameters
 data = StateDensity(parameter,density)
