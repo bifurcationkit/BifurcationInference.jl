@@ -14,19 +14,15 @@ function infer( f::Function, J::Function, θ::TrackedArray, data::StateDensity; 
 	p₀ = param(minimum(data.parameter))
 	pMax,ds = maximum(data.parameter), step(data.parameter)
 
-	bifurcations, = continuation( f,J,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds,
+	bifurcations,u₀ = continuation( f,J,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds,
 		maxSteps=maxSteps, maxIter=maxIter, computeEigenValues=true )
-
 	prediction = kde( unpack(bifurcations)[1], data.parameter, bandwidth=1.4*ds)
-	u₀ = initial_state(bifurcations)
 
 	function predictor()
 
-		bifurcations, = continuation( f,J,u₀, p₀; pMin=p₀-ds, pMax=pMax, ds=ds,
+		bifurcations,u₀ = continuation( f,J,u₀, p₀; pMin=p₀-ds, pMax=pMax, ds=ds,
 			maxSteps=maxSteps, maxIter=maxIter, computeEigenValues=true )
-
 		density = kde( unpack(bifurcations)[1], data.parameter, bandwidth=1.4*ds)
-		u₀ = initial_state(bifurcations)
 
 		return bifurcations,density
 	end

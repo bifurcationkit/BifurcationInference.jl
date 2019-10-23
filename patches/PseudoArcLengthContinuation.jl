@@ -9,7 +9,6 @@ import LinearAlgebra: eigen,eigen!
 
 # methods for unpacking ContResult
 unpack(curve::ContResult) = tuple([ curve.branch[i,:] for i=1:size(curve.branch)[1]-2 ]...)
-initial_state(curve::ContResult) = [ param(curve.branch[i,1].data) for i=2:size(curve.branch)[1]-2 ]
 
 # patches for Cont.continuation()
 vcat(p::TrackedReal{T}, u::Vector{TrackedReal{T}}, i::Int64, ds::TrackedReal{T}) where {T<:Real} = [ p, u..., i, ds ]
@@ -22,17 +21,24 @@ eigen!(x::Array{TrackedReal{T}}; kwargs...) where {T<:Real} = eigen!( Tracker.da
 
 """ extension of co-dimension one parameter continuation methods to Array{TrackedReal} type """
 function continuation( f::Function, J::Function, u₀::Vector{T}, p₀::T,
-	printsolution = u->u[1] ; kwargs...) where {T<:Number}
+	printsolution = u->u[1]; kwargs...) where {T<:Number}
+
+	function updateInitial( state::BorderedArray, gradient::BorderedArray, step::Int64, contResult::ContResult )
+		if step == 0 u₀ = param.(Tracker.data.(state.u)) end
+		return true
+	end
 
 	options = Cont.NewtonPar{T, typeof(DefaultLS()), typeof(DefaultEig())}(verbose=false,maxIter=kwargs[:maxIter])
-	return Cont.continuation( f,J, u₀,p₀,
+	bifurcations, = Cont.continuation( f,J, u₀,p₀,
 		Cont.ContinuationPar{T,typeof(DefaultLS()), typeof(DefaultEig())}(
 
 			pMin=kwargs[:pMin],pMax=kwargs[:pMax],ds=kwargs[:ds],
 			maxSteps=kwargs[:maxSteps], newtonOptions = options,
 
 			computeEigenValues = kwargs[:computeEigenValues]);
-			printsolution = printsolution )
+			printsolution = printsolution, finaliseSolution = updateInitial )
+
+	return bifurcations, u₀
 
 end
 
