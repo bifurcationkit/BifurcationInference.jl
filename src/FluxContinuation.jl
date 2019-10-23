@@ -1,6 +1,6 @@
 module FluxContinuation
 
-	using Flux, Plots, LinearAlgebra, Printf
+	using Flux
 	include("patches/PseudoArcLengthContinuation.jl")
 	export continuation
 

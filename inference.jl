@@ -1,6 +1,6 @@
 include("src/patches/KernelDensity.jl")
 using FluxContinuation: continuation
-using Flux
+using Flux, Plots, LinearAlgebra, Printf
 
 struct StateDensity
     parameter::AbstractRange
