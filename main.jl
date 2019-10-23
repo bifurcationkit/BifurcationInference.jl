@@ -34,20 +34,16 @@ p₀ = param(minimum(data.parameter))
 pMax,ds = maximum(data.parameter), step(data.parameter)
 u₀ = param.([-2,-2])
 
-bifurcations, = continuation( f,J,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds,
+bifurcations,u₀ = continuation( f,J,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds,
 	maxSteps=maxSteps, maxIter=maxIter, computeEigenValues=true )
-
 prediction = kde( unpack(bifurcations)[1], data.parameter, bandwidth=1.4*ds)
-u₀ = initial_state(bifurcations)
 
 function predictor()
 	global u₀
 
-	bifurcations, = continuation( f,J,u₀, p₀; pMin=p₀-ds, pMax=pMax, ds=ds,
+	bifurcations,u₀ = continuation( f,J,u₀, p₀; pMin=p₀-ds, pMax=pMax, ds=ds,
 		maxSteps=maxSteps, maxIter=maxIter, computeEigenValues=true )
-
 	density = kde( unpack(bifurcations)[1], data.parameter, bandwidth=1.4*ds).density
-	u₀ = initial_state(bifurcations)
 
 	return bifurcations,density#σ.((density.-0.5)./0.01)
 end
