@@ -1,4 +1,4 @@
-name = "FluxContinuation1"
-uuid = "d950825c-f589-11e9-1059-a193a72a2bdd"
+name = "FluxContinuation"
+uuid = "5cb79850-f58b-11e9-2cb5-7bd22335abee"
 authors = ["gszep <gregory.szep@gmail.com>"]
 version = "0.1.0"
