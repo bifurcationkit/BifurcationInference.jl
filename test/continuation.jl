@@ -1,4 +1,5 @@
 using FluxContinuation: continuation,unpack
+using PseudoArcLengthContinuation: plotBranch
 using Flux, Plots, LinearAlgebra, Printf
 
 # parametrised hypothesis

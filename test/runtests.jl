@@ -8,7 +8,7 @@
 # end
 
 
-tests = ['continuation']
+tests = ["continuation"]
 println("Testing FluxContinuation.jl ...")
 
 for test in tests
