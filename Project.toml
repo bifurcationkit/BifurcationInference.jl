@@ -1,5 +1,5 @@
 name = "FluxContinuation"
-uuid = "5cb79850-f58b-11e9-2cb5-7bd22335abee"
+uuid = "c9a58106-f593-11e9-0ecc-89b7effec3cc"
 authors = ["gszep <gregory.szep@gmail.com>"]
 version = "0.1.0"
 
