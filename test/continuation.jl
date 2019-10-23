@@ -1,6 +1,5 @@
-include("../patches/PseudoArcLengthContinuation.jl")
+using FluxContinuation: continuation
 using Flux, Plots, LinearAlgebra, Printf
-
 
 # parametrised hypothesis
 function f( u,p, θ₁=0.0, θ₂=0.0, θ₃=0.0)
