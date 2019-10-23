@@ -15,19 +15,20 @@ function jacobian( u, y₁=0.0, y₂=0.0, μ₁=0.0, μ₂=0.0, a₁=0.0, a₂=0
 end
 
 # target state density
-parameter = 0:0.1:10
+parameter = 0:0.05:10
 density = ones(length(parameter)).*(abs.(parameter.-4).<0.5)
 data = StateDensity(parameter,density)
 ######################################################## run inference
 
 f,J = (u,p)->rates(u,p,θ...), (u,p)->jacobian(u,p,θ...)
-maxSteps,maxIter = 1000,1000
+maxSteps,maxIter = 500,100000
 
-u₀ = param.(zeros(4))
+u₀ = param.([4,3,0,0])
 θ = param([ 2.5, 0.5, 0.5, 2.0, 2.0, 0.4, 0.4, 2 ])
 
 infer( f,J,u₀,θ, data; iter=200, maxSteps=maxSteps, maxIter=maxIter)
-
+ds
+progress()
 loss()
 Tracker.gradient( ()-> loss() )
 

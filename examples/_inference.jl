@@ -16,12 +16,12 @@ function infer( f::Function, J::Function, u₀::Vector{TrackedReal{T}}, θ::Trac
     # setting initial hyperparameters
     global p₀,pMax,ds
     p₀ = param(minimum(data.parameter))
-    pMax,ds = maximum(data.parameter), step(data.parameter)
+    pMax,ds = maximum(data.parameter),step(data.parameter)
 
     function predictor()
         global bifurcations,prediction,f,J,u₀,p₀
 
-        bifurcations,u₀ = continuation( f,J,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds,
+        bifurcations,u₀ = continuation( f,J,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=10*ds,
             maxSteps=maxSteps, maxIter=maxIter, computeEigenValues=false )
         prediction = kde( unpack(bifurcations)[1], data.parameter, bandwidth=ds)
 
@@ -46,7 +46,7 @@ end
 function predictor()
     global bifurcations,prediction,f,J,u₀,p₀
 
-    bifurcations,u₀ = continuation( f,J,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=ds,
+    bifurcations,u₀ = continuation( f,J,u₀,p₀; pMin=p₀-ds, pMax=pMax, ds=10*ds,
         maxSteps=maxSteps, maxIter=maxIter, computeEigenValues=false )
     density = kde( unpack(bifurcations)[1], data.parameter, bandwidth=ds)
 
