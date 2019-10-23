@@ -11,25 +11,27 @@ module FluxContinuation
 	unpack(curve::ContResult) = tuple([ curve.branch[i,:] for i=1:size(curve.branch)[1]-2 ]...)
 
 	""" extension of co-dimension one parameter continuation methods to Array{TrackedReal} type """
-	function continuation( f::Function, J::Function, u₀::Vector{T}, p₀::T,
-		printsolution::Function = u->u[1]; kwargs...) where {T<:Number}
-	
-		function updateInitial( state::BorderedArray, gradient::BorderedArray, step::Int64, contResult::ContResult )
+	function continuation( f::Function, J::Function, u₀::Vector{T}, p₀::T, printsolution::Function = u->u[1],
+		finaliseSolution::Function = (_,_,_,_) -> true; kwargs...) where {T<:Number}
+
+		function update( state::BorderedArray, gradient::BorderedArray, step::Int64, contResult::ContResult )
 			if step == 0 u₀ = param.(Tracker.data.(state.u)) end
-			return true
+			return finaliseSolution(state,gradient,step,contResult)
 		end
-	
-		options = Cont.NewtonPar{T, typeof(DefaultLS()), typeof(DefaultEig())}(verbose=false,maxIter=kwargs[:maxIter])
+
+		options = Cont.NewtonPar{T, typeof(DefaultLS()), typeof(DefaultEig())}(
+			verbose=false,maxIter=kwargs[:maxIter],tol=kwargs[:tol])
+
 		bifurcations, = Cont.continuation( f,J, u₀,p₀,
 			Cont.ContinuationPar{T,typeof(DefaultLS()), typeof(DefaultEig())}(
-	
+
 				pMin=kwargs[:pMin],pMax=kwargs[:pMax],ds=kwargs[:ds],
 				maxSteps=kwargs[:maxSteps], newtonOptions = options,
-	
+
 				computeEigenValues = kwargs[:computeEigenValues]);
-				printsolution = printsolution, finaliseSolution = updateInitial )
-	
+				printsolution = printsolution, finaliseSolution = update )
+
 		return bifurcations, u₀
-	
+
 	end
 end
