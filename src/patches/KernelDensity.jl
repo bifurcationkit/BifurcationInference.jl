@@ -1,6 +1,6 @@
-using Flux,KernelDensity
 using AbstractFFTs: Plan
 using Flux.Tracker: TrackedReal
+using Flux
 
 import AbstractFFTs: plan_fft, plan_rfft, plan_bfft, plan_brfft, plan_inv
 import AbstractFFTs: _fftfloat,fftfloat,complexfloat,realfloat

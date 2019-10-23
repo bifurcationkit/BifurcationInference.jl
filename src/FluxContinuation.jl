@@ -1,8 +1,14 @@
 module FluxContinuation
 
-	using Flux
+	using PseudoArcLengthContinuation: ContResult, DefaultLS, DefaultEig
+	using PseudoArcLengthContinuation, Flux
+	const Cont = PseudoArcLengthContinuation
+
 	include("patches/PseudoArcLengthContinuation.jl")
-	export continuation
+	export continuation,unpack
+
+	# methods for unpacking ContResult
+	unpack(curve::ContResult) = tuple([ curve.branch[i,:] for i=1:size(curve.branch)[1]-2 ]...)
 
 	""" extension of co-dimension one parameter continuation methods to Array{TrackedReal} type """
 	function continuation( f::Function, J::Function, u₀::Vector{T}, p₀::T,

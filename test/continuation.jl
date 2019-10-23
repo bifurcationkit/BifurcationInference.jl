@@ -1,4 +1,4 @@
-using FluxContinuation: continuation
+using FluxContinuation: continuation,unpack
 using Flux, Plots, LinearAlgebra, Printf
 
 # parametrised hypothesis
