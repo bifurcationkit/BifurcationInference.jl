@@ -1,16 +1,15 @@
-throw("unit tests currently fail due to N^2 dft algorithm")
-tests = [ "univariate", "bivariate", "interp" ]
-println("Testing KernelDensity.jl ...")
+# throw("unit tests currently fail due to N^2 dft algorithm")
+# tests = [ "univariate", "bivariate", "interp" ]
+# println("Testing KernelDensity.jl ...")
 
-for test in tests
-    println(" * $test.jl")
-    include("$test.jl")
-end
+# for test in tests
+#     println(" * $test.jl")
+#     include("$test.jl")
+# end
 
 
-include("../patches/PseudoArcLengthContinuation.jl")
-tests = [ ]
-println("Testing PseudoArcLengthContinuation.jl ...")
+tests = ['continuation']
+println("Testing FluxContinuation.jl ...")
 
 for test in tests
     println(" * $test.jl")
