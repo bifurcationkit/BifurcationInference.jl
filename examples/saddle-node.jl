@@ -11,19 +11,25 @@ end
 
 # target state density
 parameter = -2:0.1:2
-density = ones(length(parameter)).*(abs.(parameter).<0.5)
-data = StateDensity(parameter,density)
+unstable = ones(length(parameter)).*(abs.(parameter).<0.5)
+stable = 0.25.+0.75*ones(length(parameter)).*(abs.(parameter).<0.5)
+data = StateDensity(parameter,stable,unstable)
 
 ######################################################## run inference
 
-f,J = (u,p)->rates(u,p,θ...), (u,p)->jacobian(u,p,θ...)
 maxSteps,maxIter = 1000,1000
+tol = 1e-10
+
+f,J = (u,p)->rates(u,p,θ...), (u,p)->jacobian(u,p,θ...)
 u₀, θ = param.([0]), param(randn(3))
 
-infer( f,J,u₀,θ, data; iter=200, maxSteps=maxSteps, maxIter=maxIter)
+infer( f,J,u₀,θ, data; iter=200, maxSteps=maxSteps, maxIter=maxIter, tol=tol)
 
 
 ######################################################## show loss
 
-x,y = range(-1,1,length=40),range(-1,1,length=40)
+x,y = range(-1,1,length=50),range(-1,1,length=50)
 contourf(x,y, (x,y) -> lossAt(x,y,0), size=(500,500))
+
+lossAt(0.5,-0.5,0)
+progress()

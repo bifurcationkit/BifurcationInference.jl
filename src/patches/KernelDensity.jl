@@ -1,109 +1,71 @@
-using AbstractFFTs: Plan
-using Flux.Tracker: TrackedReal
+using KernelDensity
+using Flux.Tracker: @grad, TrackedReal
 using Flux
 
-import AbstractFFTs: plan_fft, plan_rfft, plan_bfft, plan_brfft, plan_inv
-import AbstractFFTs: _fftfloat,fftfloat,complexfloat,realfloat
+import FFTW: fft,ifft,rfft,irfft
+import StatsBase: quantile
 
 import Base: *,round
 import Core.Integer
 
-mutable struct TrackedPlan{T} <: Plan{T}
-    region; pinv::Plan{T}; N::Int64; real::Bool
-    TrackedPlan{T}(region) where {T} = new{T}(region)
-end
-mutable struct InverseTrackedPlan{T} <: Plan{T}
-    region; pinv::Plan{T}; N::Int64; real::Bool
-    InverseTrackedPlan{T}(region) where {T} = new{T}(region)
-end
-plan_inv(p::TrackedPlan{T}) where {T} = InverseTrackedPlan{T}
+# derivatives of functions for automatic differentiation
+fft(A::TrackedArray, dims...) = Tracker.track( fft, A, dims...)
+fft(A::Union{Array{TrackedReal{T}},Array{Complex{TrackedReal{T}}}}, dims...) where {T<:Real} = fft(Tracker.collect(A), dims...)
 
-# for compatibility with Array{TrackedReal} inputs
-_fftfloat(::Type{TrackedReal{T}}) where {T<:Real} = TrackedReal{T}
-_fftfloat(::Type{Complex{TrackedReal{T}}}) where {T<:Real} = Complex{TrackedReal{T}}
-
-# for compatibility with TrackedArray inputs
-complexfloat(x::TrackedArray) = copy(x)
-realfloat(x::TrackedArray) = copy(x)
-
-function copy(x::TrackedArray)
-    y = Array{eltype(x)}(undef, map(length, axes(x)))
-    circcopy!(y, x)
+@grad function fft(A)
+	return fft(Tracker.data(A)), Δ -> ifft(Δ)*length(A)
 end
 
-# abstract routine extensions
-function plan_fft(x::Union{Array{Complex{TrackedReal{T}}},TrackedArray{Array{Complex{T}}}}, region; kwargs...) where {T<:Real}
-    plan = TrackedPlan{Array{Complex{TrackedReal{T}}}}(region)
-    plan.N = length(x); plan.real = false
-    return plan
+ifft(A::TrackedArray, dims...) = Tracker.track( ifft, A, dims...)
+ifft(A::Union{Array{TrackedReal{T}},Array{Complex{TrackedReal{T}}}}, dims...) where {T<:Real} = ifft(Tracker.collect(A), dims...)
+
+@grad function ifft(A)
+	return ifft(Tracker.data(A)), Δ -> fft(Δ)/length(A)
 end
 
-function plan_bfft(x::Union{Array{Complex{TrackedReal{T}}},TrackedArray{Array{Complex{T}}}}, region; kwargs...) where {T<:Real}
-    plan = InverseTrackedPlan{Array{Complex{TrackedReal{T}}}}(region)
-    plan.N = length(x); plan.real = false
-    return plan
+rfft(A::TrackedArray, dims...) = Tracker.track( rfft, A, dims...)
+rfft(A::Union{Array{TrackedReal{T}},Array{Complex{TrackedReal{T}}}}, dims...) where {T<:Real} = rfft(Tracker.collect(A), dims...)
+
+@grad function rfft(A)
+	return rfft(Tracker.data(A)), Δ -> irfft(Δ)*length(A)
 end
 
-function plan_rfft(x::Union{Array{TrackedReal{T}},TrackedArray{Array{T}}}, region; kwargs...) where {T<:Real}
-    plan = TrackedPlan{Array{TrackedReal{T}}}(region)
-    plan.N = length(x)>>1+1; plan.real = true
-    return plan
+irfft(A::TrackedArray, size::Integer, dims...) = Tracker.track( irfft, A, size, dims...)
+irfft(A::Union{Array{TrackedReal{T}},Array{Complex{TrackedReal{T}}}}, size::Integer, dims...) where {T<:Real} = irfft(Tracker.collect(A), size, dims...)
+
+@grad function irfft(A,size)
+	return irfft(Tracker.data(A),size), Δ -> rfft(Δ)/size
 end
 
-function plan_brfft(x::Union{Array{Complex{TrackedReal{T}}},TrackedArray{Array{T}}}, N::Int64, region; kwargs...) where {T<:Real}
-    plan = InverseTrackedPlan{Array{Complex{TrackedReal{T}}}}(region)
-    plan.N = N; plan.real = true
-    return plan
-end
-
-*(p::TrackedPlan, x::AbstractArray) where {T<:Real} = mul!( zeros(eltype(x),p.N) .+ 0im, p, x)
-*(p::InverseTrackedPlan, x::AbstractArray) where {T<:Real} = mul!( zeros(eltype(x),p.N) .+ 0im, p, x)
-
-function mul!(y::AbstractArray, p::TrackedPlan, x::AbstractArray) where {T<:Real}
-    if p.real rdft!(y,x) else dft!(y,x,-1) end
-end
-
-function mul!(y::AbstractArray, p::InverseTrackedPlan, x::AbstractArray) where {T<:Real}
-    if p.real irdft!( real(y),x,p.N) else dft!(y,x,1) end
-end
-
+# misc patches
+quantile(x::TrackedArray, p::AbstractArray) = quantile(x.data, p)
 round(::Type{R}, t::TrackedReal{T}) where {R<:Real,T<:Real} = round(R, t.data)
-round(t::TrackedReal, mode::RoundingMode) = round(t.data, mode)
-Integer(x::TrackedReal) = Integer(x.data)
+# round(t::TrackedReal, mode::RoundingMode) = round(t.data, mode)
+# Integer(x::TrackedReal) = Integer(x.data)
 
-############################################################# fft algorithms
-# TODO inefficient N^2.. I want to use an NlogN algorithm
+Tracker.Tracked
+kde( param(randn(100)), -3:0.1:3, bandwidth=0.1 )
 
-function dft!(y::AbstractArray, x::AbstractArray, sign::Int)
-    n = length(x)
-    length(y) == n || throw(DimensionMismatch())
-    fill!(y, zero(complex(float(eltype(x)))))
-    c = sign * 2π / n
-    @inbounds for j = 0:n-1, k = 0:n-1
-        y[k+1] += x[j+1] * cis(c*j*k)
-    end
-    return y
+z = randn(100).+1im
+x = randn(100)
+eltype(z)<:Complex
+param(z)[1]
+typeof(param(x)[1])
+
+x[1] *= cf(Normal(),1.0)
+x[1] *= cf(Normal(),param(1.0))
+
+import Base: *
+
+*(a::Tracker.Tracked, b::Complex) = Tracker.track(*, a, b)
+@grad function *(a,b)
+	return Tracker.data(a)*Tracker.data(b), Δ -> fft(Δ)/length(A)
 end
 
-function rdft!(y::AbstractArray, x::AbstractArray)
-    n = length(x)
-    length(y) == n>>1+1 || throw(DimensionMismatch())
-    fill!(y, zero(complex(float(eltype(x)))))
-    c = - 2π / n
-    @inbounds for j = 0:n-1, k = 0:n>>1
-        y[k+1] += x[j+1] * cis(c*j*k)
-    end
-    return y
-end
+cf(Normal(),1.0)
+x * cf(Normal(),1.0)
+x
 
-# TODO unit test accuracy fails for N even
-function irdft!(y::AbstractArray, x::AbstractArray, N::Int64)
-    n = length(x)
-    length(y) == N || throw(DimensionMismatch())
-    fill!(y, zero(complex(float(eltype(x)))))
-    c = 2π / N
-    @inbounds for j = 0:n-1, k = 0:N-1
-        y[k+1] += 2*real(x[j+1]*cis(c*j*k)) - x[1]/n
-    end
-    return y
-end
+Tracker.Dual(1+1.0im,1)
+
+track(*, a, b)
