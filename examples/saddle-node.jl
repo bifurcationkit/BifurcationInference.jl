@@ -30,6 +30,3 @@ infer( f,J,u₀,θ, data; iter=200, maxSteps=maxSteps, maxIter=maxIter, tol=tol)
 
 x,y = range(-1,1,length=50),range(-1,1,length=50)
 contourf(x,y, (x,y) -> lossAt(x,y,0), size=(500,500))
-
-lossAt(0.5,-0.5,0)
-progress()

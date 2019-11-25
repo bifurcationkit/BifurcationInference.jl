@@ -3,7 +3,7 @@ using FluxContinuation: continuation,unpack
 using PseudoArcLengthContinuation: plotBranch
 
 using Flux, KernelDensity, Plots, LinearAlgebra, Printf
-using Flux.Tracker: update!,TrackedReal
+using Flux.Tracker: update!,TrackedReal,collect
 
 struct StateDensity
     parameter::AbstractRange
