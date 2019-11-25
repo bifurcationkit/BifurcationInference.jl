@@ -5,6 +5,7 @@ module FluxContinuation
 	const Cont = PseudoArcLengthContinuation
 
 	include("patches/PseudoArcLengthContinuation.jl")
+	include("patches/Flux.jl")
 	export continuation
 
 	""" extension of co-dimension one parameter continuation methods work with Zygote """

@@ -1,9 +1,8 @@
 using FluxContinuation: continuation
+using Flux, Zygote
+
 using PseudoArcLengthContinuation: plotBranch,ContinuationPar,NewtonPar,DefaultLS,DefaultEig
 using Plots, LinearAlgebra, Printf
-
-using Flux.Optimise: ADAM, update!
-using Zygote
 
 # parametrised hypothesis
 function f( u,p, θ₁=0.0, θ₂=0.0, θ₃=0.0)
@@ -29,7 +28,6 @@ function infer( f::Function, J::Function, θ::AbstractArray, target )
 
 		computeEigenValues = false)
 
-
 	u₀,p₀ = [2.0,0.0], -2.0
 	bifurcations,u₀ = continuation( f,J,u₀,p₀, parameters )
 
@@ -49,20 +47,7 @@ function infer( f::Function, J::Function, θ::AbstractArray, target )
 			xlabel="parameter, p", ylabel="steady state") |> display
 	end
 
-	@time train!(loss, Params([θ]), 100, ADAM(0.1); cb=progress)
-end
-
-function train!(loss, ps, iter, opt; cb = () -> ())
-	for _ in Iterators.repeated((),iter)
-
-		gs = gradient(ps) do
-			loss() end
-
-		for p in ps
-			update!(opt, p, [gs[p]...]) end
-
-		cb()
-	end
+	@time Flux.train!( loss, Zygote.Params([θ]), 100, ADAM(0.1); cb=progress)
 end
 
 θ = [-2.0,1.0,0.0]
