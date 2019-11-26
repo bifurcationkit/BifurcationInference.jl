@@ -24,11 +24,8 @@ data = StateDensity(parameter,density)
 maxSteps,maxIter = 1000,1000
 tol = 1e-5
 
-loss()
-progress()
-
 f,J = (u,p)->rates(u,p,θ...), (u,p)->jacobian(u,p,θ...)
-u₀,θ = param.([4,3,0,0]), param([ 2.5, 0.5, 0.5, 2.0, 2.0, 0.4, 0.4 ])
+u₀,θ = [4.0,3.0,0.0,0.0], [ 2.5, 0.5, 0.5, 2.0, 2.0, 0.4, 0.4 ]
 
 infer( f,J,u₀,θ, data; iter=200, maxSteps=maxSteps, maxIter=maxIter, tol=tol)
 
