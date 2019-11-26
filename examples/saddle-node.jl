@@ -11,9 +11,8 @@ end
 
 # target state density
 parameter = -2:0.1:2
-unstable = ones(length(parameter)).*(abs.(parameter).<0.5)
-stable = 0.25.+0.75*ones(length(parameter)).*(abs.(parameter).<0.5)
-data = StateDensity(parameter,stable,unstable)
+density = ones(length(parameter)).*(abs.(parameter).<0.5)
+data = StateDensity(parameter,density)
 
 ######################################################## run inference
 
@@ -21,7 +20,7 @@ maxSteps,maxIter = 1000,1000
 tol = 1e-10
 
 f,J = (u,p)->rates(u,p,θ...), (u,p)->jacobian(u,p,θ...)
-u₀, θ = param.([0]), param(randn(3))
+u₀, θ = [0], randn(3)
 
 infer( f,J,u₀,θ, data; iter=200, maxSteps=maxSteps, maxIter=maxIter, tol=tol)
 

@@ -21,18 +21,18 @@ function infer( f::Function, J::Function, θ::AbstractArray, target )
 
 	# hyperparameters
 	parameters = ContinuationPar{Float64, typeof(DefaultLS()), typeof(DefaultEig())}(
-		pMin=-2.1,pMax=2.0,ds=0.01, maxSteps=1000,
+		pMin=-2.0,pMax=2.0,ds=0.01, maxSteps=1000,
 
 			newtonOptions = NewtonPar{Float64, typeof(DefaultLS()), typeof(DefaultEig())}(
 			verbose=false,maxIter=1000,tol=1e-10),
 
 		computeEigenValues = false)
 
-	u₀,p₀ = [2.0,0.0], -2.0
-	bifurcations,u₀ = continuation( f,J,u₀,p₀, parameters )
+	u₀ = [2.0,0.0]
+	bifurcations,u₀ = continuation( f,J,u₀, parameters )
 
 	function loss()
-		bifurcations,u₀ = continuation( f,J,u₀,p₀, parameters )
+		bifurcations,u₀ = continuation( f,J,u₀, parameters )
 		P,U = bifurcations.branch[1,:], bifurcations.branch[2,:]
 		return norm( P .- target(U) )
 	end
