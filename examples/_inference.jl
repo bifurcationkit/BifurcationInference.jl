@@ -1,17 +1,19 @@
 include("../src/patches/KernelDensity.jl")
-using FluxContinuation: continuation
-using Flux, Zygote, KernelDensity
-
 using PseudoArcLengthContinuation: plotBranch,ContinuationPar,NewtonPar,DefaultLS,DefaultEig
-using Plots, LinearAlgebra, Printf
+using FluxContinuation: continuation
+using Flux, Zygote, Plots, Printf
+
+using KernelDensity: kde
+using StatsBase: kurtosis,norm
 
 struct StateDensity
     parameter::AbstractRange
-    density::AbstractArray
+    bifurcations::AbstractArray
 end
 
 function infer( f::Function, J::Function, u₀::Vector{T}, θ::AbstractArray, data::StateDensity;
-        optimiser=ADAM(0.05), iter::Int=100, maxSteps::Int=1000, maxIter::Int=1000, tol=1e-10 ) where T
+        optimiser=Momentum(), progress::Function=()->(),
+        iter::Int=100, maxSteps::Int=1000, maxIter::Int=1000, tol=1e-10 ) where T
 
     parameters = ContinuationPar{Float64, typeof(DefaultLS()), typeof(DefaultEig())}(
 		pMin=minimum(data.parameter),pMax=maximum(data.parameter),ds=step(data.parameter), maxSteps=maxSteps,
@@ -23,38 +25,54 @@ function infer( f::Function, J::Function, u₀::Vector{T}, θ::AbstractArray, da
 
     function predictor()
         bifurcations,u₀ = continuation( f,J,u₀, parameters )
-        prediction = kde( bifurcations.branch[1,:], data.parameter, bandwidth=parameters.ds)
-        return bifurcations,prediction
+        return bifurcations
     end
 
     function loss()
-        bifurcations,prediction = predictor()
-        return norm( prediction.density .- data.density )
-    end
+        bifurcations = predictor()
 
-    function progress()
-        bifurcations,prediction = predictor()
+        if length(bifurcations.bifpoint) == 0
+            return exp(-kurtosis( bifurcations.branch[1,:] ))
 
-        plotBranch( bifurcations, label="inferred")
-        plot!( data.parameter, prediction.density, label="inferred", color="darkblue")
-        plot!( data.parameter, data.density, label="target", color="gold", xlabel="parameter, p", ylabel="steady state") |> display
+        elseif length(bifurcations.bifpoint) == 2
+            return norm( data.bifurcations .- map( point -> point.param, bifurcations.bifpoint) )
+
+    	else
+    		return throw("unhandled bifurcations occured!")
+        end
     end
 
     @time Flux.train!(loss, Zygote.Params([θ]), iter, optimiser, cb=progress)
 end
 
 function predictor()
+    global u₀
 	bifurcations,u₀ = continuation( f,J,u₀, parameters )
-    prediction = kde( bifurcations.branch[1,:], data.parameter, bandwidth=parameters.ds)
-	return bifurcations,prediction
+	return bifurcations
 end
 
 function loss()
-    bifurcations,prediction = predictor()
-    return norm( prediction.density .- data.density )
+    bifurcations = predictor()
+
+    if length(bifurcations.bifpoint) == 0
+        return exp(-kurtosis( bifurcations.branch[1,:] ))
+
+    elseif length(bifurcations.bifpoint) == 2
+        return norm( data.bifurcations .- map( point -> point.param, bifurcations.bifpoint) )
+
+	else
+		return throw("unhandled bifurcations occured!")
+    end
 end
 
+function progress()
+    bifurcations = predictor()
+    prediction = kde( bifurcations.branch[1,:], data.parameter, bandwidth=2*parameters.ds)
 
+    plotBranch( bifurcations, label="inferred")
+    plot!( prediction.x, prediction.density, label="inferred", color="darkblue")
+    plot!( data.bifurcations, zeros(length(data.bifurcations)), linewidth=3, label="target", color="gold", xlabel="parameter, p", ylabel="steady state") |> display
+end
 
 function lossAt(params...)
 	copyto!(θ,[params...])
