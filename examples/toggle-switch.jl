@@ -25,8 +25,7 @@ function progress()
 
     plotBranch( bifurcations, label="inferred")
     plot!( prediction.x, prediction.density, label="inferred", color="darkblue")
-    plot!( data.bifurcations, zeros(length(data.bifurcations)), linewidth=3, label="target", color="gold", xlabel="parameter, p", ylabel="steady state")
-	frame(animation)
+    plot!( data.bifurcations, zeros(length(data.bifurcations)), linewidth=3, label="target", color="gold", xlabel="parameter, p", ylabel="steady state") |> display
 end
 
 ######################################################## run inference
@@ -43,7 +42,6 @@ f,J = (u,p)->rates(u,p,θ...), (u,p)->rates_jacobian(u,p,θ...)
 u₀,θ = [4.0,3.0,0.0,0.0], [ 2.5, 0.5, 7.5, 4.0, 2.0, 0.4, 1.5 ]
 
 animation = Animation()
-infer( f,J,u₀,θ, data; iter=200, optimiser=Momentum(0.001,0.7),
-	progress=progress )
+infer( f,J,u₀,θ, data; iter=300, optimiser=Momentum(0.0001) )
 
-gif(animation,"examples/toggle-switch.gif",fps=15)
+progress()
