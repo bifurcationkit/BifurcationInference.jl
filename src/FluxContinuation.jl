@@ -6,7 +6,7 @@ module FluxContinuation
 	include("patches/PseudoArcLengthContinuation.jl")
 	include("patches/LinearAlgebra.jl")
 	include("patches/Flux.jl")
-	export continuation
+	export continuation,deflationContinuation
 
 	""" extension of co-dimension one parameter continuation methods work with Zygote """
 	function continuation( f::Function, J::Function, u₀::Vector{T}, parameters::ContinuationPar{T, S, E},
@@ -27,55 +27,78 @@ module FluxContinuation
 	end
 
 	""" extension of deflation continuation method """
-	function deflationContinuation( f::Function, J::Function, u₀::Vector{T}, parameters::ContinuationPar{T, S, E},
-		printsolution::Function = u->u[1], finaliseSolution::Function = (_,_,_,_) -> true, maxBranches::Int = 10, nDeflations=2
+	function deflationContinuation( f::Function, J::Function, u₀::Vector{Array{T,2}}, parameters::ContinuationPar{T, S, E},
+		printsolution::Function = u->u[1], finaliseSolution::Function = (_,_,_,_) -> true, maxRoots::Int = 3, maxIter::Int=500,
 			) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
+		nDeflations,nStates = length(u₀),size(u₀[1])[2]
+		default_root = fill(Inf,nStates)
+
+		pDeflations = range(parameters.pMin,parameters.pMax,length=nDeflations)
 		branchParameters = deepcopy(parameters)
-		pDeflations = range(branchParameters.pMin,branchParameters.pMax,length=nDeflations)
-		branches,pStep = [],step(pDeflations)
 
-		branch, = Cont.continuation( f, J, u₀, branchParameters.pMin, branchParameters)
-		branches = Buffer([branch],2*nDeflations*maxBranches); for i=1:2*nDeflations*maxBranches branches[i] = branch end
-		n = 0
+		pStep = step(pDeflations)
+	    intervals = ([0.0,pStep],[-pStep,0.0])
 
-		for i=1:nDeflations
-			roots = Buffer([Inf],maxBranches,length(u₀)); for i=1:maxBranches roots[i,:] = fill(Inf,length(u₀)) end
+	    # find roots with deflated newton method
+		rootsArray = Buffer([[1.0 1.0]], nDeflations )
+		branchParameters.newtonOptions.maxIter = maxIter
+	    for (i,us) in enumerate(u₀)
+
+			roots = Buffer([Inf],maxRoots,nStates)
+			for i=1:maxRoots roots[i,:] = default_root end
+
 			deflation = DeflationOperator(1.0, dot, 1.0, roots, 0)
-			u = copy(u₀)
+			converged = true
 
-			while length(deflation) < maxBranches # search for roots
-				u, _, converged, _ = Cont.newtonDeflated( u->f(u,pDeflations[i]), u->J(u,pDeflations[i]),
-					u.+5*abs(branchParameters.ds), branchParameters.newtonOptions, deflation)
-				if converged push!(deflation,u) else break end
-			end
+	        for u in eachrow(us) # update existing roots
+	    		u, _, converged, _ = Cont.newtonDeflated( u->f(u,pDeflations[i]), u->J(u,pDeflations[i]),
+		    		u.+branchParameters.ds, branchParameters.newtonOptions, deflation)
+	    		if converged push!(deflation,u) else break end
+	        end
 
-			# continue from roots
-			deflation.roots = copy(deflation.roots)
-			for j=1:deflation.n_roots
-				u = deflation.roots[j,:]
+			if converged # search for new roots
+				u = fill(0.0,nStates)
 
-				# forwards branch
-				branchParameters.pMin,branchParameters.pMax = pDeflations[i], pDeflations[i] + pStep
-				forward, = Cont.continuation( f, J, u, branchParameters.pMin+branchParameters.newtonOptions.tol,
-					branchParameters; printsolution = printsolution, finaliseSolution = finaliseSolution)
-
-				if branchParameters.pMax <= maximum(pDeflations)
-					n +=1; branches[n] = forward
+				while length(deflation) < maxRoots
+					u, _, converged, _ = Cont.newtonDeflated( u->f(u,pDeflations[i]), u->J(u,pDeflations[i]),
+						u.+branchParameters.ds, branchParameters.newtonOptions, deflation)
+					if converged & all([ !isapprox(u,v,atol=2*parameters.ds) for v in eachrow(deflation.roots[1:deflation.n_roots,:]) ])
+						push!(deflation,u)
+					else break end
 				end
-				branchParameters.ds *= -1.0
-
-				# backwards branch
-				branchParameters.pMin,branchParameters.pMax = pDeflations[i]-pStep, pDeflations[i]
-				backward, = Cont.continuation( f, J, u, branchParameters.pMax-branchParameters.newtonOptions.tol,
-					branchParameters; printsolution = printsolution, finaliseSolution = finaliseSolution)
-
-				if branchParameters.pMin >= minimum(pDeflations)
-					n +=1; branches[n] = backward
-				end
-				branchParameters.ds *= -1.0
 			end
-		end
-		return branches[map( branch -> branch.n_points > 1, copy(branches) )]
+			rootsArray[i] = copy(deflation.roots)[1:deflation.n_roots,:]
+	    end
+
+		rootsArray = copy(rootsArray)
+	    n_roots = div.(length.(rootsArray),nStates)
+
+		branches = Buffer([], 2*sum(n_roots)-n_roots[end]-n_roots[1] )
+	    n = 0
+
+	    # continuation per root
+		branchParameters.newtonOptions.maxIter = parameters.newtonOptions.maxIter
+	    for (i,us) in enumerate(rootsArray)
+	        for u in eachrow(us)
+
+	            # forwards and backwards branches
+	            for (pMin,pMax) in intervals
+	        		branchParameters.pMin,branchParameters.pMax = pDeflations[i]+pMin, pDeflations[i]+pMax
+					branchParameters.ds = sign(branchParameters.ds)*copy(parameters.ds)
+
+	                # main continuation method
+	        		branch, = Cont.continuation( f, J, u, pDeflations[i]+branchParameters.ds,
+	        			branchParameters; printsolution = printsolution,
+	                    finaliseSolution = finaliseSolution)
+
+	        		if branchParameters.pMax <= maximum(pDeflations) && branchParameters.pMin >= minimum(pDeflations)
+	        			n +=1; branches[n] = branch end
+	        		branchParameters.ds *= -1.0
+	            end
+	    	end
+	    end
+
+		return copy(branches), rootsArray
 	end
 end
