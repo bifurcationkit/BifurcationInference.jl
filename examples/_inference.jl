@@ -1,8 +1,8 @@
-include("../src/patches/KernelDensity.jl")
 using PseudoArcLengthContinuation: plotBranch,ContinuationPar,NewtonPar,DefaultLS,DefaultEig
 using FluxContinuation: continuation,deflationContinuation
+using Flux: train!
 
-using Flux, Zygote, Plots, Printf
+using Zygote, Plots, Printf
 using StatsBase: kurtosis,norm,mean,std
 
 struct StateDensity
@@ -22,7 +22,7 @@ function infer( f::Function, J::Function, u₀::Vector{T}, θ::AbstractArray, da
 
 		detect_fold = false, detect_bifurcation = true)
 
-    @time Flux.train!(loss, Zygote.Params([θ]), iter, optimiser, cb=progress)
+    @time train!(loss, Zygote.Params([θ]), iter, optimiser, cb=progress)
 end
 
 function predictor() global u₀
@@ -54,7 +54,7 @@ function loss()
     steady_states = predictor()
 
     if sum( branch -> length(branch.bifpoint), steady_states) == 0
-        return -log(sum(vcat(map(branch->potential(branch)[2], steady_states)...))*step(data.parameter))
+		return -log(sum(vcat(map(branch->((p,v)=potential(branch); v), steady_states)...))*step(data.parameter))
 
     else
         bifurcations = steady_states[map( branch -> length(branch.bifpoint) > 0, steady_states)]
@@ -65,109 +65,42 @@ end
 
 function progress()
     bifurcations = predictor()
-    plot( data.bifurcations, zeros(length(data.bifurcations)), linewidth=3, label="target", color="gold", xlabel="parameter, p")
-
-    μ = mean(vcat(map( branch -> branch.branch[2,:] , bifurcations )...))
-    σ = std(vcat(map( branch -> branch.branch[2,:] , bifurcations )...))
-    S = std(vcat(map( branch -> det(branch)[2] , bifurcations )...))
+    plot( data.bifurcations, zeros(length(data.bifurcations)), label="", color="gold", xlabel="parameter, p")
+	right_axis = twinx()
 
     for bifurcation in bifurcations
-        p,v = det(bifurcation)
-        plot!(p,v/S,linewidth=3, alpha=0.5, label="",
-            colour=map(x -> isodd(x) ? :red : :pink, bifurcation.stability[1:bifurcation.n_points]))
 
-        plot!(bifurcation.branch[1,:],(bifurcation.branch[2,:].-μ)/σ, linewidth=3, alpha=0.5, label="",
-            color=map(x -> isodd(x) ? :darkblue : :lightblue, bifurcation.stability[1:bifurcation.n_points]))
+        plot!(bifurcation.branch[1,:],bifurcation.branch[2,:], alpha=0.5, label="", grid=false, ylabel="steady states",
+            color=map(x -> isodd(x) ? :darkblue : :lightblue, bifurcation.stability[1:bifurcation.n_points]),
+			markersize=2, markercolor=map(x -> isodd(x) ? :darkblue : :lightblue, bifurcation.stability[1:bifurcation.n_points]),
+			markershape=:circle, markerstrokewidth=0)
 
         bifpt = bifurcation.bifpoint[1:bifurcation.n_bifurcations]
-        scatter!(map(x->x.param,bifpt),(map(x->x.printsol,bifpt).-μ)/σ, label="",
-            color = :black, alpha=0.5, markersize=5, markerstrokewidth=0)
+        scatter!(map(x->x.param,bifpt),map(x->x.printsol,bifpt), label="",
+            color = :black, alpha=0.5, markersize=3, markerstrokewidth=0)
+
+        plot!(right_axis,det(bifurcation)..., alpha=0.5, label="", grid=false, ylabel="determinant",
+            colour=map(x -> isodd(x) ? :red : :pink, bifurcation.stability[1:bifurcation.n_points]))
     end
 
-    plot!([],[], linewidth=3, color=:red,
+	p = range(minimum(parameter),maximum(parameter),length=length(u₀))
+    for (i,us) in enumerate(u₀)
+		for u in eachrow(us)
+			plot!([p[i]],u,markersize=2,marker=:circle,label="",color=:darkblue)
+		end
+	end
+
+    plot!(right_axis,[],[], color=:red, legend=:bottomright,
         alpha=0.5, label="determinant")
-    plot!([],[], linewidth=3, color=:darkblue, legend=:bottomleft,
+    plot!([],[], color=:darkblue, legend=:bottomleft,
         alpha=0.5, label="steady states")  |> display
 end
 
 function lossAt(params...)
-	copyto!(θ,[params...])
-    try
-        return loss()
-    catch
-        return NaN
-    end
+	try
+		copyto!(θ,[params...])
+		return loss()
+	catch
+		return NaN
+	end
 end
-
-import FluxContinuation: deflationContinuation
-using PseudoArcLengthContinuation: ContResult, DefaultLS, DefaultEig, AbstractLinearSolver, AbstractEigenSolver, DeflationOperator
-using PseudoArcLengthContinuation; const Cont = PseudoArcLengthContinuation
-using LinearAlgebra: dot
-
-""" extension of deflation continuation method """
-function deflationContinuation( f::Function, J::Function, u₀::Vector{Array{T,2}}, parameters::ContinuationPar{T, S, E},
-	printsolution::Function = u->u[1], finaliseSolution::Function = (_,_,_,_) -> true, maxRoots::Int = 3
-		) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
-
-    nDeflations = length(u₀)
-    _,nStates = size(u₀[1])
-
-	branchParameters = deepcopy(parameters)
-	pDeflations = range(parameters.pMin,parameters.pMax,length=nDeflations)
-
-	pStep = step(pDeflations)
-    intervals = ([0.0,pStep],[-pStep,0.0])
-
-    rootsArray = Vector{Array{Float64,2}}(undef,nDeflations)
-    default_root = fill(Inf,nStates)
-
-    # find roots with deflated newton method
-    for (i,us) in enumerate(u₀)
-        for u in eachrow(us)
-
-    		roots = Buffer([Inf],maxRoots,nStates)
-            for i=1:maxRoots roots[i,:] = default_root end
-    		deflation = DeflationOperator(1.0, dot, 1.0, roots, 0)
-
-    		while length(deflation) < maxRoots # search for roots
-    			u, _, converged, _ = Cont.newtonDeflated( u->f(u,pDeflations[i]), u->J(u,pDeflations[i]),
-    				u.+5*abs(branchParameters.ds), branchParameters.newtonOptions, deflation)
-    			if converged push!(deflation,u) else break end
-    		end
-
-            rootsArray[i] = copy(deflation.roots)[1:deflation.n_roots,:]
-        end
-    end
-
-    n_roots = div.(length.(rootsArray),nStates)
-    branches = Array{ContResult}(undef, 2*sum(n_roots)-n_roots[end]-n_roots[1] )
-    n = 0
-
-    # continuation per root
-    for (i,us) in enumerate(rootsArray)
-        for u in eachrow(us)
-
-            # forwards and backwards branches
-            for (pMin,pMax) in intervals
-        		branchParameters.pMin,branchParameters.pMax = pDeflations[i]+pMin, pDeflations[i]+pMax
-
-                # main continuation method
-        		branch, = Cont.continuation( f, J, u, pDeflations[i]+branchParameters.ds,
-        			branchParameters; printsolution = printsolution,
-                    finaliseSolution = finaliseSolution)
-
-        		if branchParameters.pMax <= maximum(pDeflations) && branchParameters.pMin >= minimum(pDeflations)
-        			n +=1; branches[n] = branch end
-        		branchParameters.ds *= -1.0
-            end
-    	end
-    end
-
-	return branches, u₀
-end
-
-θ = [0.1,-1.0]
-u₀ = [[0.0 0.0], [0.0 0.0], [0.0 0.0; 1.0 1.0]]
-
-progress()
-plot(x, x-> lossAt(x,2.0) )
