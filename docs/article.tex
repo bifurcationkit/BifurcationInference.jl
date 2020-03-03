@@ -61,91 +61,81 @@
 
 \section{Problem Statement}
 
-Suppose we would like to know the regions within paramter space
-$\theta\in\mathbb{R}^N$
-where the steady state of a set of differential equations
-takes on a specified target form $t(p)$ along a known parameter
-$p\in\mathbb{R}$. The target is a label $t\in\{0,1\}$ that indicates
-whether the system is monostable or multi-stable at given $p$. We begin with a known form
-for the differential equations for $u\in\mathbb{R}^M$
+Suppose we would like to know the regions within an unknown parameter space $\theta\in\mathbb{R}^N$ where the steady state of a set of differential equations undergoes specified set of target bifurcations $\mathcal{D}:=\{p_1\dots p_K\}$ along a known parameter $p\in\mathbb{R}$. The differential equations for $u\in\mathbb{R}^M$
 \begin{align}
-	\partial_t u=F(u|\,p,\theta) 
+	\partial_t u=F(u,p|\theta) 
 \end{align}
-and the set of steady states
-$U(\theta) := \left\{ (u,p)\in\mathbb{R}^{M+1} : F(u|\,p,\theta)=0\right\}$
-can be found in a local region numerically using
-pseudo-arclength continuation along $u(s|\theta),p(s|\theta)$ \cite{} where
-$s$ parametrises the one co-dimensional curve -- details in section
-\ref{sec:continuation}.
-In order to perform an optimisation 
-we need mapping from the states $U(\theta)$ to an output that can be
-compared to $t(p)$. Section \ref{sec:objective-function} motivates this mapping and
-constructs the objective function.
+and the set of steady states $\mathcal{U}(\theta) := \left\{ (u,p)\in\mathbb{R}^{M+1} : F(u,p|\theta) =0\right\}$ can be found in a local region numerically using
+parameter continuation methods along a co-dimension one curve \cite{}.
+Looking for parameters where  $\mathcal{U}(\theta)$ increases in curvature is an
+indicator of the onset of fold bifurcations. Once fold points have been detected
+one would simply seek to minimise the distance between the predicted bifurcations 
+$\mathcal{P}(\theta):=\left\{\,p\in\mathbb{R}: \frac{\partial p}{\partial u}=0,(u,p)\in\mathcal{U}(\theta) \right\}$ and the targets $\mathcal{D}$.
+\\\\
 
-\section{Pseudo-arclength Continuation}
+\section{Method}
+
+\subsection{Pseudo-arclength Continuation}
 \label{sec:continuation}
 
 \begin{itemize}
     \item predictor-corrector algorithm
     \end{itemize}
 
-\section{Objective Function}
+\subsection{Optimization}
+
+\subsubsection{Objective Function}
 \label{sec:objective-function}
 
-First we note that although $U(\theta)$ contains both $u,p$ we
-are only interested in how many unique $u$ there are for a given $p$.
-This can be done by taking a histogram of equally sized bins along $p$.
-Another way of getting a quantity that is proportional to count is
-by convolution $*$ of $p(s|\theta)$ along $s$ with a symmetric kernel
-$\phi(p\,|\alpha)$ with a bandwidth $\alpha$ indicating bin width.
-This way we get a smooth and differentiable version of the histogram
-operation.
+The objective function has two regimes: curvature-driven and target-driven. In
+the curvature-driven regime the objective should seek to maximise the curvature
+of $\mathcal{U}(\theta)$ anywhere within the target region containing points $\mathcal{D}$.
+One curvature measure would be Kurtosis along $p$ - the fourth order standardised moment
 \begin{align}
-    \phi(p\,|\alpha)*U(\theta):=
-    \int_{\mathbb{R}}\!\phi(p-p(s|\theta)\,|\alpha)\,\mathrm{d}s
+    \mathrm{Kurt}\left[\,\mathcal{U}(\theta)\,\right]:=
+    \frac{1}{|\,\mathcal{U}(\theta)|}\sum_{(u,p)\in\mathcal{U}(\theta)}
+    \left(\frac{p-\mu}{\sigma}\right)^4\qquad\qquad\quad\\
+    \mathrm{where}\qquad
+    \mu:=\!\!\!\!\!\!\sum_{(u,p)\in\mathcal{U}(\theta)}\!\!\!p/|\,\mathcal{U}(\theta)|
+    \qquad
+    \sigma^2:=\!\!\!\!\!\!\sum_{(u,p)\in\mathcal{U}(\theta)}\!\!\!(p-\mu)^2/|\,\mathcal{U}(\theta)|
 \end{align}
-The result is now proportional to count, but needs to
-be mapped to the unit interval $[0,1]$ in such a way that high
-count regions that indicate multi-stability are mapped to one, and
-low counts which indicate monostability are mapped to zero. For
-this a sigmoidal activation function $\sigma(\frac{x-\mu}{\beta})$ with
-unknown smoothness $\beta$ and threshold $\mu$ will do. We
-are now ready to write down the objective function
+The target-driven regime is only activated if there are a finite number of fold points $\mathcal{P}(\theta)$; in this case the objective function take a more familiar norm $|\,\mathcal{P}(\theta)-\mathcal{D}\,|^2$  which evaluates the distance between prediction
+and target. The complete objective function is
 \begin{align}
-	\mathcal{J}(\theta\,|\,\alpha,\beta,\mu):=                            
-	\int_{\mathbb{R}}\left|\;                                                  
-    t(p) - \sigma\left(\frac{\phi(p\,|\alpha)*U(\theta)-\mu}{\beta}\right)
-	\,\right|^2\,\mathrm{d}p
+	\mathcal{J}(\theta):= \begin{cases}
+	|\,\mathcal{P}(\theta)-\mathcal{D}\,|^2 & |\mathcal{P}(\theta)|>0 \\
+	\mathbb{e}^{-\mathrm{Kurt}\left[\,\mathcal{U}(\theta)\,\right]} & \mathrm{otherwise}
+	\end{cases}
 \end{align}
-where $\theta$ are the parameters to be optimised and $\alpha,\beta,\mu$
-are hyper-parameters. Note that $U(\theta)$ is the only $\theta$ dependence
-in the expression. When we apply
+In order to perform gradient descent on this objective we apply
 \begin{align}
-    \partial_\theta\mathcal{J}
-    &=-2\int_{\mathbb{R}}
-    \sigma'\,\partial_\theta\left(
-        \frac{\phi(p\,|\alpha)*U(\theta)-\mu}{\beta}
-        \right)
-    \,\mathrm{d}p\\
-    &=-\frac{2}{\beta}\int_{\mathbb{R}}
-    \sigma'\,
-        \partial_\theta(\,\phi(p|\alpha)*U(\theta)\,)
-    \,\mathrm{d}p\\
-    &=\frac{2}{\beta}
-    \int_{\mathbb{R}}\sigma'\!\! \int_{\mathbb{R}}\phi'\,
-        \partial_\theta p(s|\theta)
-    \,\mathrm{d}s \,\mathrm{d}p
+    \partial_\theta\mathcal{J}=\begin{cases}
+	2(\mathcal{P}(\theta)-\mathcal{D})\,\partial_\theta\mathcal{P} & |\mathcal{P}(\theta)|>0 \\
+	-\mathbb{e}^{-\mathrm{Kurt}\left[\,\mathcal{U}(\theta)\,\right]}\, \partial_\theta\mathcal{U}\,\mathrm{Kurt}'\left[\,\mathcal{U}(\theta)\,\right] & \mathrm{otherwise}
+	\end{cases}
 \end{align}
-remarkably everything is differentiable including the algorithm in section
-\ref{sec:continuation}. This gradient information can be used in a
-gradient descent optimization to minimize $\mathcal{J}(\theta)$.
+This objective function is differentiable --- except for at the boundary between
+the two regimes --- if we can compute $\partial_\theta\mathcal{U}$ and $\partial_\theta\mathcal{P}$. This requires the algorithm in section \ref{sec:continuation} to be differentiable. This is where
+\texttt{Zygote.jl}, a differentiable programming system that is able to take gradients of general program structures \cite{}, is applied.
+
+
+\todo[inline]{Try adding a penalty for "conjugate stability"}
+\todo[inline]{Comment that while reproducing the qualitative behaviour only can be desirable, sometimes it is also helpful to add quantitative desires over the values of the output. E.g. we don't care too much about [CFP], but actually, if it were below $C_\text{threshold}$, then we'd have a problem. This can be cast in terms of a multi-objective optimization problem, where each term separately gets a weighting factor. Personally, I wouldn't demonstrate that in this paper, but important to comment somewhere.}
+\todo[inline]{Try applying the KDE function to the target output, as well as the model output.}
+
+\subsubsection{Optimization details}
+
+\begin{itemize}
+    \item ADAM
+\end{itemize}
+\todo[inline]{Try removing momentum from the optimizer}
 
 \section{Normal Forms}
 \label{sec:normal-forms}
 
 \begin{itemize}
     \item saddle-node, pitchfork, transcritical
-    \item optimisation landscape with changing hyperparams
     \item benchmarks against other algos
 \end{itemize}
 
