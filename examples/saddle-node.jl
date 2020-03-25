@@ -10,25 +10,28 @@ function rates_jacobian( u,p, θ₁=0.0, θ₂=0.0, θ₃=0.0)
 	return [ θ₁ .+ 3 .*θ₂.*u[1].^2 ][:,:]
 end
 
-# target state density
-parameter = -2:0.05:2
-data = StateDensity(parameter,[0.5,-0.5])
+function curvature( u,p, θ₁=0.0, θ₂=0.0, θ₃=0.0)
+	return - 6θ₂ .* ( 1 .+ θ₁^2 .- 9θ₂^2 .*u[1].^4 ) / (1 .+ (θ₁+3θ₂.*u[1].^2).^2 ).^2
+end
+
+# initialise targets, model and hyperparameters
+f,J,K = (u,p)->rates(u,p,θ...), (u,p)->rates_jacobian(u,p,θ...), (u,p)->curvature(u,p,θ...)
+data = StateDensity(-2:0.01:2,[0.5,-0.5])
+parameters = getParameters(data)
 
 ######################################################## run inference
-parameters = ContinuationPar{Float64, typeof(DefaultLS()), typeof(DefaultEig())}(
-	pMin=minimum(data.parameter),pMax=maximum(data.parameter),ds=step(data.parameter), maxSteps=200,
 
-		newtonOptions = NewtonPar{Float64, typeof(DefaultLS()), typeof(DefaultEig())}(
-		verbose=false,maxIter=100,tol= 1e-5),
+θ = [1.9,-1.1]
+progress()
+png("saddle-node")
+u₀,θ,A = [[0.0][:,:], [0.0][:,:] ],[2.1,-2.1], 1.0
+plot(range(0,π,length=100), ϕ->lossAt(3cos(ϕ),3sin(ϕ)))
+vline!([2π/3+0.05],label="target", color="gold")
 
-	detect_fold = false, detect_bifurcation = true)
-
-u₀,θ,trace = [[0.0][:,:], [0.0][:,:] ],[2.1,2.1],[]
-f,J = (u,p)->rates(u,p,θ...), (u,p)->rates_jacobian(u,p,θ...)
-
-x,y = range(-3,3,length=50),range(-7,7,length=50)
-contourf(x,y, (x,y) -> lossAt(x,y), size=(500,500))
-
+θ = [2.1,-2.1]
+progress()
+# x,y = range(-3,3,length=50),range(-7,7,length=50)
+# contourf(x,y, (x,y) -> lossAt(x,y), size=(500,500))
 
 θ = Params([0.5,-1.])
 loss()
