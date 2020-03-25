@@ -144,9 +144,14 @@ This curvature of the determinant $\partial_{\tangent}^2\Det$ can be maximised t
 \end{align}
 Here we note that the integrand as well as the limits are functions of $\theta$ and $z$. Once bifurcation points $\predictions(\theta)$ are present, the task is to match their locations to the targets $\targets$. However we do not know exactly now many bifurcations there for any given value of $\theta$ and there would be many different ways of satisfying the targets $\targets$. Therefore we borrow some concepts from electromagnetism and treat target locations as centres of attractive potentials and locations of predictions $\predictions(\theta)$ as interacting particles with a strong repulsive interaction.
 \begin{align}
-    L(\theta):= |\predictions(\theta)-\targets|
-    -\log|\predictions(\theta)-\predictions(\theta)|
-    -\log(1+\kappa(\theta))
+    L(\theta):=
+    -\log(1+\kappa(\theta)) \quad +
+    \!\!\!\!
+    \sum_{(x,y)\in\predictions\times\targets}
+    |y-x(\theta)| \quad -
+    \!\!\!\!
+    \sum_{(x,y)\in\predictions\times\predictions}
+    \log|y(\theta)-x(\theta)|
 \end{align}
 
 \subsection{Hyper-parameter Preconditioning}
