@@ -28,6 +28,8 @@ vline!([2π/3+0.05],label="target", color="gold")
 # x,y = range(-3,3,length=50),range(-3,3,length=50)
 # contourf(x,y, (x,y) -> lossAt(x,y), size=(500,500))
 
+
+
 θ = Params([0.1,1.000])
 loss()
 
