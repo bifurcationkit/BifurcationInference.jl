@@ -11,7 +11,7 @@ function rates_jacobian( u,p, θ₁=0.0, θ₂=0.0, θ₃=0.0)
 end
 
 function curvature( u,p, θ₁=0.0, θ₂=0.0, θ₃=0.0)
-	return - 6θ₂ .* ( 1 .+ θ₁^2 .- 9θ₂^2 .*u[1].^4 ) / (1 .+ (θ₁+3θ₂.*u[1].^2).^2 ).^2
+	return 6θ₂ .* ( 1 .+ θ₁^2 .- 9θ₂^2 .*u.^4 ) ./ (1 .+ (θ₁ .+ 3θ₂.*u.^2).^2 ).^2
 end
 
 # initialise targets, model and hyperparameters
@@ -21,12 +21,11 @@ parameters = getParameters(data)
 
 ######################################################## run inference
 
-θ = [1.9,-1.1]
-progress()
-png("saddle-node")
 u₀,θ,A = [[0.0][:,:], [0.0][:,:] ],[2.1,-2.1], 1.0
-plot(range(0,π,length=100), ϕ->lossAt(3cos(ϕ),3sin(ϕ)))
-vline!([2π/3+0.05],label="target", color="gold")
+progress()
+
+plot(range(0,2π,length=200), ϕ->lossAt(3cos(ϕ),3sin(ϕ)))
+vline!([14π/8-0.2],label="target", color="gold")
 
 θ = [2.1,-2.1]
 progress()

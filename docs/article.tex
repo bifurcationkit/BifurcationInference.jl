@@ -31,14 +31,14 @@ For clarity we guide the reader through the methods with the following co-dimens
 \begin{figure}[H]
 \centering{}
 \captionsetup{justification=centering}
-\includegraphics[width=11cm]{docs/figures/saddle-node}
+\includegraphics[width=11cm]{saddle-node}
 \caption{Saddle-node normal form $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ with set $\theta=(2,-1)$ and targets $\targets=\{-1/2,1/2\}$. Lighter shades indicate the determinant crossing zero for unstable solutions}
 \label{fig:saddle-node}
 \end{figure}
 \begin{figure}[H]
 \centering{}
 \captionsetup{justification=centering}
-\includegraphics[width=11cm]{docs/figures/pitchfork}
+\includegraphics[width=11cm]{pitchfork}
 \caption{Pitchfork normal form $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$ with set $\theta=(-1/10,-1)$ and target $\targets=\{0\}$. Lighter shades indicate the determinant crossing zero for unstable solutions}
 \label{fig:pitchfork}
 \end{figure}
@@ -52,7 +52,7 @@ Obtaining a bifurcation curve involves solving for the steady states of \eqref{e
 \begin{figure}[H]
 \centering{}
 \captionsetup{justification=centering}
-\includegraphics[width=6cm]{docs/figures/implicit-surfaces}
+\includegraphics[width=6cm]{implicit-surfaces}
 \caption{Two implicit surfaces $f_{\theta}(z)=0$ and $g_{\theta}(z)=0$ in $\mathbb{R}^3$ intersecting to form a\\ space curve which is tangent to field $\tangent(z)$ and perpendicular to gradients $\partial_{z}f_{\theta}$ and $\partial_{z}g_{\theta}$}
 \label{fig:implicit-surfaces}
 \end{figure}
@@ -83,12 +83,12 @@ since the determinant of any matrix with two identical rows or columns is zero. 
 \begin{figure}[H]
 \centering{}
 \captionsetup{justification=centering}
-\includegraphics[width=14cm]{docs/figures/tangent-field}
+\includegraphics[width=14cm]{tangent-field}
 \caption{Left/Right : Calculated tangent fields $\tangent(z)$ for the saddle-node/pitchfork normal forms for some set values of $\theta$ revealing that $\rates(z)=0$ picks out one of the traces in the field}
 \label{fig:tangent-field}
 \end{figure}
 
-Figure \ref{fig:tangent-field} shows how the bifurcation curve defined by $\rates(z)=0$ picks out one of many traces in tangent field $\tangent(z)$ for the saddle and pitchfork. The tangent field $\tangent(z)$ can always be analytically evaluated by taking the determinant in \eqref{eq:tangent-field}. It becomes practical to proceed with calculations on $\tangent(z)$ in the whole space $z$ and pick out a single trace by solving $\rates(z)=0$ later. For the saddle-node and pitchfork respectively 
+Figure \ref{fig:tangent-field} shows how the bifurcation curve defined by $\rates(z)=0$ picks out one of many traces in tangent field $\tangent(z)$ for the saddle and pitchfork. The tangent field $\tangent(z)$ can always be analytically evaluated by taking the determinant in \eqref{eq:tangent-field}. It becomes practical to proceed with calculations on $\tangent(z)$ in the whole space $z$ and pick out a single trace by solving $\rates(z)=0$ later. For the saddle-node and pitchfork respectively
 \begin{align}
     \tangent(z)=(\,3\theta_2 u^2-\theta_1\,)\,\hat{p}+\hat{u}
     \qquad\qquad
@@ -106,7 +106,7 @@ crossing zero can be used as a readout of whether a bifurcation has occurred. Fi
 \begin{figure}[H]
 \centering{}
 \captionsetup{justification=centering}
-\includegraphics[width=14cm]{docs/figures/determinant-curvature}
+\includegraphics[width=14cm]{determinant-curvature}
 \caption{Left/Right : Determinant $\Det(z)$ and tangent field $\tangent(z)$ for the saddle-node/pitchfork normal forms for some set values of $\theta$ revealing that $\Det(z)=0$ defines bifurcations}
 \label{fig:determinant-curvature}
 \end{figure}
@@ -127,7 +127,7 @@ Consequently the curvature of the determinant $\partial_{\tangent}^2\Det$ along 
 \end{align}
 The first term in the expression above is the usual result involving the Hessian matrix $\partial_z^2\Det$ when taking second order directional derivatives. The second term involving the gradient $\partial_z\Det$ appears because $\hat{\tangent}(z)$ is a function of $z$ giving rise to a non-zero Jacobian matrix $\partial_z \hat{\tangent}$. Using expressions for tangent fields \eqref{eq:tangent-field-examples} and determinants for the saddle-node and pitchfork normal forms the determinant curvatures respectively become
 \begin{align}
-    \partial_{\tangent}^2\Det = 
+    \partial_{\tangent}^2\Det =
     -\frac{6 \theta_2 \left(\theta _1^2-9 \theta _2^2 u^4+2\right)}
     {\left(\left(\theta _1+3 \theta _2 u^2\right){}^2+2\right){}^2}
     \qquad

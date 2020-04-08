@@ -1,0 +1,14 @@
+\begin{thebibliography}{1}
+
+\bibitem{Goldman2005CurvatureSurfaces}
+R.~Goldman, ``{Curvature formulas for implicit curves and surfaces},'' in {\em
+  Computer Aided Geometric Design}, vol.~22, pp.~632--658, Elsevier, 10 2005.
+
+\bibitem{Veltz2019PseudoArcLengthContinuation.jl}
+R.~Veltz, ``{PseudoArcLengthContinuation.jl},'' 2019.
+
+\bibitem{Farrell2016TheDiagrams}
+P.~E. Farrell, C.~H.~L. Beentjes, and Ã.~Birkisson, ``{The computation of
+  disconnected bifurcation diagrams},'' {\em arXiv}, 3 2016.
+
+\end{thebibliography}

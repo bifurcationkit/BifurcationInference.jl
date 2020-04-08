@@ -50,6 +50,8 @@ end
 
 function loss()
     steady_states = predictor()
+	return sum( branch->( (p,v)=potential(branch);
+		sum(v)*step(data.parameter) ), steady_states )
 
     if sum( branch -> length(branch.bifpoint), steady_states) == 0
 		return -log(1+sum( branch->( (p,v)=potential(branch);
@@ -62,40 +64,46 @@ function loss()
     end
 end
 
-function progress()
+function progress(states_only=false)
     bifurcations = predictor()
-    vline( data.bifurcations, label="", color=:gold, xlabel=L"\mathrm{parameter},\,p",right_margin=20mm,size=(500,400))
-	right_axis = twinx()
 
-    for bifurcation in bifurcations
-		bifpt = bifurcation.bifpoint[1:bifurcation.n_bifurcations]
+	if states_only
+		for bifurcation in bifurcations
+			bifpt = bifurcation.bifpoint[1:bifurcation.n_bifurcations]
+			plot!(bifurcation.branch[1,:],bifurcation.branch[2,:], alpha=0.5, label="", grid=false, ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(z)=0",
+				color=map(x -> isodd(x) ? :darkblue : :lightblue, bifurcation.stability[1:bifurcation.n_points]), linewidth=2)
+		end
+	else
 
-        plot!(bifurcation.branch[1,:],bifurcation.branch[2,:], alpha=0.5, label="", grid=false, ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(z)=0",
-            color=map(x -> isodd(x) ? :darkblue : :lightblue, bifurcation.stability[1:bifurcation.n_points]), linewidth=2)
+	    vline( data.bifurcations, label="", color=:gold, xlabel=L"\mathrm{parameter},\,p",right_margin=20mm,size=(500,400))
+		right_axis = twinx()
 
-        plot!(right_axis,det(bifurcation)..., alpha=0.5, label="", grid=false, ylabel=L"\mathrm{determinant}\,\,\Delta_{\theta}(z)",
-            colour=map(x -> isodd(x) ? :red : :pink, bifurcation.stability[1:bifurcation.n_points]), linewidth=2)
+	    for bifurcation in bifurcations
+			bifpt = bifurcation.bifpoint[1:bifurcation.n_bifurcations]
 
-		scatter!(map(x->x.param,bifpt),map(x->x.printsol,bifpt), label="",
-            m = (3.0, 3.0, :black, stroke(0, :none)))
-    end
+	        plot!(bifurcation.branch[1,:],bifurcation.branch[2,:], alpha=0.5, label="", grid=false, ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(z)=0",
+	            color=map(x -> isodd(x) ? :darkblue : :lightblue, bifurcation.stability[1:bifurcation.n_points]), linewidth=2)
 
-	plot!(right_axis,[],[], color=:gold, legend=:bottomleft,
-        alpha=1.0, label=L"\mathrm{targets}\,\,\mathcal{D}")
-	scatter!(right_axis,[],[], label=L"\mathrm{prediction}\,\,\mathcal{P}(\theta)", legend=:bottomleft,
-		m = (1.0, 1.0, :black, stroke(0, :none)))
-	plot!(right_axis,[],[], color=:darkblue, legend=:bottomleft, linewidth=2,
-        alpha=1.0, label=L"\mathrm{steady\,states}")
-	plot!(right_axis,[],[], color=:red, legend=:bottomleft,
-        alpha=1.0, label=L"\mathrm{determinant}", dpi=500, linewidth=2) |> display
+	        plot!(right_axis,det(bifurcation)..., alpha=0.5, label="", grid=false, ylabel=L"\mathrm{determinant}\,\,\Delta_{\theta}(z)",
+	            colour=map(x -> isodd(x) ? :red : :pink, bifurcation.stability[1:bifurcation.n_points]), linewidth=2)
+
+			scatter!(map(x->x.param,bifpt),map(x->x.printsol,bifpt), label="",
+	            m = (3.0, 3.0, :black, stroke(0, :none)))
+	    end
+
+		plot!(right_axis,[],[], color=:gold, legend=:bottomleft,
+	        alpha=1.0, label=L"\mathrm{targets}\,\,\mathcal{D}")
+		scatter!(right_axis,[],[], label=L"\mathrm{prediction}\,\,\mathcal{P}(\theta)", legend=:bottomleft,
+			m = (1.0, 1.0, :black, stroke(0, :none)))
+		plot!(right_axis,[],[], color=:darkblue, legend=:bottomleft, linewidth=2,
+	        alpha=1.0, label=L"\mathrm{steady\,states}")
+		plot!(right_axis,[],[], color=:red, legend=:bottomleft,
+	        alpha=1.0, label=L"\mathrm{determinant}", dpi=500, linewidth=2) |> display
+	end
 end
 
 function lossAt(params...)
 	copyto!(θ,[params...])
-	try
-		loss()
-		return loss()
-	catch
-		return Inf
-	end
+	loss()
+	return loss()
 end
