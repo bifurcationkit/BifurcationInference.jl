@@ -11,24 +11,54 @@ function rates_jacobian( u,p, θ₁=0.0, θ₂=0.0, θ₃=0.0)
 end
 
 function curvature( u,p, θ₁=0.0, θ₂=0.0, θ₃=0.0)
-	return 6θ₂ .* ( 1 .+ θ₁^2 .- 9θ₂^2 .*u.^4 ) ./ (1 .+ (θ₁ .+ 3θ₂.*u.^2).^2 ).^2
+	return - 6θ₂ .* ( 1 .+ θ₁^2 .- 9θ₂^2 .*u.^4 ) ./ (1 .+ (θ₁ .+ 3θ₂.*u.^2).^2 ).^2
 end
 
 # initialise targets, model and hyperparameters
-f,J,K = (u,p)->rates(u,p,θ...), (u,p)->rates_jacobian(u,p,θ...), (u,p)->curvature(u,p,θ...)
-data = StateDensity(-2:0.01:2,[0.5,-0.5])
+f = (u,p)->rates(u,p,θ...)
+J = (u,p)->rates_jacobian(u,p,θ...)
+K = (u,p)->curvature(u,p,θ...)
+
+data = StateDensity(-2:0.01:2,[1.0,-1.0])
 parameters = getParameters(data)
 
 ######################################################## run inference
+u₀,θ = [[0.0][:,:], [0.0][:,:] ],[2.1,-2.1]
 
-u₀,θ,A = [[0.0][:,:], [0.0][:,:] ],[2.1,-2.1], 1.0
-progress()
+x = 7π/4+0.11
+	lossAt(3cos(x),3sin(x))
+	progress()
 
-plot(range(0,2π,length=200), ϕ->lossAt(3cos(ϕ),3sin(ϕ)))
-vline!([14π/8-0.2],label="target", color="gold")
+ϕ = range(0,2π,length=200)
+L = lossAt.(3cos.(ϕ),3sin.(ϕ))
 
-θ = [2.1,-2.1]
-progress()
+Lpoints = [L L]
+Lrange = [zero(L).-4 L]
+
+plot([],[NaN],fillrange=[NaN],
+	title=L"\mathrm{Objective\,\,Function\,\,\,}L(\alpha)",
+	label="",grid=false,#proj=:polar,lims=(-4,3)
+	)
+
+	plot!(ϕ[1:50],Lpoints[1:50],fillrange=Lrange[1:50],
+		color="#fde5d6",linewidth=3,fillalpha=0.3,label="")
+
+	plot!(ϕ[51:91],Lpoints[51:91],fillrange=Lrange[51:91],
+		color="lightblue",linewidth=3,fillalpha=0.4,label="")
+
+	plot!(ϕ[92:150],Lpoints[92:150],fillrange=Lrange[92:150],
+		color="#aabec7",linewidth=3,fillalpha=0.4,label="")
+
+	plot!(ϕ[151:190],Lpoints[151:190],fillrange=Lrange[151:190],
+		color="darkblue",linewidth=3,fillalpha=0.2,label="")
+
+	plot!(ϕ[191:200],Lpoints[191:200,:],fillrange=Lrange[191:200,:],
+		color="#fde5d6",linewidth=3,fillalpha=0.3,label="")
+
+	plot!(ϕ,zero(ϕ),color=:lightgray,label="")
+	plot!(fill(x,2),[-4,-3], label=L"\mathrm{targets}\,\,\mathcal{D}",
+		color="gold",linewidth=2)
+savefig("objective-function-saddle.pdf")
 # x,y = range(-3,3,length=50),range(-7,7,length=50)
 # contourf(x,y, (x,y) -> lossAt(x,y), size=(500,500))
 

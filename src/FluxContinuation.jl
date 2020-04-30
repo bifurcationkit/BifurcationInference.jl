@@ -6,6 +6,7 @@ module FluxContinuation
 	include("patches/PseudoArcLengthContinuation.jl")
 	include("patches/LinearAlgebra.jl")
 	include("patches/Flux.jl")
+	include("patches/Base.jl")
 	export continuation,deflationContinuation
 
 	""" extension of co-dimension one parameter continuation methods work with Zygote """
