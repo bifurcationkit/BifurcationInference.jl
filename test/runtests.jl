@@ -1,51 +1,64 @@
-# throw("unit tests currently fail due to N^2 dft algorithm")
-# tests = [ "univariate", "bivariate", "interp" ]
-# println("Testing KernelDensity.jl ...")
+using Flux, FluxContinuation
+using StatsBase: median
+using Test,Plots
 
-# for test in tests
-#     println(" * $test.jl")
-#     include("$test.jl")
-# end
+######################################################## unit tests
+function test_predictor() global u₀,steady_states,parameters
+	steady_states,u₀ = deflationContinuation(f,J,u₀,parameters)
+	parameters = updateParameters(parameters,steady_states)
 
-
-tests = ["continuation"]
-println("Testing FluxContinuation.jl ...")
-
-for test in tests
-    println(" * $test.jl")
-    include("$test.jl")
+	plot(steady_states,data)
+	return true
 end
 
-# include("../patches/KernelDensity.jl")
-# using FFTW: fft,rfft,ifft,irfft
-# using Flux
+function evaluate_gradient(x...; index=1) global θ,u₀,steady_states,parameters
+	copyto!(θ,[x...])
 
-# input,output = 100*rand(101),rand(51)
-# N = length(input)
+	dθ = gradient(params(θ)) do
+		steady_states,u₀ = deflationContinuation(f,J,u₀,parameters )
+		parameters = updateParameters(parameters,steady_states)
+		loss(steady_states,data,K)
+	end
 
-# @assert all( fft(input) .≈ fft(param.(input)) )
-# @assert all( ifft(input) .≈ ifft(param.(input)) )
+	return [ loss(steady_states,data,K), dθ[θ][index] ]
+end
 
-# @assert all(input .≈ ifft(fft(input)))
-# @assert all(input .≈ ifft(fft(param.(input))))
+using Plots.PlotMeasures
+function test_gradients(tol=0.01)
 
-# @assert all( rfft(input) .≈ rfft(param.(input)) )
-# @assert all( irfft(output,N) .≈ irfft(param.(output),N) )
+    gradients = hcat(evaluate_gradient.(ϕ,r)...)
+    L,dL = gradients[1,:], gradients[2,:]
+    finite_differences = vcat(diff(L)/step(ϕ),NaN)
 
-# @assert all(input .≈ irfft(rfft(input),length(input)))
-# @assert all(input .≈ irfft(rfft(param.(input)),length(input)))
+    step_truncate = 50
+    mask = abs.(finite_differences).>step_truncate
+    finite_differences[mask] .= NaN
 
-# input,output = 100*rand(100),rand(51)
-# N = length(input)
+    plot(fill(optimum,2),[-1,1.4],label="",color="gold",linewidth=2,ylim=(-5,5),
+    	xlabel="Parameter",ylabel="Objective",
+    	right_margin=15mm,size=(500,500))
 
-# @assert all( fft(input) .≈ fft(param.(input)) )
-# @assert all( ifft(input) .≈ ifft(param.(input)) )
+    right_axis = twinx(); plot!(right_axis,label="",
+    	ylim=(-35,20),ylabel="Gradient",
+    	legend=:bottomleft)
 
-# @assert all(input .≈ ifft(fft(input)))
-# @assert all(input .≈ ifft(fft(param.(input))))
+    plot!(ϕ,L,label="",color="black")
+    plot!(right_axis,ϕ,finite_differences,label="Finite Differences",color="gold",fillrange=0,alpha=0.5)
+    plot!(right_axis,ϕ,dL,label="Zygote AutoDiff",color="lightblue",fillrange=0,alpha=0.6) |> display
 
-# @assert all( rfft(input) .≈ rfft(param.(input)) )
-# @assert all( irfft(output,N) .≈ irfft(param.(output),N) )
+	errors = abs.(dL-finite_differences)
+	mask = .~isnan.(errors)
+	return median(errors[mask]) < tol
+end
 
-# @assert all(input .≈ irfft(rfft(input),length(input)))
-# @assert all(input .≈ irfft(rfft(param.(input)),length(input)))
+@testset "normal forms" begin
+
+    include("saddle-node.jl")
+    @test test_predictor()
+    @test test_gradients()
+
+    #include("pitchfork.jl")
+    @test test_predictor()
+    #@test test_gradients()
+
+end
