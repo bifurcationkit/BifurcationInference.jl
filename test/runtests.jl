@@ -1,4 +1,4 @@
-using Flux, FluxContinuation
+using Flux,FluxContinuation
 using StatsBase: median
 using Test,Plots
 
@@ -51,13 +51,13 @@ function test_gradients(tol=0.01)
 	return median(errors[mask]) < tol
 end
 
-@testset "normal forms" begin
+@testset "Normal Forms" begin
 
     include("saddle-node.jl")
     @test test_predictor()
-    @test test_gradients()
+    #@test test_gradients()
 
-    #include("pitchfork.jl")
+    include("pitchfork.jl")
     @test test_predictor()
     #@test test_gradients()
 
