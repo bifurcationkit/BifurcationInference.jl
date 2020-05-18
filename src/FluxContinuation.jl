@@ -1,21 +1,23 @@
 module FluxContinuation
 
-	using PseudoArcLengthContinuation: AbstractLinearSolver, AbstractEigenSolver, DeflationOperator, PALCIterable
-	using PseudoArcLengthContinuation; const Cont = PseudoArcLengthContinuation
-	using Zygote: Buffer, @nograd
+	using PseudoArcLengthContinuation
+	using PseudoArcLengthContinuation: AbstractLinearSolver, AbstractBorderedLinearSolver, AbstractEigenSolver, _axpy, detectBifucation, computeEigenvalues!
+	using Zygote: Buffer, @nograd, @adjoint
 
-	using Setfield: @set,setproperties
+	using Setfield: @set,set,setproperties,Lens,@lens
+	using Parameters: @with_kw
 	using Dates: now
 	using Logging
 
-	using LinearAlgebra: dot
+	using LinearAlgebra: dot,eigen
 	using StatsBase: norm
 
 	using Plots.PlotMeasures
 	using LaTeXStrings
 	using Plots
 
-	include("patches/Flux.jl")
+	include("patches/PseudoArcLengthContinuation.jl")
+	include("patches/Zygote.jl")
 	include("Structures.jl")
 	include("Utils.jl")
 
@@ -25,23 +27,25 @@ module FluxContinuation
 	@nograd now,string
 
 	""" root finding with newton deflation method"""
-	function findRoots( f::Function, J::Function, u₀::Vector{Array{T,2}}, parameters::ContinuationPar{T, S, E},
-		maxRoots::Int = 3, maxIter::Int=500 ) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
+	function findRoots( f, J, u₀::Vector{Array{T,2}}, params::NamedTuple, paramlens::Lens,
+		hyperparameters::ContinuationPar{T, S, E}, maxRoots::Int = 3, maxIter::Int=500
+		) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
-		pDeflations = range(parameters.pMin,parameters.pMax,length=length(u₀))
+		pDeflations = range(hyperparameters.pMin,hyperparameters.pMax,length=length(u₀))
 		rootsArray = similar(u₀)
 		_,nStates = size(u₀[1])
 
-		parameters = @set parameters.newtonOptions.maxIter = maxIter
+		hyperparameters = @set hyperparameters.newtonOptions.maxIter = maxIter
 		with_logger(NullLogger()) do # silence newton convergence errors
 		    for (i,us) in enumerate(u₀)
+				params = set(params, paramlens, pDeflations[i])
 
 				deflation = DeflationOperator(1.0, dot, 1.0, [fill(Inf,nStates)] )
 				converged = true
 
 		        for u in eachrow(us) # update existing roots
-		    		u, _, converged, _ = Cont.newton( u->f(u,pDeflations[i]), u->J(u,pDeflations[i]),
-			    		u.+parameters.ds, parameters.newtonOptions, deflation)
+		    		u, _, converged, _ = newton( f, J, u.+hyperparameters.ds, params,
+						hyperparameters.newtonOptions, deflation)
 		    		if converged push!(deflation,u) else break end
 		        end
 
@@ -49,10 +53,10 @@ module FluxContinuation
 					u = fill(0.0,nStates)
 					while length(deflation) < maxRoots
 
-						u, _, converged, _ = Cont.newton( u->f(u,pDeflations[i]), u->J(u,pDeflations[i]),
-							u.+parameters.ds, parameters.newtonOptions, deflation)
+						u, _, converged, _ = newton( f, J, u.+hyperparameters.ds, params,
+							hyperparameters.newtonOptions, deflation)
 
-						if converged & all(map( v -> !isapprox(u,v,atol=2*parameters.ds), deflation.roots))
+						if converged & all(map( v -> !isapprox(u,v,atol=2*hyperparameters.ds), deflation.roots))
 							push!(deflation,u)
 						else break end
 					end
@@ -68,18 +72,17 @@ module FluxContinuation
 	@nograd findRoots
 
 	""" differentiable deflation continuation method """
-	function deflationContinuation( f::Function, J::Function, u₀::Vector{Array{T,2}}, parameters::ContinuationPar{T, S, E},
-		maxRoots::Int = 3, maxIter::Int=500 ) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
+	function deflationContinuation( f, J, u₀::Vector{Array{T,2}}, params::NamedTuple, paramlens::Lens,
+		hyperparameters::ContinuationPar{T, S, E}, maxRoots::Int = 3, maxIter::Int=500
+		) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
-		maxIterContinuation,ds = parameters.newtonOptions.maxIter,parameters.ds
-		rootsArray,pDeflations = findRoots( f, J, u₀, parameters, maxRoots, maxIter )
-
-	    nRoots = map( us->( (nRoots,nStates)=size(us); nRoots), rootsArray)
+		maxIterContinuation,ds = hyperparameters.newtonOptions.maxIter,hyperparameters.ds
+		rootsArray,pDeflations = findRoots( f, J, u₀, params, paramlens, hyperparameters, maxRoots, maxIter )
 	    intervals = ([0.0,step(pDeflations)],[-step(pDeflations),0.0])
 
 		# continuation per root
-		branches = Buffer([ Branch(T) ], 2*sum(nRoots)-nRoots[end]-nRoots[1] ); n = 0
-		parameters = @set parameters.newtonOptions.maxIter = maxIterContinuation
+		branches = Buffer( Branch{T}[] )
+		hyperparameters = @set hyperparameters.newtonOptions.maxIter = maxIterContinuation
 
 	    for (i,us) in enumerate(rootsArray)
 	        for u in eachrow(us)
@@ -87,43 +90,47 @@ module FluxContinuation
 	            # forwards and backwards branches
 	            for (pMin,pMax) in intervals
 
-					parameters = setproperties(parameters;
+					hyperparameters = setproperties(hyperparameters;
 						pMin=pDeflations[i]+pMin, pMax=pDeflations[i]+pMax,
-						ds=sign(parameters.ds)*ds)
+						ds=sign(hyperparameters.ds)*ds)
 
 	                # main continuation method
-					branch = Branch(T)
-					iterator = PALCIterable( f, J, u, pDeflations[i]+parameters.ds, parameters)
+					branch = BranchBuffer(T)
+					params = set(params, paramlens, pDeflations[i]+hyperparameters.ds)
+					iterator = PALCIterable( f, J, u, params, paramlens, hyperparameters)
 
 					for state in iterator
+						x,p = copy(getx(state)),getp(state)
 
-						push!(branch.state,copy(getx(state)))
-						push!(branch.parameter,getp(state))
+						push!(branch.state,x)
+						push!(branch.parameter,p)
+						push!(branch.ds,state.ds)
 
-						Cont.computeEigenvalues!(iterator, state)
+						computeEigenvalues!(iterator,state)
 						push!(branch.eigvals,state.eigvals)
 
-						if Cont.detectBifucation(state)
-							push!(branch.bifurcations, (state=copy(getx(state)),parameter=getp(state)) )
+						if detectBifucation(state)
+							push!(branch.bifurcations,(state=x,parameter=p))
 						end
 					end
 
-	        		if parameters.pMax <= maximum(pDeflations) && parameters.pMin >= minimum(pDeflations)
-	        			n +=1; branches[n] = branch end
-	        		parameters = @set parameters.ds = -parameters.ds
+	        		if hyperparameters.pMax <= maximum(pDeflations) && hyperparameters.pMin >= minimum(pDeflations)
+	        			push!(branches,copy(branch)) end
+	        		hyperparameters = @set hyperparameters.ds = -hyperparameters.ds
 	            end
 	    	end
 	    end
 
-		parameters = @set parameters.ds = ds
+		hyperparameters = @set hyperparameters.ds = ds
 		return copy(branches), rootsArray
 	end
 
 	""" semi-supervised objective function """
 	function loss(steady_states::Vector{Branch{T}}, data::StateDensity{T}, curvature::Function) where {T<:Number}
 
-	    predictions = map( branch->map( point->point.param, branch.bifpoint),
-	        filter( branch->length(branch.bifpoint) > 0, steady_states ))
+	    predictions = map( branch -> map(
+			bifurcation -> bifurcation.parameter, branch.bifurcations ),
+				steady_states)
 
 	    # supervised signal
 	    predictions = vcat(predictions...)
@@ -132,7 +139,7 @@ module FluxContinuation
 	    # unsupervised signal
 	    weight = length(predictions)!=2length(data.bifurcations)
 	    curvature = sum( branch-> sum(
-	        abs.(curvature(branch.branch[2,:],branch.branch[1,:])).*abs.(branch.branch[4,:])),
+	        abs.(curvature.(branch.state,branch.parameter)).*abs.(branch.ds)),
 	        steady_states )
 
 	    return (1-weight)*tanh(log(error)) - weight*log(1+curvature)

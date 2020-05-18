@@ -2,10 +2,13 @@ using Flux,FluxContinuation
 using StatsBase: median
 using Test,Plots
 
+using Parameters: @unpack
+using Setfield: @lens
+
 ######################################################## unit tests
-function test_predictor() global u₀,steady_states,parameters
-	steady_states,u₀ = deflationContinuation(f,J,u₀,parameters)
-	parameters = updateParameters(parameters,steady_states)
+function test_predictor() global u₀,steady_states,hyperparameters
+	steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,θ,(@lens _.p),hyperparameters)
+	hyperparameters = updateParameters(hyperparameters,steady_states)
 
 	plot(steady_states,data)
 	return true
@@ -15,7 +18,7 @@ function evaluate_gradient(x...; index=1) global θ,u₀,steady_states,parameter
 	copyto!(θ,[x...])
 
 	dθ = gradient(params(θ)) do
-		steady_states,u₀ = deflationContinuation(f,J,u₀,parameters )
+		steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,θ,(@lens _.p),parameters)
 		parameters = updateParameters(parameters,steady_states)
 		loss(steady_states,data,K)
 	end
@@ -55,10 +58,18 @@ end
 
     include("saddle-node.jl")
     @test test_predictor()
-    #@test test_gradients()
-
+    # @test test_gradients()
+	#
     include("pitchfork.jl")
     @test test_predictor()
-    #@test test_gradients()
+    # @test test_gradients()
+	#
+	# include("two-state.jl")
+    # @test test_predictor()
+    # @test test_gradients()
+	#
+	# include("cell-cycle.jl")
+    # @test test_predictor()
+    # @test test_gradients()
 
 end

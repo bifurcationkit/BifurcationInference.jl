@@ -15,6 +15,6 @@
 
 import Zygote: accum,RefValue
 function accum(x::RefValue, y::RefValue)
-  #@assert x === y
-  return x
+    @assert x === y
+    return x
 end

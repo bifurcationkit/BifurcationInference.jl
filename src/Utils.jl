@@ -5,7 +5,7 @@ function getParameters(data::StateDensity{T}; maxIter::Int=10, tol=1e-12) where 
         pMin=minimum(data.parameter),pMax=maximum(data.parameter), maxSteps=10*length(data.parameter),
         ds=step(data.parameter), dsmax=step(data.parameter), dsmin=step(data.parameter),
 
-            newtonOptions = NewtonPar(
+            newtonOptions = NewtonPar( eigsolver=EigenSolver(),
             verbose=false,maxIter=maxIter,tol=tol),
 
         detectFold = false, detectBifurcation = true)
@@ -24,6 +24,61 @@ function updateParameters(parameters::ContinuationPar{T, S, E}, steady_states::V
 end
 @nograd updateParameters
 
+################################################## differentiable solvers
+# reference: https://github.com/FluxML/Zygote.jl/pull/327
+import LinearAlgebra: eigen
+@adjoint function eigen(A::AbstractMatrix)
+    eV = eigen(A)
+    e,V = eV
+    n = size(A,1)
+    eV, function (Δ)
+        Δe, ΔV = Δ
+        if ΔV === nothing
+          (inv(V)'*Diagonal(Δe)*V', )
+        elseif Δe === nothing
+          F = [i==j ? 0 : inv(e[j] - e[i]) for i=1:n, j=1:n]
+          (inv(V)'*(F .* (V'ΔV))*V', )
+        else
+          F = [i==j ? 0 : inv(e[j] - e[i]) for i=1:n, j=1:n]
+          (inv(V)'*(Diagonal(Δe) + F .* (V'ΔV))*V', )
+        end
+    end
+end
+
+############################ non-mutating solvers
+struct EigenSolver <: AbstractEigenSolver end
+function (l::EigenSolver)(J, nev::Int64)
+	F = eigen(Array(J))
+	return Complex.(F.values), Complex.(F.vectors), true, 1
+end
+
+struct LinearSolver <: AbstractLinearSolver end
+function (l::LinearSolver)(J, rhs; a₀ = 0, a₁ = 1, kwargs...)
+	return _axpy(J, a₀, a₁) \ rhs, true, 1
+end
+function (l::LinearSolver)(J, rhs1, rhs2; a₀ = 0, a₁ = 1, kwargs...)
+	return J \ rhs1, J \ rhs2, true, (1, 1)
+end
+
+@with_kw struct BorderedLinearSolver{S<:AbstractLinearSolver} <: AbstractBorderedLinearSolver
+	solver::S = LinearSolver()
+end
+function (lbs::BorderedLinearSolver{S})( J, dR, dzu, dzp::T, R, n::T,
+		xiu::T = T(1), xip::T = T(1); shift::Ts = nothing)  where {T, S, Ts}
+
+	# we make this branching to avoid applying a zero shift
+	if isnothing(shift)
+		x1, x2, _, (it1, it2) = lbs.solver(J, R, dR)
+	else
+		x1, x2, _, (it1, it2) = lbs.solver(J, R, dR; a₀ = shift)
+	end
+
+	dl = (n - dot(dzu, x1) * xiu) / (dzp * xip - dot(dzu, x2) * xiu)
+	x1 = x1 .- dl .* x2
+
+	return x1, dl, true, (it1, it2)
+end
+
 ############################################################## plotting
 import Plots: plot
 function plot(steady_states::Vector{Branch{T}}, data::StateDensity{T}; idx::Int=1) where {T<:Number}
@@ -33,16 +88,18 @@ function plot(steady_states::Vector{Branch{T}}, data::StateDensity{T}; idx::Int=
 
     for branch in steady_states
 
+        stability = map( λ -> all(real(λ).<0), branch.eigvals)
+        determinants = map( λ -> prod(real(λ)), branch.eigvals)
+
         plot!(branch.parameter, map(x->x[idx],branch.state), linewidth=2, alpha=0.5, label="", grid=false,
             ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(z)=0",
-            #color=map(x -> isodd(x) ? :darkblue : :lightblue, branch.stability )
+            color=map( stable -> stable ? :darkblue : :lightblue, stability )
             )
 
-        # determinant = map( x -> ( (eigenvalues,vectors,i) = x; prod(eigenvalues) ), branch.eig)
-        # plot!(right_axis, branch.parameter, determinant, linewidth=2, alpha=0.5, label="", grid=false,
-        # 	ylabel=L"\mathrm{determinant}\,\,\Delta_{\theta}(z)",
-        #     #colour=map(x -> isodd(x) ? :red : :pink, branch.stability )
-        # 	)
+        plot!(right_axis, branch.parameter, determinants, linewidth=2, alpha=0.5, label="", grid=false,
+        	ylabel=L"\mathrm{determinant}\,\,\Delta_{\theta}(z)",
+            color=map( stable -> stable ? :red : :pink, stability )
+        	)
 
         scatter!(map(x-> x.parameter, branch.bifurcations),
                  map(x-> x.state[idx],branch.bifurcations),
