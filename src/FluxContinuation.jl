@@ -17,7 +17,6 @@ module FluxContinuation
 	using Plots
 
 	include("patches/PseudoArcLengthContinuation.jl")
-	include("patches/Zygote.jl")
 	include("Structures.jl")
 	include("Utils.jl")
 
@@ -27,7 +26,7 @@ module FluxContinuation
 	@nograd now,string
 
 	""" root finding with newton deflation method"""
-	function findRoots( f, J, u₀::Vector{Array{T,2}}, params::NamedTuple, paramlens::Lens,
+	function findRoots( f::Function, J::Function, u₀::Vector{Array{T,2}}, params::NamedTuple, paramlens::Lens,
 		hyperparameters::ContinuationPar{T, S, E}, maxRoots::Int = 3, maxIter::Int=500
 		) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
@@ -51,7 +50,7 @@ module FluxContinuation
 
 				if converged # search for new roots
 					u = fill(0.0,nStates)
-					while length(deflation) < maxRoots
+					while length(deflation)-1 < maxRoots
 
 						u, _, converged, _ = newton( f, J, u.+hyperparameters.ds, params,
 							hyperparameters.newtonOptions, deflation)
@@ -72,7 +71,7 @@ module FluxContinuation
 	@nograd findRoots
 
 	""" differentiable deflation continuation method """
-	function deflationContinuation( f, J, u₀::Vector{Array{T,2}}, params::NamedTuple, paramlens::Lens,
+	function deflationContinuation( f::Function, J::Function, u₀::Vector{Array{T,2}}, params::NamedTuple, paramlens::Lens,
 		hyperparameters::ContinuationPar{T, S, E}, maxRoots::Int = 3, maxIter::Int=500
 		) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
@@ -82,6 +81,7 @@ module FluxContinuation
 
 		# continuation per root
 		branches = Buffer( Branch{T}[] )
+		linsolver = BorderedLinearSolver()
 		hyperparameters = @set hyperparameters.newtonOptions.maxIter = maxIterContinuation
 
 	    for (i,us) in enumerate(rootsArray)
@@ -97,7 +97,7 @@ module FluxContinuation
 	                # main continuation method
 					branch = BranchBuffer(T)
 					params = set(params, paramlens, pDeflations[i]+hyperparameters.ds)
-					iterator = PALCIterable( f, J, u, params, paramlens, hyperparameters)
+					iterator = PALCIterable( f, J, u, params, paramlens, hyperparameters, linsolver)
 
 					for state in iterator
 						x,p = copy(getx(state)),getp(state)

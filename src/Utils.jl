@@ -5,7 +5,7 @@ function getParameters(data::StateDensity{T}; maxIter::Int=10, tol=1e-12) where 
         pMin=minimum(data.parameter),pMax=maximum(data.parameter), maxSteps=10*length(data.parameter),
         ds=step(data.parameter), dsmax=step(data.parameter), dsmin=step(data.parameter),
 
-            newtonOptions = NewtonPar( eigsolver=EigenSolver(),
+            newtonOptions = NewtonPar( linsolver=LinearSolver(), eigsolver=EigenSolver(),
             verbose=false,maxIter=maxIter,tol=tol),
 
         detectFold = false, detectBifurcation = true)

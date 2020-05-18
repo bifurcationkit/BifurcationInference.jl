@@ -11,7 +11,7 @@ function rates_jacobian(u,θ)
 	return [ θ₁ + 3 *θ₂*u[1]^2 ][:,:]
 end
 
-function curvature(u,θ)
+function curvature(u,p;θ=θ)
 	@unpack α, r = θ
 	θ₁,θ₂ = r*cos(α), r*sin(α)
 	return - 6θ₂ * ( 1 + θ₁^2 - 9θ₂^2 *u[1]^4 ) / (1 + (θ₁ + 3θ₂*u[1]^2)^2 )^2
@@ -22,5 +22,5 @@ data = StateDensity(-2:0.01:2,[1.0,-1.0])
 hyperparameters = getParameters(data)
 
 u₀ = [[0.0][:,:], [0.0][:,:]]
-θ = (r = 5.0, α = 7π/4-0.14, p=minimum(data.parameter), c = 0.0)
-ϕ = range(0,2π,length=10)
+θ = (r = 5.0, α = 7π/4-0.14, p=minimum(data.parameter), c = 0.0, α₀=7π/4-0.14)
+ϕ = range(0,2π,length=100)

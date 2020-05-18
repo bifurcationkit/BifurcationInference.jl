@@ -3,7 +3,7 @@ using StatsBase: median
 using Test,Plots
 
 using Parameters: @unpack
-using Setfield: @lens
+using Setfield: @lens,set
 
 ######################################################## unit tests
 function test_predictor() global u₀,steady_states,hyperparameters
@@ -14,22 +14,26 @@ function test_predictor() global u₀,steady_states,hyperparameters
 	return true
 end
 
-function evaluate_gradient(x...; index=1) global θ,u₀,steady_states,parameters
-	copyto!(θ,[x...])
+function evaluate_gradient(x; index=1) global θ,u₀,steady_states,hyperparameters
+	θ = set(θ, (@lens _.α), x)
 
-	dθ = gradient(params(θ)) do
-		steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,θ,(@lens _.p),parameters)
-		parameters = updateParameters(parameters,steady_states)
-		loss(steady_states,data,K)
+	try
+		dθ = gradient(params(θ)) do
+			steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,θ,(@lens _.p),hyperparameters)
+			hyperparameters = updateParameters(hyperparameters,steady_states)
+			loss(steady_states,data,curvature)
+		end
+
+		return [ loss(steady_states,data,curvature), dθ[GlobalRef(Main,:θ)][index] ]
+	catch
+		return [NaN,NaN]
 	end
-
-	return [ loss(steady_states,data,K), dθ[θ][index] ]
 end
 
 using Plots.PlotMeasures
-function test_gradients(tol=0.01)
+function test_gradients(tol=0.01) global gradients
 
-    gradients = hcat(evaluate_gradient.(ϕ,r)...)
+    gradients = hcat(evaluate_gradient.(ϕ)...)
     L,dL = gradients[1,:], gradients[2,:]
     finite_differences = vcat(diff(L)/step(ϕ),NaN)
 
@@ -37,7 +41,7 @@ function test_gradients(tol=0.01)
     mask = abs.(finite_differences).>step_truncate
     finite_differences[mask] .= NaN
 
-    plot(fill(optimum,2),[-1,1.4],label="",color="gold",linewidth=2,ylim=(-5,5),
+    plot(fill(θ.α₀,2),[-1,1.4],label="",color="gold",linewidth=2,ylim=(-5,5),
     	xlabel="Parameter",ylabel="Objective",
     	right_margin=15mm,size=(500,500))
 
@@ -58,10 +62,10 @@ end
 
     include("saddle-node.jl")
     @test test_predictor()
-    # @test test_gradients()
-	#
-    include("pitchfork.jl")
-    @test test_predictor()
+    @test test_gradients()
+
+    # include("pitchfork.jl")
+    # @test test_predictor()
     # @test test_gradients()
 	#
 	# include("two-state.jl")
