@@ -82,9 +82,18 @@ end
 ############################################################## plotting
 import Plots: plot
 function plot(steady_states::Vector{Branch{T}}, data::StateDensity{T}; idx::Int=1) where {T<:Number}
+	right_axis = plot(steady_states; idx=idx, displayPlot=false)
 
-    vline( data.bifurcations, label="", color=:gold, xlabel=L"\mathrm{parameter},\,p",
-        right_margin=20mm,size=(500,400)); right_axis = twinx()
+	vline!( data.bifurcations, label="", color=:gold)
+	plot!( right_axis,[],[], color=:gold, legend=:bottomleft,
+        alpha=1.0, label=L"\mathrm{targets}\,\,\mathcal{D}") |> display
+end
+
+function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) where {T<:Number}
+
+	plot([NaN],[NaN],label="",xlabel=L"\mathrm{parameter},\,p",
+		right_margin=20mm,size=(500,400))
+	right_axis = twinx()
 
     for branch in steady_states
 
@@ -106,14 +115,19 @@ function plot(steady_states::Vector{Branch{T}}, data::StateDensity{T}; idx::Int=
             label="", m = (3.0,3.0,:black,stroke(0,:none)))
     end
 
-    plot!(right_axis,[],[], color=:gold, legend=:bottomleft,
-        alpha=1.0, label=L"\mathrm{targets}\,\,\mathcal{D}")
+	plot!(right_axis,[],[], color=:darkblue, legend=:bottomleft, linewidth=2,
+        alpha=1.0, label=L"\mathrm{steady\,states}")
+	scatter!(right_axis,[],[], label=L"\mathrm{prediction}\,\,\mathcal{P}(\theta)", legend=:bottomleft,
+        m = (1.0, 1.0, :black, stroke(0, :none)))
 
-        scatter!(right_axis,[],[], label=L"\mathrm{prediction}\,\,\mathcal{P}(\theta)", legend=:bottomleft,
-            m = (1.0, 1.0, :black, stroke(0, :none)))
-        plot!(right_axis,[],[], color=:darkblue, legend=:bottomleft, linewidth=2,
-            alpha=1.0, label=L"\mathrm{steady\,states}")
-        plot!(right_axis,[],[], color=:red, legend=:bottomleft,
-            alpha=1.0, label=L"\mathrm{determinant}", dpi=500, linewidth=2) |> display
+	if displayPlot
+		plot!(right_axis,[],[], color=:red, legend=:bottomleft,
+			alpha=1.0, label=L"\mathrm{determinant}", dpi=500, linewidth=2) |> display
+	else
+		plot!(right_axis,[],[], color=:red, legend=:bottomleft,
+			alpha=1.0, label=L"\mathrm{determinant}", dpi=500, linewidth=2)
+
+		return right_axis
+	end
 end
 @nograd plot
