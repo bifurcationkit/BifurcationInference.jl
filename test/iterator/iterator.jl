@@ -12,7 +12,7 @@ include("solvers.jl")
 F = (x, p) -> (@. p + x - (θ+x)^(k+1)/(k+1))
 J = (x, p) -> 1 .- (θ+x)[:,:].^k
 
-function steady_states() global opts,iter
+function steady_states()
 
 	opts = ContinuationPar(
 		dsmax = 0.1, dsmin = 1e-3, ds = 0.001, pMin = -3., pMax = 1.0, computeEigenValues = true, detectBifurcation = true,

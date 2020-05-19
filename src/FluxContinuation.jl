@@ -7,7 +7,6 @@ module FluxContinuation
 	using Setfield: @set,set,setproperties,Lens,@lens
 	using Parameters: @with_kw
 	using Dates: now
-	using Logging
 
 	using LinearAlgebra: dot,eigen
 	using StatsBase: norm
@@ -35,36 +34,34 @@ module FluxContinuation
 		_,nStates = size(u₀[1])
 
 		hyperparameters = @set hyperparameters.newtonOptions.maxIter = maxIter
-		with_logger(NullLogger()) do # silence newton convergence errors
-		    for (i,us) in enumerate(u₀)
-				params = set(params, paramlens, pDeflations[i])
+	    for (i,us) in enumerate(u₀)
+			params = set(params, paramlens, pDeflations[i])
 
-				deflation = DeflationOperator(1.0, dot, 1.0, [fill(Inf,nStates)] )
-				converged = true
+			deflation = DeflationOperator(1.0, dot, 1.0, [fill(Inf,nStates)] )
+			converged = true
 
-		        for u in eachrow(us) # update existing roots
-		    		u, _, converged, _ = newton( f, J, u.+hyperparameters.ds, params,
+	        for u in eachrow(us) # update existing roots
+	    		u, _, converged, _ = newton( f, J, u.+hyperparameters.ds, params,
+					hyperparameters.newtonOptions, deflation)
+	    		if converged push!(deflation,u) else break end
+	        end
+
+			if converged # search for new roots
+				u = fill(0.0,nStates)
+				while length(deflation)-1 < maxRoots
+
+					u, _, converged, _ = newton( f, J, u.+hyperparameters.ds, params,
 						hyperparameters.newtonOptions, deflation)
-		    		if converged push!(deflation,u) else break end
-		        end
 
-				if converged # search for new roots
-					u = fill(0.0,nStates)
-					while length(deflation)-1 < maxRoots
-
-						u, _, converged, _ = newton( f, J, u.+hyperparameters.ds, params,
-							hyperparameters.newtonOptions, deflation)
-
-						if converged & all(map( v -> !isapprox(u,v,atol=2*hyperparameters.ds), deflation.roots))
-							push!(deflation,u)
-						else break end
-					end
+					if converged & all(map( v -> !isapprox(u,v,atol=2*hyperparameters.ds), deflation.roots))
+						push!(deflation,u)
+					else break end
 				end
+			end
 
-				filter!(root->root≠fill(Inf,nStates),deflation.roots)
-				rootsArray[i] = transpose(hcat(deflation.roots...))
-		    end
-		end
+			filter!(root->root≠fill(Inf,nStates),deflation.roots)
+			rootsArray[i] = transpose(hcat(deflation.roots...))
+	    end
 
 		return rootsArray,pDeflations
 	end
@@ -126,22 +123,24 @@ module FluxContinuation
 	end
 
 	""" semi-supervised objective function """
-	function loss(steady_states::Vector{Branch{T}}, data::StateDensity{T}, curvature::Function) where {T<:Number}
+	function loss(steady_states::Vector{Branch{T}}, data::StateDensity{T}, curvature::Function; offset::Number=5.0) where {T<:Number}
 
 	    predictions = map( branch -> map(
 			bifurcation -> bifurcation.parameter, branch.bifurcations ),
 				steady_states)
 
-	    # supervised signal
 	    predictions = vcat(predictions...)
-	    error = length(predictions) > 0 ? norm(minimum(abs.(data.bifurcations.-predictions'),dims=1)) : Inf
+		if length(predictions) > 0  # supervised signal
 
-	    # unsupervised signal
-	    weight = length(predictions)!=2length(data.bifurcations)
-	    curvature = sum( branch-> sum(
-	        abs.(curvature.(branch.state,branch.parameter)).*abs.(branch.ds)),
-	        steady_states )
+	    	error = norm(minimum(abs.(data.bifurcations.-predictions'),dims=1))
+			return tanh(log(error))-offset
 
-	    return (1-weight)*tanh(log(error)) - weight*log(1+curvature)
+		else # unsupervised signal
+			total_curvature = sum( branch-> sum(
+		        	abs.(curvature.(branch.state,branch.parameter)).*abs.(branch.ds)),
+		        steady_states )
+
+			return -log(1+total_curvature)
+		end
 	end
 end

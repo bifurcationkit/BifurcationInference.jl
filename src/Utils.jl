@@ -13,7 +13,7 @@ end
 @nograd getParameters
 
 function updateParameters(parameters::ContinuationPar{T, S, E}, steady_states::Vector{Branch{T}};
-    resolution=200 ) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
+    resolution=400 ) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
     # estimate scale from steady state curves
     branch_points = map(length,steady_states)
@@ -34,13 +34,13 @@ import LinearAlgebra: eigen
     eV, function (Δ)
         Δe, ΔV = Δ
         if ΔV === nothing
-          (inv(V)'*Diagonal(Δe)*V', )
+			(inv(V)'*Diagonal(Δe)*V', )
         elseif Δe === nothing
-          F = [i==j ? 0 : inv(e[j] - e[i]) for i=1:n, j=1:n]
-          (inv(V)'*(F .* (V'ΔV))*V', )
+			F = [i==j ? 0 : inv(e[j] - e[i]) for i=1:n, j=1:n]
+			(inv(V)'*(F .* (V'ΔV))*V', )
         else
-          F = [i==j ? 0 : inv(e[j] - e[i]) for i=1:n, j=1:n]
-          (inv(V)'*(Diagonal(Δe) + F .* (V'ΔV))*V', )
+			F = [i==j ? 0 : inv(e[j] - e[i]) for i=1:n, j=1:n]
+			(inv(V)'*(Diagonal(Δe) + F .* (V'ΔV))*V', )
         end
     end
 end
