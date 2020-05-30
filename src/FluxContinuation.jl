@@ -2,20 +2,22 @@ module FluxContinuation
 
 	using PseudoArcLengthContinuation
 	using PseudoArcLengthContinuation: AbstractLinearSolver, AbstractBorderedLinearSolver, AbstractEigenSolver, _axpy, detectBifucation, computeEigenvalues!
-	using Zygote: Buffer, @nograd, @adjoint
+	using Zygote: Buffer, @nograd, @adjoint, @adjoint!
 
 	using Setfield: @set,set,setproperties,Lens,@lens
 	using Parameters: @with_kw
 	using Dates: now
 
 	using LinearAlgebra: dot,eigen
-	using StatsBase: norm
+	using StatsBase: norm,mean
 
 	using Plots.PlotMeasures
 	using LaTeXStrings
 	using Plots
 
 	include("patches/PseudoArcLengthContinuation.jl")
+	include("patches/Zygote.jl")
+
 	include("Structures.jl")
 	include("Utils.jl")
 
@@ -97,18 +99,14 @@ module FluxContinuation
 					iterator = PALCIterable( f, J, u, params, paramlens, hyperparameters, linsolver)
 
 					for state in iterator
-						x,p = copy(getx(state)),getp(state)
 
-						push!(branch.state,x)
-						push!(branch.parameter,p)
+						push!(branch.state,copy(getx(state)))
+						push!(branch.parameter,copy(getp(state)))
 						push!(branch.ds,state.ds)
 
 						computeEigenvalues!(iterator,state)
 						push!(branch.eigvals,state.eigvals)
-
-						if detectBifucation(state)
-							push!(branch.bifurcations,(state=x,parameter=p))
-						end
+						push!(branch.bifurcations,detectBifucation(state))
 					end
 
 	        		if hyperparameters.pMax <= maximum(pDeflations) && hyperparameters.pMin >= minimum(pDeflations)
@@ -123,24 +121,25 @@ module FluxContinuation
 	end
 
 	""" semi-supervised objective function """
-	function loss(steady_states::Vector{Branch{T}}, data::StateDensity{T}, curvature::Function; offset::Number=5.0) where {T<:Number}
+	function loss( steady_states::Vector{Branch{T}}, data::StateDensity{T}, determinant::Function, curvature::Function, parameters::NamedTuple;
+		offset::Number=5.0, tol::Float64 = 0.1) where {T<:Number}
 
-	    predictions = map( branch -> map(
-			bifurcation -> bifurcation.parameter, branch.bifurcations ),
-				steady_states)
+		# detect bifurcations
+		parametrised_determinant(u,p) = determinant(u,p,parameters)
+		weights = map( branch -> exp.(-parametrised_determinant.(branch.state,branch.parameter).^2), steady_states )
 
-	    predictions = vcat(predictions...)
-		if length(predictions) > 0  # supervised signal
+		# supervised signal
+		errors = vcat(map( (weight,branch) -> minimum(weight .* abs.(branch.parameter.-data.bifurcations'), dims=2 ), weights,steady_states )...)
+		supervised = log(1+norm(errors))
 
-	    	error = norm(minimum(abs.(data.bifurcations.-predictions'),dims=1))
-			return tanh(log(error))-offset
+		parametrised_curvature(u,p) = curvature(u,p,parameters)
+		K = sum( branch-> sum( parametrised_curvature.(branch.state,branch.parameter).^2 .* abs.(branch.ds) ), steady_states )
+		unsupervised = -log(1+K)
 
-		else # unsupervised signal
-			total_curvature = sum( branch-> sum(
-		        	abs.(curvature.(branch.state,branch.parameter)).*abs.(branch.ds)),
-		        steady_states )
-
-			return -log(1+total_curvature)
+		if sum( branch -> sum(branch.bifurcations), steady_states ) > 0
+			return supervised - offset
+		else
+			return unsupervised
 		end
 	end
 end

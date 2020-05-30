@@ -10,48 +10,75 @@ using Parameters: @unpack
 using Setfield: Lens,@lens,set
 
 ######################################################## unit tests
-function test_predictor() global u₀,steady_states,hyperparameters
-	steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,θ,(@lens _.p),hyperparameters)
+function test_predictor(parameters::NamedTuple{(:θ,:p),Tuple{Vector{T},T}}, name::String) where T<:Number
+	global u₀,steady_states,hyperparameters
+
+	steady_states,_ = deflationContinuation(rates,rates_jacobian,u₀,parameters,(@lens _.p),hyperparameters)
 	hyperparameters = updateParameters(hyperparameters,steady_states)
 
 	plot(steady_states,targetData)
+	savefig(name)
 	return true
 end
 
-function evaluate_gradient(x; idx=2) global θ,u₀,steady_states,hyperparameters
-	θ,L = set(θ, (@lens _.z[idx]), x), NaN
-
+function test_gradient(parameters::NamedTuple{(:θ,:p),Tuple{Vector{T},T}}; idx=2, dx = 1e-6) where T<:Number
+	global u₀,steady_states,hyperparameters
 	try
-		dθ = gradient(Params(θ)) do
+		steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,parameters,(@lens _.p),hyperparameters)
+		hyperparameters = updateParameters(hyperparameters,steady_states)
 
-			steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,θ,(@lens _.p),hyperparameters)
-			hyperparameters = updateParameters(hyperparameters,steady_states)
-
-			L = loss(steady_states,targetData,curvature)
-			return L
+		gradients, = gradient(parameters) do parameters
+			steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,parameters,(@lens _.p),hyperparameters)
+			return loss(steady_states,targetData,determinant,curvature,parameters)
 		end
 
-		return [ L, dθ[GlobalRef(Main,:θ)].z[idx] ]
+		parameters.θ[idx] += dx/2
+		steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,parameters,(@lens _.p),hyperparameters)
+		hyperparameters = updateParameters(hyperparameters,steady_states)
+		L₊ = loss(steady_states,targetData,determinant,curvature,parameters)
+
+		parameters.θ[idx] -= dx
+		steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,parameters,(@lens _.p),hyperparameters)
+		hyperparameters = updateParameters(hyperparameters,steady_states)
+		L₋ = loss(steady_states,targetData,determinant,curvature,parameters)
+
+		return (L₊+L₋)/2, (L₊-L₋)/dx, isnothing(gradients) ? NaN : gradients.θ[idx]
 	catch
-		return [NaN,NaN]
+		return NaN,NaN,NaN
 	end
 end
 
-function test_gradients( ; tol=0.1,ϕ=range(0.03,2π-0.03,length=100))
+function test_gradients(name::String;n=100)
+	x = range(0,2π,length=n)
+	L,d̃L,dL = zero(x), zero(x), zero(x)
 
-	L,dL = zeros(length(ϕ)), zeros(length(ϕ))
-	for i = 1:length(ϕ)
-		L[i],dL[i] = evaluate_gradient(ϕ[i])
+	for i in 1:length(x)
+		L[i],d̃L[i],dL[i] = test_gradient(( θ=[5.0,x[i],0.0], p=-2.0))
 	end
-	finite_differences = vcat(diff(L)/step(ϕ),NaN)
 
-	plot([],[],label="",linewidth=2,ylim=(-20,10),xlabel="Parameter",right_margin=15mm,size=(500,300),legend=:bottomright)
-	plot!(ϕ,sign.(finite_differences).*log.(abs.(finite_differences)),label="Finite Differences",color="gold",fillrange=0,alpha=0.5)
-	plot!(ϕ,sign.(dL).*log.(abs.(dL)),label="Zygote AutoDiff",color="lightblue",fillrange=0,alpha=0.6) |> display
+	plot(  x[abs.(d̃L).<50], d̃L[abs.(d̃L).<50],fillrange=0,label="Central Differences",color=:darkcyan,alpha=0.5)
+	plot!(x,dL,fillrange=0,label="Zygote",color=:gold,alpha=0.5)
+	plot!(xlabel="parameter, p",ylabel="loss gradient")
 
-	errors = abs.(dL-finite_differences)
-	mask = .~isnan.(errors)
-	return median(errors[mask]) < tol
+	vline!([5.36],color=:gold,label="target")
+	plot!(twinx(),x,L,ylabel="loss",color=:black,label="")|> display
+	savefig(name)
+
+	errors = abs.((dL.-d̃L)/d̃L)
+	return all(errors[.~isnan.(errors)].<0.05)
+end
+
+@testset "Normal Forms" begin
+
+	@testset "Saddle Node" begin include("saddle-node.jl")
+		@test @time test_predictor(parameters,"test/saddle-node.predictor.pdf")
+		@test @time test_gradients("test/saddle-node.gradients.pdf")
+	end
+
+	@testset "Pitchfork" begin include("pitchfork.jl")
+		@test @time test_predictor(parameters,"test/pitchfork.predictor.pdf")
+	    @test @time test_gradients("test/pitchfork.gradients.pdf")
+	end
 end
 
 function infer( rates::Function, rates_jacobian::Function, curvature::Function,
@@ -101,33 +128,4 @@ function train!(loss::Function, iter::Int, optimiser; callback::Function=()->() 
 		plot(steady_states,targetData)
 		update!(optimiser, θ.z, gradients[GlobalRef(Main,:θ)].z)
 	end
-end
-
-# include("two-state.jl")
-# θ.z[1] = 6.
-# test_predictor()
-#
-# infer( rates, rates_jacobian, curvature, u₀, (@lens _.p),
-# 	targetData; iter=50, optimiser=ADAM(0.01))
-
-@testset "Normal Forms" begin
-
-    include("saddle-node.jl")
-    @test test_predictor()
-    @test test_gradients()
-
-    include("pitchfork.jl")
-    @test test_predictor()
-    @test test_gradients()
-end
-
-@testset "Inference" begin
-
-	# include("two-state.jl")
-    # @test test_predictor()
-    #@test test_gradients()
-	#
-	# include("cell-cycle.jl")
-    # @test test_predictor()
-    # @test test_gradients()
 end

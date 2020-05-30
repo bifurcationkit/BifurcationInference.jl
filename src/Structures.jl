@@ -5,7 +5,7 @@ struct Branch{T<:Number}
     parameter::Vector{T}
     ds::Vector{T}
 
-    bifurcations::Vector{NamedTuple{(:state,:parameter),Tuple{Vector{T},T}}}
+    bifurcations::Vector{Bool}
     eigvals::Vector{Vector{Complex{T}}}
 end
 
@@ -21,14 +21,14 @@ Object to contain the accumulation of continuation results for one branch
 - `bifurcations` vector locations where an eigenvalue crosses zero
 - `eigvals` vector of eigenvalues at each point
 """
-Branch(T::DataType) = Branch(Vector{T}[], T[], T[], NamedTuple{(:state,:parameter),Tuple{Vector{T},T}}[], Vector{Complex{T}}[])
+Branch(T::DataType) = Branch(Vector{T}[], T[], T[], Bool[], Vector{Complex{T}}[])
 length(branch::Branch) = length(branch.parameter)
 
 # display methods
 show(io::IO, branch::Branch{T}) where T = print(io,
-    "Branch{$T}[bifurcations=$(length(branch.bifurcations)), states=$(length(branch)), parameter=($(round(branch.parameter[1],sigdigits=3))->$(round(branch.parameter[end],sigdigits=3)))]")
+    "Branch{$T}[bifurcations=$(sum(branch.bifurcations)), states=$(length(branch)), parameter=($(round(branch.parameter[1],sigdigits=3))->$(round(branch.parameter[end],sigdigits=3)))]")
 show(io::IO, branches::Vector{Branch{T}}) where T = print(io,
-    "Vector{Branch{$T}}[branches=$(length(branches)), bifurcations=$(sum(branch->length(branch.bifurcations),branches)÷2), states=$(sum(branch->length(branch),branches))]")
+    "Vector{Branch{$T}}[branches=$(length(branches)), bifurcations=$(sum(branch->sum(branch.bifurcations),branches)÷2), states=$(sum(branch->length(branch),branches))]")
 show(io::IO, M::MIME"text/plain", branches::Vector{Branch{T}}) where T = show(io,branches)
 
 struct BranchBuffer{T<:Number}
@@ -37,12 +37,12 @@ struct BranchBuffer{T<:Number}
     parameter::Buffer{T,Vector{T}}
     ds::Buffer{T,Vector{T}}
 
-    bifurcations::Buffer{NamedTuple{(:state,:parameter),Tuple{Vector{T},T}},Vector{NamedTuple{(:state,:parameter),Tuple{Vector{T},T}}}}
+    bifurcations::Buffer{Bool,Vector{Bool}}
     eigvals::Buffer{Vector{Complex{T}},Vector{Vector{Complex{T}}}}
 end
 
 """Zygote compatible version of `Branch` object"""
-BranchBuffer(T::DataType) = BranchBuffer( Buffer(Vector{T}[]), Buffer(T[]), Buffer(T[]), Buffer(NamedTuple{(:state,:parameter),Tuple{Vector{T},T}}[]), Buffer(Vector{Complex{T}}[]))
+BranchBuffer(T::DataType) = BranchBuffer( Buffer(Vector{T}[]), Buffer(T[]), Buffer(T[]), Buffer(Bool[]), Buffer(Vector{Complex{T}}[]))
 
 # coverting branch object fields from zygote buffers to arrays
 function copy(branch::BranchBuffer)

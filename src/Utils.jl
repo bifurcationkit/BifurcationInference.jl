@@ -110,8 +110,8 @@ function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) wh
             color=map( stable -> stable ? :red : :pink, stability )
         	)
 
-        scatter!(map(x-> x.parameter, branch.bifurcations),
-                 map(x-> x.state[idx],branch.bifurcations),
+        scatter!( branch.parameter[branch.bifurcations],
+				  map(x->x[idx],branch.state)[branch.bifurcations],
             label="", m = (3.0,3.0,:black,stroke(0,:none)))
     end
 

@@ -1,6 +1,7 @@
 using PseudoArcLengthContinuation, Setfield, Parameters, Plots
 using Flux: gradient, params
-using Zygote: Buffer, @adjoint, @nograd
+
+using Zygote: Buffer, @adjoint, @adjoint!, @nograd
 using Dates: now
 
 @nograd now,string
@@ -8,34 +9,52 @@ include("patches.jl")
 include("solvers.jl")
 
 ######################### define model and continuation method
-θ,k=[-1.0],[2.0]
-F = (x, p) -> (@. p + x - (θ+x)^(k+1)/(k+1))
-J = (x, p) -> 1 .- (θ+x)[:,:].^k
+function rates(u::Vector,parameters::NamedTuple)
+	@unpack p,θ = parameters; r,α,c = θ
+	θ₁,θ₂ = r*cos(α), r*sin(α)
+	return [ p[1] + θ₁*u[1] + θ₂*u[1]^3 + c ]
+end
 
-function steady_states()
+function rates_jacobian(u::Vector,parameters::NamedTuple)
+	@unpack θ = parameters; r,α = θ
+	θ₁,θ₂ = r*cos(α), r*sin(α)
+	return [ θ₁ + 3 *θ₂*u[1]^2 ][:,:]
+end
 
-	opts = ContinuationPar(
-		dsmax = 0.1, dsmin = 1e-3, ds = 0.001, pMin = -3., pMax = 1.0, computeEigenValues = true, detectBifurcation = true,
-		newtonOptions = NewtonPar(linsolver=LinearSolver(),
-		eigsolver=EigenSolver())
+parameters = ( p=[-3.0,0.0], θ=[3.0,5.0,0.0] )
+u = [-5.0]
+
+function states(parameters,u=[-5.0])
+
+	hyperparameters = ContinuationPar( maxSteps=2000, detectBifurcation = true,
+		dsmax = 0.01, dsmin = 1e-3, ds = 0.001, pMin = -3.1, pMax = 3.1,
+		computeEigenValues = true, saveEigenvectors = false, inPlace = false,
+
+		newtonOptions = NewtonPar( maxIter=1000,
+			linsolver=LinearSolver(), eigsolver=EigenSolver()
+		)
 	)
-	iter = PALCIterable(F, J, [3.0], -3.0, (@lens _), opts, BorderedLinearSolver(); verbosity=0)
 
-	resp = Buffer(Float64[])
-	resx = Buffer(Float64[])
+	linsolver = BorderedLinearSolver()
+	iterator = PALCIterable( rates, rates_jacobian, u, parameters, (@lens _.p[1]), hyperparameters, linsolver)
 
-	for state in iter
-		push!(resx, getx(state)[1])
-		push!(resp, getp(state))
+	x = Buffer(Float64[])
+	p = Buffer(Float64[])
+
+	for state in iterator
+		push!(x, getx(state)[1])
+		push!(p, getp(state))
 	end
 
-	return copy(resp), copy(resx)
+	return copy(p),copy(x)
 end
 
-######################### minimal test
-plot(steady_states()...; label = "", xlabel = "p")
+plot( states(parameters)..., label="x", xlabel="p")
 
-dθ = gradient(params(θ)) do
-	p,u = steady_states()
-	sum(p.^2+u.^2)
+gradients, = gradient(parameters) do parameters
+	p,x = states(parameters)
+	sum(abs.(diff(x))) + sum(abs.(diff(p)))
 end
+
+	@assert gradients.θ != nothing
+		@assert ~iszero(gradients.θ)
