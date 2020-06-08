@@ -1,4 +1,4 @@
-using Flux,FluxContinuation
+using Flux,FluxContinuation,CuArrays
 using StatsBase,LinearAlgebra
 using StatsBase: median
 
@@ -6,14 +6,16 @@ using Plots.PlotMeasures
 using Test,Plots
 
 using Flux: Params,update!
+using Zygote: forward_jacobian
+
 using Parameters: @unpack
 using Setfield: Lens,@lens,set
 
 ######################################################## unit tests
-function test_predictor(parameters::NamedTuple{(:θ,:p),Tuple{Vector{T},T}}, name::String) where T<:Number
+function test_predictor(params::NamedTuple, name::String) where T<:Number
 	global u₀,steady_states,hyperparameters
 
-	steady_states,_ = deflationContinuation(rates,rates_jacobian,u₀,parameters,(@lens _.p),hyperparameters)
+	steady_states,u₀ = deflationContinuation(rates,u₀,params,(@lens _.p),hyperparameters; verbosity=1)
 	hyperparameters = updateParameters(hyperparameters,steady_states)
 
 	plot(steady_states,targetData)
@@ -21,50 +23,42 @@ function test_predictor(parameters::NamedTuple{(:θ,:p),Tuple{Vector{T},T}}, nam
 	return true
 end
 
-function test_gradient(parameters::NamedTuple{(:θ,:p),Tuple{Vector{T},T}}; idx=2, dx = 1e-6) where T<:Number
+function test_gradient(params::NamedTuple; idx=2, dx::T = 1e-6) where T<:Number
 	global u₀,steady_states,hyperparameters
-	try
-		steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,parameters,(@lens _.p),hyperparameters)
-		hyperparameters = updateParameters(hyperparameters,steady_states)
 
-		gradients, = gradient(parameters) do parameters
-			steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,parameters,(@lens _.p),hyperparameters)
-			return loss(steady_states,targetData,determinant,curvature,parameters)
-		end
+	# forward pass
+	steady_states,u₀ = deflationContinuation(rates,u₀,params,(@lens _.p),hyperparameters)
+	hyperparameters = updateParameters(hyperparameters,steady_states)
 
-		parameters.θ[idx] += dx/2
-		steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,parameters,(@lens _.p),hyperparameters)
-		hyperparameters = updateParameters(hyperparameters,steady_states)
-		L₊ = loss(steady_states,targetData,determinant,curvature,parameters)
-
-		parameters.θ[idx] -= dx
-		steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,parameters,(@lens _.p),hyperparameters)
-		hyperparameters = updateParameters(hyperparameters,steady_states)
-		L₋ = loss(steady_states,targetData,determinant,curvature,parameters)
-
-		return (L₊+L₋)/2, (L₊-L₋)/dx, isnothing(gradients) ? NaN : gradients.θ[idx]
-	catch
-		return NaN,NaN,NaN
+	# backward pass
+	gradients, = gradient(params) do params
+		loss(steady_states,targetData,rates,determinant,curvature,params)
 	end
+
+	# central differences
+	L₊ = loss(steady_states,targetData,rates,determinant,curvature,set(params,(@lens _.θ[idx]), params.θ[idx]+T(dx)/2))
+	L₋ = loss(steady_states,targetData,rates,determinant,curvature,set(params,(@lens _.θ[idx]), params.θ[idx]-T(dx)/2))
+
+	return (L₊+L₋)/2, (L₊-L₋)/dx, isnothing(gradients) ? NaN : gradients.θ[idx]
 end
 
-function test_gradients(name::String;n=100)
-	x = range(0,2π,length=n)
+function test_gradients(name::String;n=200)
+	x = range(0.03,2π-0.03,length=n)
 	L,d̃L,dL = zero(x), zero(x), zero(x)
 
 	for i in 1:length(x)
 		L[i],d̃L[i],dL[i] = test_gradient(( θ=[5.0,x[i],0.0], p=-2.0))
 	end
 
-	plot(  x[abs.(d̃L).<50], d̃L[abs.(d̃L).<50],fillrange=0,label="Central Differences",color=:darkcyan,alpha=0.5)
+	plot( x,d̃L,fillrange=0,label="Central Differences",color=:darkcyan,alpha=0.5)
 	plot!(x,dL,fillrange=0,label="Zygote",color=:gold,alpha=0.5)
-	plot!(xlabel="parameter, p",ylabel="loss gradient")
+	plot!(xlabel="parameter",ylabel="loss gradient",ylim=(-30,30))
 
-	vline!([5.36],color=:gold,label="target")
 	plot!(twinx(),x,L,ylabel="loss",color=:black,label="")|> display
 	savefig(name)
 
 	errors = abs.((dL.-d̃L)/d̃L)
+	printstyled(color=:orange,"Zygote Percentage Error $(100*mean(errors[.~isnan.(errors)]))% \n")
 	return all(errors[.~isnan.(errors)].<0.05)
 end
 

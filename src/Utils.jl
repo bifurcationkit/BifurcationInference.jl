@@ -1,12 +1,12 @@
 ############################################# hyperparameter updates
-function getParameters(data::StateDensity{T}; maxIter::Int=10, tol=1e-12) where {T<:Number}
-    return ContinuationPar(
+function getParameters(data::StateDensity{T}; maxIter::Int=100, tol=1e-5) where {T<:Number}
+    return ContinuationPar{T,LinearSolver,EigenSolver}(
 
         pMin=minimum(data.parameter),pMax=maximum(data.parameter), maxSteps=10*length(data.parameter),
         ds=step(data.parameter), dsmax=step(data.parameter), dsmin=step(data.parameter),
 
             newtonOptions = NewtonPar( linsolver=LinearSolver(), eigsolver=EigenSolver(),
-            verbose=false,maxIter=maxIter,tol=tol),
+            verbose=false,maxIter=maxIter,tol=T(tol)),
 
         detectFold = false, detectBifurcation = true)
 end
@@ -23,6 +23,35 @@ function updateParameters(parameters::ContinuationPar{T, S, E}, steady_states::V
     return parameters
 end
 @nograd updateParameters
+
+""" estimate principal state-space coordinate grid on gpu"""
+function meshgrid( steady_states::Vector{Branch{T}} ) where {T<:Number}
+
+	# estimate principal transform
+	U = svd( hcat(map(branch->hcat(branch.state...),steady_states)...) ).U
+
+	# calculate state extrema
+	minima = map( branch-> minimum(U*hcat(branch.state...),dims=2),steady_states)
+	maxima = map( branch-> maximum(U*hcat(branch.state...),dims=2),steady_states)
+
+	# create state ranges per branch
+	ds = mean(branch->minimum(abs.(branch.ds)),steady_states)
+	branch_regions = map( (x,y)->range.(x,y,step=ds), minima,maxima)
+	Δu = mean( x->prod(step.(x)), branch_regions)
+
+	pRegion = range(
+		minimum(branch->minimum(branch.parameter),steady_states),
+		maximum(branch->maximum(branch.parameter),steady_states),
+		step=ds)
+	Δp = step(pRegion)
+
+	uRegion = transpose(U) * hcat( map(
+		region -> hcat( map( u-> collect(u), Iterators.product(region...) )... ),
+	branch_regions)... )
+
+	return StateGrid(cu(uRegion),cu(collect(pRegion)),Float32(Δu),Float32(Δp))
+end
+@nograd meshgrid
 
 ################################################## differentiable solvers
 # reference: https://github.com/FluxML/Zygote.jl/pull/327
@@ -66,13 +95,7 @@ end
 function (lbs::BorderedLinearSolver{S})( J, dR, dzu, dzp::T, R, n::T,
 		xiu::T = T(1), xip::T = T(1); shift::Ts = nothing)  where {T, S, Ts}
 
-	# we make this branching to avoid applying a zero shift
-	if isnothing(shift)
-		x1, x2, _, (it1, it2) = lbs.solver(J, R, dR)
-	else
-		x1, x2, _, (it1, it2) = lbs.solver(J, R, dR; a₀ = shift)
-	end
-
+	x1, x2, _, (it1, it2) = lbs.solver(J, R, dR)
 	dl = (n - dot(dzu, x1) * xiu) / (dzp * xip - dot(dzu, x2) * xiu)
 	x1 = x1 .- dl .* x2
 
@@ -91,7 +114,7 @@ end
 
 function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) where {T<:Number}
 
-	plot([NaN],[NaN],label="",xlabel=L"\mathrm{parameter},\,p",
+	plot([NaN],[NaN],label="",xlabel=L"\mathrm{inference parameter}",
 		right_margin=20mm,size=(500,400))
 	right_axis = twinx()
 
@@ -122,10 +145,10 @@ function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) wh
 
 	if displayPlot
 		plot!(right_axis,[],[], color=:red, legend=:bottomleft,
-			alpha=1.0, label=L"\mathrm{determinant}", dpi=500, linewidth=2) |> display
+			alpha=1.0, label=L"\mathrm{determinant}", linewidth=2) |> display
 	else
 		plot!(right_axis,[],[], color=:red, legend=:bottomleft,
-			alpha=1.0, label=L"\mathrm{determinant}", dpi=500, linewidth=2)
+			alpha=1.0, label=L"\mathrm{determinant}", linewidth=2)
 
 		return right_axis
 	end

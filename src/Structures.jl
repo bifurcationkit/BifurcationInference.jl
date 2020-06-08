@@ -10,6 +10,27 @@ struct Branch{T<:Number}
 end
 
 """
+	data = StateDensity(parameter,bifurcations)
+
+Returns target bifurcation data to be used in optimisation such as `loss(steady_states::Vector{Branch{T}}, data::StateDensity{T}, curvature::Function)`
+
+# Arguments
+- `parameter` bifurcation parameter grid to use
+- `bifurcations` vector of bifurcation locations
+
+"""
+struct StateDensity{T<:Number}
+    parameter::StepRangeLen{T}
+    bifurcations::CuArray
+end
+
+struct StateGrid{T<:Number}
+	states::AbstractArray{T}
+    parameters::AbstractVector{T}
+	Δu::T; Δp::T
+end
+
+"""
 	branch = Branch(T)
 
 Object to contain the accumulation of continuation results for one branch
@@ -57,18 +78,3 @@ function copy(branch::BranchBuffer)
 	return Branch(state,parameter,ds,bifurcations,eigvals)
 end
 copy(branch::Branch) = branch
-
-"""
-	data = StateDensity(parameter,bifurcations)
-
-Returns target bifurcation data to be used in optimisation such as `loss(steady_states::Vector{Branch{T}}, data::StateDensity{T}, curvature::Function)`
-
-# Arguments
-- `parameter` bifurcation parameter grid to use
-- `bifurcations` vector of bifurcation locations
-
-"""
-struct StateDensity{T<:Number}
-    parameter::StepRangeLen{T}
-    bifurcations::Vector{T}
-end

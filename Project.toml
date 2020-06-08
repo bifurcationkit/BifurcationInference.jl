@@ -4,6 +4,7 @@ authors = ["gszep <gregory.szep@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+CuArrays = "3a865a2d-5b23-5a0f-bc46-62713ec82fae"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"

@@ -1,30 +1,30 @@
 ######################################################## model
-function rates(u::Vector{T},parameters::NamedTuple{(:θ,:p),Tuple{Vector{T},T}}) where T<:Number
-	@unpack p,θ = parameters; r,α,c = θ
+function rates(u::Vector{T},parameters::NamedTuple{(:θ,:p),Tuple{Vector{U},U}}) where {T<:Number,U<:Number}
+	@unpack θ,p = parameters; r,α,c = θ
 	θ₁,θ₂ = r*cos(α), r*sin(α)
 	return [ p + θ₁*u[1] + θ₂*u[1]^3 + c ]
 end
 
-function rates_jacobian(u::Vector{T},parameters::NamedTuple{(:θ,:p),Tuple{Vector{T},T}}) where T<:Number
-	@unpack θ = parameters; r,α = θ
+function rates(u::CuArray{T},p::CuArray{T},parameters::NamedTuple{(:θ,:p),Tuple{Vector{U},U}}) where {T<:Number,U<:Number}
+	@unpack θ = parameters; r,α,c = θ
 	θ₁,θ₂ = r*cos(α), r*sin(α)
-	return [ θ₁ + 3θ₂ * u[1]^2 ][:,:]
+	return p' .+ θ₁.*u[1,:] .+ θ₂.*u[1,:].^3 .+ c, 0.0
 end
 
-function determinant(u::Vector{T},p::T,parameters::NamedTuple{(:θ,:p),Tuple{Vector{T},T}}) where T<:Number
-	@unpack θ = parameters; r,α = θ
+function determinant(u::CuArray{T},p::CuArray{T},parameters::NamedTuple{(:θ,:p),Tuple{Vector{U},U}}) where {T<:Number,U<:Number}
+	@unpack θ = parameters; r,α,c = θ
 	θ₁,θ₂ = r*cos(α), r*sin(α)
-	return θ₁ + 3θ₂ * u[1]^2
+	return  p' .* ( θ₁ .+ 3θ₂.*u[1,:].^2 ) ./ p'
 end
 
-function curvature(u::Vector{T},p::T,parameters::NamedTuple{(:θ,:p),Tuple{Vector{T},T}}) where T<:Number
+function curvature(u::CuArray{T},p::CuArray{T},parameters::NamedTuple{(:θ,:p),Tuple{Vector{U},U}}) where {T<:Number,U<:Number}
 	@unpack θ = parameters; r,α = θ
 	θ₁,θ₂ = r*cos(α), r*sin(α)
-	return - 6θ₂ * ( 1 + θ₁^2 - 9θ₂^2 *u[1]^4 ) / (1 + (θ₁ + 3θ₂*u[1]^2)^2 )^2
+	return -6θ₂ .* p' .* ( 1 .+ θ₁^2 .- 9θ₂^2 .*u[1,:].^4 ) ./ (1 .+ (θ₁ .+ 3θ₂.*u[1,:].^2).^2 ).^2 ./ p'
 end
 
 ######################################################### initialise targets, model and hyperparameters
-targetData = StateDensity(-2:0.01:2,[1.0,-1.0])
+targetData = StateDensity(-2:0.01:2,cu([1.0,-1.0]))
 hyperparameters = getParameters(targetData)
 
 u₀ = [[0.0][:,:], [0.0][:,:]]
