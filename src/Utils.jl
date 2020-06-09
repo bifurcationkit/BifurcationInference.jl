@@ -24,34 +24,26 @@ function updateParameters(parameters::ContinuationPar{T, S, E}, steady_states::V
 end
 @nograd updateParameters
 
-""" estimate principal state-space coordinate grid on gpu"""
-function meshgrid( steady_states::Vector{Branch{T}} ) where {T<:Number}
+import CuArrays: cu
+function cu( steady_states::Vector{Branch{T}}; nSamples=50 ) where {T<:Number}
 
-	# estimate principal transform
-	U = svd( hcat(map(branch->hcat(branch.state...),steady_states)...) ).U
+	p  = vcat(map( branch -> branch.parameter,      steady_states)...)
+	u  = hcat(map( branch -> hcat(branch.state...), steady_states)...)
+	ds = vcat(map( branch -> abs.(branch.ds),       steady_states)...)
 
-	# calculate state extrema
-	minima = map( branch-> minimum(U*hcat(branch.state...),dims=2),steady_states)
-	maxima = map( branch-> maximum(U*hcat(branch.state...),dims=2),steady_states)
+	# sample parameter region near solutions
+	pMax,pMin = maximum(p),minimum(p)
+	p = p .+ mean(ds)*(-nSamples:nSamples)'
+	nPoints,nSamples = size(p)
 
-	# create state ranges per branch
-	ds = mean(branch->minimum(abs.(branch.ds)),steady_states)
-	branch_regions = map( (x,y)->range.(x,y,step=ds), minima,maxima)
-	Δu = mean( x->prod(step.(x)), branch_regions)
+	p = reshape(p,nPoints*nSamples)
+	u = repeat(u,1,nSamples)
 
-	pRegion = range(
-		minimum(branch->minimum(branch.parameter),steady_states),
-		maximum(branch->maximum(branch.parameter),steady_states),
-		step=ds)
-	Δp = step(pRegion)
-
-	uRegion = transpose(U) * hcat( map(
-		region -> hcat( map( u-> collect(u), Iterators.product(region...) )... ),
-	branch_regions)... )
-
-	return StateGrid(cu(uRegion),cu(collect(pRegion)),Float32(Δu),Float32(Δp))
+	# restrict final grid to original parameter region
+	region  = (pMin.<p) .& (p.<pMax)
+	return CuBranch(cu(u[:,region]),cu(p[region]))
 end
-@nograd meshgrid
+@nograd cu
 
 ################################################## differentiable solvers
 # reference: https://github.com/FluxML/Zygote.jl/pull/327
@@ -114,7 +106,7 @@ end
 
 function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) where {T<:Number}
 
-	plot([NaN],[NaN],label="",xlabel=L"\mathrm{inference parameter}",
+	plot([NaN],[NaN],label="",xlabel=L"\mathrm{bifurcation\,\,\,parameter,}p",
 		right_margin=20mm,size=(500,400))
 	right_axis = twinx()
 
@@ -153,4 +145,4 @@ function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) wh
 		return right_axis
 	end
 end
-@nograd plot
+@nograd plot,display

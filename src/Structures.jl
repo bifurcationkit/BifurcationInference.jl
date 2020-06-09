@@ -9,6 +9,11 @@ struct Branch{T<:Number}
     eigvals::Vector{Vector{Complex{T}}}
 end
 
+struct CuBranch{T<:Number}
+	state::CuArray{T}
+    parameter::CuArray{T}
+end
+
 """
 	data = StateDensity(parameter,bifurcations)
 
@@ -24,12 +29,6 @@ struct StateDensity{T<:Number}
     bifurcations::CuArray
 end
 
-struct StateGrid{T<:Number}
-	states::AbstractArray{T}
-    parameters::AbstractVector{T}
-	Δu::T; Δp::T
-end
-
 """
 	branch = Branch(T)
 
@@ -43,11 +42,13 @@ Object to contain the accumulation of continuation results for one branch
 - `eigvals` vector of eigenvalues at each point
 """
 Branch(T::DataType) = Branch(Vector{T}[], T[], T[], Bool[], Vector{Complex{T}}[])
-length(branch::Branch) = length(branch.parameter)
+length(branch::Union{Branch,CuBranch}) = length(branch.parameter)
 
 # display methods
 show(io::IO, branch::Branch{T}) where T = print(io,
     "Branch{$T}[bifurcations=$(sum(branch.bifurcations)), states=$(length(branch)), parameter=($(round(branch.parameter[1],sigdigits=3))->$(round(branch.parameter[end],sigdigits=3)))]")
+show(io::IO, branch::CuBranch{T}) where T = print(io,
+    "CuBranch{$T}[states=$(length(branch)), parameter=($(round(minimum(branch.parameter),sigdigits=3))->$(round(maximum(branch.parameter),sigdigits=3)))]")
 show(io::IO, branches::Vector{Branch{T}}) where T = print(io,
     "Vector{Branch{$T}}[branches=$(length(branches)), bifurcations=$(sum(branch->sum(branch.bifurcations),branches)÷2), states=$(sum(branch->length(branch),branches))]")
 show(io::IO, M::MIME"text/plain", branches::Vector{Branch{T}}) where T = show(io,branches)

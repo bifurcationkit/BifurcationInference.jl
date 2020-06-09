@@ -20,7 +20,7 @@ module FluxContinuation
 	include("Utils.jl")
 
 	export StateDensity,Branch,deflationContinuation,findRoots
-	export getParameters,updateParameters,loss,meshgrid
+	export getParameters,updateParameters,loss,cu
 
 	@nograd now,string
 
@@ -122,34 +122,31 @@ module FluxContinuation
 	end
 
 	""" semi-supervised objective function """
-	function loss( steady_states::Vector{Branch{T}}, data::StateDensity{T},
-		rates::Function, determinant::Function, curvature::Function,
-		params::NamedTuple; offset::Number=10 ) where T<:Number
-
-		# generate state-space grid on gpu
-		@unpack states,parameters,Δu,Δp = meshgrid(steady_states)
+	function loss( steady_states::Vector{Branch{T}}, state::CuArray{U}, parameter::CuArray{U},
+		data::StateDensity{T}, rates::Function, determinant::Function, curvature::Function,
+		params::NamedTuple; offset::Number=10 ) where {T<:Number,U<:Number}
 
 		# weighting towards valid solutions and bifurcations
-		σ = mean(branch->minimum(abs.(branch.ds)),steady_states)
+		ds = mean(branch->minimum(abs.(branch.ds)),steady_states)
 		Γ = 1/4
 
-		a,b = rates(states,parameters,params)
-		solutions = exp.(-(  a.^2 .+ b.^2)/(2σ)) / sqrt(4π*σ)
+		a,b = rates(state,parameter,params)
+		solutions = exp.(-(  a.^2 .+ b.^2)/(2ds)) / sqrt(4π*ds)
 
 		# supervised signal
 		if sum( branch -> sum(branch.bifurcations), steady_states) > 0
 
-			bifurcation_density = sum( solutions .* exp.(-determinant(states,parameters,params).^2), dims=1)
+			bifurcation_density = solutions .* exp.(-determinant(state,parameter,params).^2) .* ds
 			#bifurcation_density = bifurcation_density ./ maximum(bifurcation_density)
 
-			target_potential = sum( -Γ./( Γ^2 .+ (data.bifurcations.-parameters').^2 ), dims=1)
+			target_potential = -Γ./( Γ^2 .+ (data.bifurcations.-parameter').^2 )
 			target_potential = -target_potential ./ minimum(target_potential)
 
-			return dot( bifurcation_density, target_potential ) * Δp - offset
+			return sum( target_potential*bifurcation_density ) - offset
 
 		else # unsupervised signal
-			unsupervised = solutions .* curvature(states,parameters,params).^2
-			return - log( sum(unsupervised)*Δu*Δp )
+			unsupervised = solutions .* curvature(state,parameter,params).^2 .* ds
+			return - log( sum( unsupervised ) )
 		end
 	end
 end

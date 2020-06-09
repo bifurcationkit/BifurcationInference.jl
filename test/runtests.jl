@@ -1,13 +1,10 @@
 using Flux,FluxContinuation,CuArrays
 using StatsBase,LinearAlgebra
-using StatsBase: median
 
 using Plots.PlotMeasures
 using Test,Plots
 
-using Flux: Params,update!
-using Zygote: forward_jacobian
-
+using Flux: update!
 using Parameters: @unpack
 using Setfield: Lens,@lens,set
 
@@ -29,15 +26,16 @@ function test_gradient(params::NamedTuple; idx=2, dx::T = 1e-6) where T<:Number
 	# forward pass
 	steady_states,u₀ = deflationContinuation(rates,u₀,params,(@lens _.p),hyperparameters)
 	hyperparameters = updateParameters(hyperparameters,steady_states)
+	@unpack state,parameter = cu(steady_states)
 
 	# backward pass
 	gradients, = gradient(params) do params
-		loss(steady_states,targetData,rates,determinant,curvature,params)
+		loss(steady_states,state,parameter,targetData,rates,determinant,curvature,params)
 	end
 
 	# central differences
-	L₊ = loss(steady_states,targetData,rates,determinant,curvature,set(params,(@lens _.θ[idx]), params.θ[idx]+T(dx)/2))
-	L₋ = loss(steady_states,targetData,rates,determinant,curvature,set(params,(@lens _.θ[idx]), params.θ[idx]-T(dx)/2))
+	L₊ = loss(steady_states,state,parameter,targetData,rates,determinant,curvature,set(params,(@lens _.θ[idx]), params.θ[idx]+T(dx)/2))
+	L₋ = loss(steady_states,state,parameter,targetData,rates,determinant,curvature,set(params,(@lens _.θ[idx]), params.θ[idx]-T(dx)/2))
 
 	return (L₊+L₋)/2, (L₊-L₋)/dx, isnothing(gradients) ? NaN : gradients.θ[idx]
 end
@@ -50,15 +48,15 @@ function test_gradients(name::String;n=200)
 		L[i],d̃L[i],dL[i] = test_gradient(( θ=[5.0,x[i],0.0], p=-2.0))
 	end
 
-	plot( x,d̃L,fillrange=0,label="Central Differences",color=:darkcyan,alpha=0.5)
-	plot!(x,dL,fillrange=0,label="Zygote",color=:gold,alpha=0.5)
-	plot!(xlabel="parameter",ylabel="loss gradient",ylim=(-30,30))
+	plot( x, d̃L,fillrange=0,label="Central Differences",color=:darkcyan,alpha=0.5)
+	plot!(x, dL,label="Zygote",color=:gold,linewidth=3)
+	plot!(xlabel="parameter",ylabel="∂Loss",right_margin=20mm,ylim=(-30,30))
 
-	plot!(twinx(),x,L,ylabel="loss",color=:black,label="")|> display
+	plot!(twinx(),x, sign.(L).*log.(abs.(L)), ylabel="SymLog Loss",color=:black,label="")|> display
 	savefig(name)
 
 	errors = abs.((dL.-d̃L)/d̃L)
-	printstyled(color=:orange,"Zygote Percentage Error $(100*mean(errors[.~isnan.(errors)]))% \n")
+	printstyled(color=:blue,"Zygote Percentage Error $(100*mean(errors[.~isnan.(errors)]))% \n")
 	return all(errors[.~isnan.(errors)].<0.05)
 end
 
@@ -75,51 +73,48 @@ end
 	end
 end
 
-function infer( rates::Function, rates_jacobian::Function, curvature::Function,
-		u₀::Vector{Array{T,2}}, paramlens::Lens, targetData::StateDensity;
-        optimiser=Momentum(), callback::Function=()->(), iter::Int=10, maxIter::Int=10, tol::Float64=1e-12 ) where T
-
-    hyperparameters = getParameters(targetData; maxIter=maxIter, tol=tol)
-	function loss( ; offset::Number=5.0) global u₀,steady_states,hyperparameters
-
-		steady_states,u₀ = deflationContinuation(rates,rates_jacobian,u₀,θ,paramlens,hyperparameters)
-		hyperparameters = updateParameters(hyperparameters,steady_states)
-
-		predictions = map( branch -> map(
-			bifurcation -> bifurcation.parameter, branch.bifurcations ),
-				steady_states)
-
-	    predictions = vcat(predictions...)
-		if length(predictions) > 0  # supervised signal
-
-	    	error = norm(minimum(abs.(targetData.bifurcations.-predictions'),dims=2))
-			return tanh(log(error))-offset
-
-		else # unsupervised signal
-			total_curvature = sum( branch-> sum(
-		        	abs.(curvature.(branch.state,branch.parameter)).*abs.(branch.ds)),
-		        steady_states )
-
-			return -log(1+total_curvature)
-		end
-	end
-
-    @time train!(loss, iter, optimiser; callback=callback)
-end
-
-function train!(loss::Function, iter::Int, optimiser; callback::Function=()->() )
-	global θ # @gszep(todo) temporary work-around for NamedTuple grads
+function train!( parameters::NamedTuple, iter::Int, optimiser )
+	global u₀,steady_states,hyperparameters
 
 	for i=1:iter
 
-		gradients = gradient(Params(θ)) do
-			L = loss()
-			println("Iteration = $i, Loss(z) = $L, z = $(θ.z)")
+		# forward pass
+		steady_states,u₀ = deflationContinuation(rates,u₀,parameters,(@lens _.p),hyperparameters)
+		hyperparameters = updateParameters(hyperparameters,steady_states)
+
+		# backward pass
+		gradients, = gradient(parameters) do parameters
+			L = loss(steady_states,targetData,rates,determinant,curvature,parameters,hyperparameters)
+			println("Iteration $i\tLoss = $L\tParameters = $(parameters.θ)")
 			return L
 		end
-
-		# update global parameters
-		plot(steady_states,targetData)
-		update!(optimiser, θ.z, gradients[GlobalRef(Main,:θ)].z)
+		plot(steady_states,targetData) |> display
+		update!(optimiser, parameters.θ, gradients.θ )
 	end
 end
+
+include("two-state.jl")
+@time test_predictor(parameters,"test/two-state.predictor.pdf")
+@time test_gradient(parameters)
+
+#parameters = ( θ=[4.0,π/4,1.0],p=minimum(targetData.parameter))
+
+train!(parameters, 1, ADAM(0.05))
+plot(steady_states,targetData)
+
+
+
+test_predictor(( θ=[4.0,3π/2-0.01,0.0], p=-5),"test/pitchfork.predictor.pdf")
+
+
+include("saddle-node.jl")
+parameters = ( θ=[4.0,π/4,1.0],p=minimum(targetData.parameter))
+
+train!(parameters, 200, ADAM(0.05))
+plot(steady_states,targetData)
+
+include("pitchfork.jl")
+parameters = ( θ=[5.0,π+1/2,1.0],p=minimum(targetData.parameter))
+
+train!(parameters, 100, ClipNorm(0.01))
+plot(steady_states,targetData)
