@@ -42,8 +42,10 @@ module FluxContinuation
 			converged = true
 
 	        for u in eachrow(us) # update existing roots
-	    		u, _, converged, _ = newton( f, J, u.+hyperparameters.ds, set(params, paramlens, pDeflations[i]),
+	    		u, residual, converged, niter = newton( f, J, u.+hyperparameters.ds, set(params, paramlens, pDeflations[i]),
 					hyperparameters.newtonOptions, deflation)
+
+				if any(isnan.(residual)) throw("f(u,p) = NaN, u = $u, p = $(set(params, paramlens, pDeflations[i]))") end
 	    		if converged push!(deflation,u) else break end
 	        end
 
@@ -51,7 +53,7 @@ module FluxContinuation
 				u = fill(T(0.0),nStates)
 				while length(deflation)-1 < maxRoots
 
-					u, _, converged, _ = newton( f, J, u.+hyperparameters.ds, set(params, paramlens, pDeflations[i]),
+					u, residual, converged, niter = newton( f, J, u.+hyperparameters.ds, set(params, paramlens, pDeflations[i]),
 						hyperparameters.newtonOptions, deflation)
 
 					if converged & all(map( v -> !isapprox(u,v,atol=2*hyperparameters.ds), deflation.roots))
@@ -64,6 +66,7 @@ module FluxContinuation
 			rootsArray[i] = transpose(hcat(deflation.roots...))
 	    end
 
+		if length(first(rootsArray)) == 0 throw("Newton failed to converge given u = $u₀, p = $params") end
 		return rootsArray,pDeflations
 	end
 	@nograd findRoots
