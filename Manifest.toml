@@ -196,9 +196,9 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[DiffEqBase]]
 deps = ["ArrayInterface", "ChainRulesCore", "ConsoleProgressMonitor", "DataStructures", "Distributed", "DocStringExtensions", "FunctionWrappers", "IterativeSolvers", "IteratorInterfaceExtensions", "LabelledArrays", "LinearAlgebra", "Logging", "LoggingExtras", "MuladdMacro", "Parameters", "Printf", "ProgressLogging", "RecipesBase", "RecursiveArrayTools", "RecursiveFactorization", "Requires", "Roots", "SparseArrays", "StaticArrays", "Statistics", "SuiteSparse", "TableTraits", "TerminalLoggers", "TreeViews", "ZygoteRules"]
-git-tree-sha1 = "a37901f10b63ed3e413db3320cd6c305c771430d"
+git-tree-sha1 = "9c0de383134905401b684aa30e91ad9e4265683f"
 uuid = "2b5f629d-d688-5b77-993f-72d75c75574e"
-version = "6.36.3"
+version = "6.36.4"
 
 [[DiffResults]]
 deps = ["StaticArrays"]
@@ -598,9 +598,9 @@ version = "0.1.10"
 
 [[RecursiveArrayTools]]
 deps = ["ArrayInterface", "LinearAlgebra", "RecipesBase", "Requires", "StaticArrays", "Statistics", "ZygoteRules"]
-git-tree-sha1 = "c4cfdf3fad7c7aa3a666e2af28eb45426f2ebf5a"
+git-tree-sha1 = "96e71928efa701fa5a6df0f88b51f05ceed70f2c"
 uuid = "731186ca-8d62-57ce-b412-fbd966d074cd"
-version = "2.4.1"
+version = "2.4.4"
 
 [[RecursiveFactorization]]
 deps = ["LinearAlgebra", "LoopVectorization"]
