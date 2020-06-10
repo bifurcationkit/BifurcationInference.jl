@@ -122,31 +122,33 @@ module FluxContinuation
 	end
 
 	""" semi-supervised objective function """
-	function loss( steady_states::Vector{Branch{T}}, state::CuArray{U}, parameter::CuArray{U},
-		data::StateDensity{T}, rates::Function, determinant::Function, curvature::Function,
-		params::NamedTuple; offset::Number=10 ) where {T<:Number,U<:Number}
+	function loss( steady_states::CuBranch{U}, data::StateDensity{T},
+		rates::Function, determinant::Function, curvature::Function,
+		parameters::NamedTuple, hyperparameters::ContinuationPar;
+		supervised::Bool=false, offset::Number=42 ) where {T<:Number,U<:Number}
 
-		# weighting towards valid solutions and bifurcations
-		ds = mean(branch->minimum(abs.(branch.ds)),steady_states)
-		Γ = 1/4
+		@unpack state,parameter = steady_states
+		@unpack ds,pMin,pMax = hyperparameters
 
-		a,b = rates(state,parameter,params)
-		solutions = exp.(-(  a.^2 .+ b.^2)/(2ds)) / sqrt(4π*ds)
+		N = length(parameter)
+		Γ = 1.0/(pMax-pMin)
 
-		# supervised signal
-		if sum( branch -> sum(branch.bifurcations), steady_states) > 0
+		# weighting towards valid solutions
+		a,b = rates(state,parameter,parameters)
+		solutions = exp.( -( a.^2 .+ b.^2 ) / (2ds) ) / sqrt(4π*ds)
 
-			bifurcation_density = solutions .* exp.(-determinant(state,parameter,params).^2) .* ds
-			#bifurcation_density = bifurcation_density ./ maximum(bifurcation_density)
+		if supervised # supervised signal
 
-			target_potential = -Γ./( Γ^2 .+ (data.bifurcations.-parameter').^2 )
-			target_potential = -target_potential ./ minimum(target_potential)
+			bifurcation_density = solutions .* Γ./( Γ^2 .+ determinant(state,parameter,parameters).^2 )
+			target_potential    =             -Γ./( Γ^2 .+ (data.bifurcations.-parameter').^2 )
 
-			return sum( target_potential*bifurcation_density ) - offset
+			interaction = length(data.bifurcations) > 1 ? norm(bifurcation_density)^2 * ds : 0.0
+			return sum(target_potential*bifurcation_density)*ds + interaction*Γ - offset
 
 		else # unsupervised signal
-			unsupervised = solutions .* curvature(state,parameter,params).^2 .* ds
-			return - log( sum( unsupervised ) )
+
+			unsupervised = solutions .* curvature(state,parameter,parameters).^2
+			return -log( sum(unsupervised)*ds )
 		end
 	end
 end
