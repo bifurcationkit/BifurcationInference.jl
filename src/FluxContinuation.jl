@@ -134,8 +134,8 @@ module FluxContinuation
 		Γ = 1.0/(pMax-pMin)
 
 		# weighting towards valid solutions
-		a,b = rates(state,parameter,parameters)
-		solutions = exp.( -( a.^2 .+ b.^2 ) / (2ds) ) / sqrt(4π*ds)
+		F = rates(state,parameter,parameters)
+		solutions = exp.( -( typeof(F)<:Tuple ? .+(map(f->f.^2,F)...) : F.^2 ) / (2ds) ) / sqrt(4π*ds)
 
 		if supervised # supervised signal
 

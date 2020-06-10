@@ -8,7 +8,7 @@ end
 function rates(u::CuArray{T},p::CuArray{T},parameters::NamedTuple{(:θ,:p),Tuple{Vector{U},U}}) where {T<:Number,U<:Number}
 	@unpack θ = parameters; r,α,c = θ
 	θ₁,θ₂ = r*cos(α), r*sin(α)
-	return p .+ θ₁.*u[1,:] .+ θ₂.*u[1,:].^3 .+ c, 0.0
+	return p .+ θ₁.*u[1,:] .+ θ₂.*u[1,:].^3 .+ c
 end
 
 function determinant(u::CuArray{T},p::CuArray{T},parameters::NamedTuple{(:θ,:p),Tuple{Vector{U},U}}) where {T<:Number,U<:Number}
