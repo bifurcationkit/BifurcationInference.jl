@@ -25,7 +25,7 @@ end
 @nograd updateParameters
 
 import CuArrays: cu
-function cu( steady_states::Vector{Branch{T}}; nSamples=50 ) where {T<:Number}
+function cu( steady_states::Vector{Branch{T}}; nSamples=50, downSample=1 ) where {T<:Number}
 
 	p  = vcat(map( branch -> branch.parameter,      steady_states)...)
 	u  = hcat(map( branch -> hcat(branch.state...), steady_states)...)
@@ -36,8 +36,8 @@ function cu( steady_states::Vector{Branch{T}}; nSamples=50 ) where {T<:Number}
 	p = p .+ mean(ds)*(-nSamples:nSamples)'
 	nPoints,nSamples = size(p)
 
-	p = reshape(p,nPoints*nSamples)
-	u = repeat(u,1,nSamples)
+	p = reshape(p,nPoints*nSamples)[1:downSample:end]
+	u = repeat(u,1,nSamples)[:,1:downSample:end]
 
 	# restrict final grid to original parameter region
 	region  = (pMin.<p) .& (p.<pMax)
@@ -96,7 +96,7 @@ end
 
 ############################################################## plotting
 import Plots: plot
-function plot(steady_states::Vector{Branch{T}}, data::StateDensity{T}; idx::Int=1) where {T<:Number}
+function plot(steady_states::Union{Vector{Branch{T}},CuBranch{U}}, data::StateDensity{T}; idx::Int=1) where {T<:Number,U<:Number}
 	right_axis = plot(steady_states; idx=idx, displayPlot=false)
 
 	vline!( data.bifurcations, label="", color=:gold)
@@ -141,6 +141,23 @@ function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) wh
 	else
 		plot!(right_axis,[],[], color=:red, legend=:bottomleft,
 			alpha=1.0, label=L"\mathrm{determinant}", linewidth=2)
+
+		return right_axis
+	end
+end
+
+function plot(steady_states::CuBranch{T}; idx::Int=1, displayPlot=true) where {T<:Number}
+
+	plot([NaN],[NaN],label="",xlabel=L"\mathrm{bifurcation\,\,\,parameter,}p",
+		right_margin=20mm,size=(500,400))
+	right_axis = twinx()
+
+	if displayPlot
+		plot!(steady_states.parameter, steady_states.state[idx,:], linewidth=2, alpha=0.5, label="", grid=false,
+	        ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(z)=0",color=:darkblue) |> display
+	else
+		plot!(steady_states.parameter, steady_states.state[idx,:], linewidth=2, alpha=0.5, label="", grid=false,
+	        ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(z)=0",color=:darkblue)
 
 		return right_axis
 	end
