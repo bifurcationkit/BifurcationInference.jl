@@ -12,7 +12,7 @@ function rates(u::CuArray{T},p::CuArray{T},parameters::NamedTuple{(:θ,:p),Tuple
 end
 
 function determinant(u::CuArray{T},p::CuArray{T},parameters::NamedTuple{(:θ,:p),Tuple{Vector{U},U}}) where {T<:Number,U<:Number}
-	@unpack θ = parameters; r,α,c = θ
+	@unpack θ = parameters; r,α = θ
 	θ₁,θ₂ = r*cos(α), r*sin(α)
 	return θ₁ .+ 3θ₂.*u[1,:].^2
 end
@@ -21,6 +21,12 @@ function curvature(u::CuArray{T},p::CuArray{T},parameters::NamedTuple{(:θ,:p),T
 	@unpack θ = parameters; r,α = θ
 	θ₁,θ₂ = r*cos(α), r*sin(α)
 	return -6θ₂ .* ( 1 .+ θ₁^2 .- 9θ₂^2 .*u[1,:].^4 ) ./ (1 .+ (θ₁ .+ 3θ₂.*u[1,:].^2).^2 ).^2
+end
+
+function likelihood(u::CuArray{T},p::CuArray{T},parameters::NamedTuple{(:θ,:p),Tuple{Vector{U},U}}; ϵ = 0.1 ) where {T<:Number,U<:Number}
+	predictions = exp.( -determinant(u,p,parameters).^2 )
+	targets     = exp.( -(targetData.bifurcations'.-p).^2 ./ ϵ )
+	return targets .* predictions
 end
 
 ######################################################### initialise targets, model and hyperparameters

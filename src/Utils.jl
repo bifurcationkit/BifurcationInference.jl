@@ -25,7 +25,7 @@ end
 @nograd updateParameters
 
 import CuArrays: cu
-function cu( steady_states::Vector{Branch{T}}; nSamples=50, downSample=1 ) where {T<:Number}
+function cu( steady_states::Vector{Branch{T}}; nSamples=50 ) where {T<:Number}
 
 	p  = vcat(map( branch -> branch.parameter,      steady_states)...)
 	u  = hcat(map( branch -> hcat(branch.state...), steady_states)...)
@@ -36,8 +36,8 @@ function cu( steady_states::Vector{Branch{T}}; nSamples=50, downSample=1 ) where
 	p = p .+ mean(ds)*(-nSamples:nSamples)'
 	nPoints,nSamples = size(p)
 
-	p = reshape(p,nPoints*nSamples)[1:downSample:end]
-	u = repeat(u,1,nSamples)[:,1:downSample:end]
+	p = reshape(p,nPoints*nSamples)
+	u = repeat(u,1,nSamples)
 
 	# restrict final grid to original parameter region
 	region  = (pMin.<p) .& (p.<pMax)
@@ -96,12 +96,12 @@ end
 
 ############################################################## plotting
 import Plots: plot
-function plot(steady_states::Union{Vector{Branch{T}},CuBranch{U}}, data::StateDensity{T}; idx::Int=1) where {T<:Number,U<:Number}
+function plot(steady_states::Vector{Branch{T}}, data::StateDensity{T}; idx::Int=1) where {T<:Number,U<:Number}
 	right_axis = plot(steady_states; idx=idx, displayPlot=false)
 
 	vline!( data.bifurcations, label="", color=:gold)
 	plot!( right_axis,[],[], color=:gold, legend=:bottomleft,
-        alpha=1.0, label=L"\mathrm{targets}\,\,\mathcal{D}") |> display
+        alpha=1.0, label="") |> display
 end
 
 function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) where {T<:Number}
@@ -116,12 +116,12 @@ function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) wh
         determinants = map( λ -> prod(real(λ)), branch.eigvals)
 
         plot!(branch.parameter, map(x->x[idx],branch.state), linewidth=2, alpha=0.5, label="", grid=false,
-            ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(z)=0",
+            ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(u,p)=0",
             color=map( stable -> stable ? :darkblue : :lightblue, stability )
             )
 
         plot!(right_axis, branch.parameter, determinants, linewidth=2, alpha=0.5, label="", grid=false,
-        	ylabel=L"\mathrm{determinant}\,\,\Delta_{\theta}(z)",
+        	ylabel=L"\mathrm{determinant}\,\,\Delta_{\theta}(u,p)",
             color=map( stable -> stable ? :red : :pink, stability )
         	)
 
@@ -130,36 +130,15 @@ function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) wh
             label="", m = (3.0,3.0,:black,stroke(0,:none)))
     end
 
-	plot!(right_axis,[],[], color=:darkblue, legend=:bottomleft, linewidth=2,
-        alpha=1.0, label=L"\mathrm{steady\,states}")
-	scatter!(right_axis,[],[], label=L"\mathrm{prediction}\,\,\mathcal{P}(\theta)", legend=:bottomleft,
-        m = (1.0, 1.0, :black, stroke(0, :none)))
-
 	if displayPlot
 		plot!(right_axis,[],[], color=:red, legend=:bottomleft,
-			alpha=1.0, label=L"\mathrm{determinant}", linewidth=2) |> display
+			alpha=1.0, label="", linewidth=2) |> display
 	else
 		plot!(right_axis,[],[], color=:red, legend=:bottomleft,
-			alpha=1.0, label=L"\mathrm{determinant}", linewidth=2)
+			alpha=1.0, label="", linewidth=2)
 
 		return right_axis
 	end
 end
 
-function plot(steady_states::CuBranch{T}; idx::Int=1, displayPlot=true) where {T<:Number}
-
-	plot([NaN],[NaN],label="",xlabel=L"\mathrm{bifurcation\,\,\,parameter,}p",
-		right_margin=20mm,size=(500,400))
-	right_axis = twinx()
-
-	if displayPlot
-		plot!(steady_states.parameter, steady_states.state[idx,:], linewidth=2, alpha=0.5, label="", grid=false,
-	        ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(z)=0",color=:darkblue) |> display
-	else
-		plot!(steady_states.parameter, steady_states.state[idx,:], linewidth=2, alpha=0.5, label="", grid=false,
-	        ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(z)=0",color=:darkblue)
-
-		return right_axis
-	end
-end
-@nograd plot,display
+@nograd scatter,plot,display

@@ -11,11 +11,15 @@ function forward(name::String) where T<:Number
 end
 
 function backward(name::String;n=200)
-	x = range(0.03,2π-0.03,length=n)
+	x = range(0.03-π,π-0.03,length=n)
 	L,d̃L,dL = zero(x), zero(x), zero(x)
 
 	for i in 1:length(x)
-		L[i],d̃L[i],dL[i] = gradients(( θ=[5.0,x[i],0.0], p=-2.0))
+		try
+			L[i],d̃L[i],dL[i] = gradients(( θ=[5.0,x[i],0.0], p=-2.0))
+		catch
+			L[i],d̃L[i],dL[i] = NaN,NaN,NaN
+		end
 	end
 
 	plot( x, asinh.(d̃L),fillrange=0,label="Central Differences",color=:darkcyan,alpha=0.5)
@@ -35,21 +39,18 @@ function gradients(params::NamedTuple; idx=2, dx::T = 1e-6) where T<:Number
 
 	# forward pass
 	steady_states,u₀ = deflationContinuation(rates,u₀,params,(@lens _.p),hyperparameters)
-	supervised = false
-
-	if sum( branch -> sum(branch.bifurcations), steady_states) == 0
-		hyperparameters = updateParameters(hyperparameters,steady_states)
-	else supervised = true end
+	hyperparameters = updateParameters(hyperparameters,steady_states)
+	supervised = sum( branch -> sum(branch.bifurcations), steady_states) == 0 ? false : true
 
 	# backward pass
 	steady_states = cu(steady_states)
 	gradients, = gradient(params) do params
-		loss(steady_states,targetData,rates,determinant,curvature,params,hyperparameters; supervised=supervised)
+		loss(steady_states,likelihood,curvature,rates,params,hyperparameters,supervised)
 	end
 
 	# central differences
-	L₊ = loss(steady_states,targetData,rates,determinant,curvature,set(params,(@lens _.θ[idx]), params.θ[idx]+T(dx)/2),hyperparameters; supervised=supervised)
-	L₋ = loss(steady_states,targetData,rates,determinant,curvature,set(params,(@lens _.θ[idx]), params.θ[idx]-T(dx)/2),hyperparameters; supervised=supervised)
+	L₊ = loss(steady_states,likelihood,curvature,rates,set(params,(@lens _.θ[idx]), params.θ[idx]+T(dx)/2),hyperparameters,supervised)
+	L₋ = loss(steady_states,likelihood,curvature,rates,set(params,(@lens _.θ[idx]), params.θ[idx]-T(dx)/2),hyperparameters,supervised)
 
 	return (L₊+L₋)/2, (L₊-L₋)/dx, isnothing(gradients) ? NaN : gradients.θ[idx]
 end

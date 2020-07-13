@@ -9,12 +9,13 @@ module FluxContinuation
 	using Dates: now
 
 	using LinearAlgebra: dot,eigen,svd
-	using StatsBase: norm,mean
+	using StatsBase: norm,mean,std
 	using CuArrays
 
 	using Plots.PlotMeasures
 	using LaTeXStrings
 	using Plots
+	gr()
 
 	include("Structures.jl")
 	include("Utils.jl")
@@ -123,35 +124,50 @@ module FluxContinuation
 		hyperparameters = @set hyperparameters.ds = ds
 		return copy(branches), rootsArray
 	end
+	@nograd deflationContinuation
 
 	""" semi-supervised objective function """
-	function loss( steady_states::CuBranch{U}, data::StateDensity{T},
-		rates::Function, determinant::Function, curvature::Function,
-		parameters::NamedTuple, hyperparameters::ContinuationPar;
-		supervised::Bool=false, offset::Number=42 ) where {T<:Number,U<:Number}
+	function loss( steady_states::CuBranch{U}, likelihood::Function, curvature::Function,
+		rates::Function, parameters::NamedTuple, hyperparameters::ContinuationPar,
+		supervised::Bool=false ) where {T<:Number,U<:Number}
 
 		@unpack state,parameter = steady_states
-		@unpack ds,pMin,pMax = hyperparameters
+		@unpack ds = hyperparameters
 
-		N = length(parameter)
-		Γ = 1.0/(pMax-pMin)
-
-		# weighting towards valid solutions
+		# # valid solutions
 		F = rates(state,parameter,parameters)
-		solutions = exp.( -( typeof(F)<:Tuple ? .+(map(f->f.^2,F)...) : F.^2 ) / (2ds) ) / sqrt(4π*ds)
+		weights = ds ./ ( ds .+ ( typeof(F)<:Tuple ? .+(map(f->f.^2,F)...) : F.^2 ) )
 
 		if supervised # supervised signal
-
-			bifurcation_density = solutions .* Γ./( Γ^2 .+ determinant(state,parameter,parameters).^2 )
-			target_potential    =             -Γ./( Γ^2 .+ (data.bifurcations.-parameter').^2 )
-
-			interaction = length(data.bifurcations) > 1 ? norm(bifurcation_density)^2 * ds : 0.0
-			return sum(target_potential*bifurcation_density)*ds + interaction*Γ - offset
+			return -log( sum( weights .* likelihood(state,parameter,parameters) )*ds )
 
 		else # unsupervised signal
-
-			unsupervised = solutions .* curvature(state,parameter,parameters).^2
-			return -log( sum(unsupervised)*ds )
+			return -log( sum( weights .* curvature(state,parameter,parameters).^2 )*ds )
 		end
 	end
+
+	# @adjoint function loss( steady_states::CuBranch{U}, likelihood::Function, curvature::Function,
+	# 	rates::Function, parameters::NamedTuple, hyperparameters::ContinuationPar,
+	# 	supervised::Bool=false ) where {T<:Number,U<:Number}
+	#
+	# 	@unpack state,parameter = steady_states
+	# 	@unpack ds = hyperparameters
+	#
+	# 	value = loss(steady_states,likelihood,curvature,rates,parameters,hyperparameters,supervised)
+	# 	return value, function(Δ)
+	#
+	# 		if supervised
+	#
+	# 			∂u,∂p,∂θ = gradient( (u,p,θ) -> sum(likelihood(u,p,θ))*ds, state, parameter, parameters )
+	# 			∂θ = map( x -> x != nothing ? -exp(value)*x : nothing, ∂θ)
+	# 			return (nothing,nothing,nothing,nothing,∂θ,nothing,nothing)
+	#
+	# 		else
+	#
+	# 			∂u,∂p,∂θ = gradient( (u,p,θ) -> sum(curvature(u,p,θ).^2)*ds, state, parameter, parameters )
+	# 			∂θ = map( x -> x != nothing ? -exp(value)*x : nothing, ∂θ)
+	# 			return (nothing,nothing,nothing,nothing,∂θ,nothing,nothing)
+	# 		end
+	# 	end
+	# end
 end
