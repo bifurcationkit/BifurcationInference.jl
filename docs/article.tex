@@ -25,21 +25,21 @@ Suppose we parameterise a set of differential equations for states $u\in\Reals^N
 	\label{eq:model}
 \end{align}
 \section{Methodology}
-First we view the steady states of this problem in terms of implicit space curves \cite{Goldman2005CurvatureSurfaces} in an augmented state space $z\in\Reals^{N+1}$ which combines the state $u$ and bifurcation parameter $p$. We then realise that it is possible to analytically evaluate the curvature of the determinant $\Det(z)$, which when maximised encourages bifurcations in the region of $z$. In order to know which regions of $z$ need evaluation, a parameter continuation method \cite{Veltz2019PseudoArcLengthContinuation.jl,Farrell2016TheDiagrams} is used together with some pre-conditioning methods to ensure hyper-parameters remain constant. Finally a piecewise-differentiable semi-supervised objective function $\loss(\theta)$ is proposed that would allow gradient descent algorithms to efficiently encourage bifurcations and match their locations to targets $\targets$.
+First we view the steady states of this problem in terms of implicit space curves \cite{Goldman2005CurvatureSurfaces} in an augmented state space $z\in\Reals^{N+1}$ which combines the state $u$ and bifurcation parameter $p$. We then realise that the curvature of the Jacobian determinant $\Det(z):=|\partial\rates/\partial u|$ is maximised when bifurcations appear in the observed region of $z$. Luckily the curvature can be evaluated analytically. The steady state regions of $z$ are computed using a parameter continuation method \cite{Veltz2019PseudoArcLengthContinuation.jl,Farrell2016TheDiagrams}. Finally a piecewise-differentiable semi-supervised cost function $\loss(\theta)$ is proposed that would allow gradient descent algorithms to efficiently encourage bifurcations and match their locations to targets $\targets$.
 
-For clarity we guide the reader through the methods with the following co-dimension one normal forms: the saddle-node $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ and pitchfork $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$ with corresponding targets $\targets$ as shown in Figure \ref{fig:saddle-node} and Figure \ref{fig:pitchfork} respectively. These figures show that the curvature of the determinant $\Det(z)$ increases in the vicinity of bifurcations and crosses zero at the bifurcation. This gives us our first hint of what should be optimised to encourage bifurcations. Success on these normal forms demonstrates the proof of concept, and success in practice is demonstrated on more complicated genetic feedback systems taken from examples in synthetic biology.
+For clarity we guide the reader through the methods with the following minimal models that explore the space of saddle-nodes $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ and pitchforks $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$. These minimal models are shown with targets $\targets$ in Figure \ref{fig:saddle-node} and Figure \ref{fig:pitchfork} respectively. These figures show that the curvature of the determinant $\Det(z)$ increases in the vicinity of bifurcations and crosses zero at the bifurcations. This gives us our first hint of what should be optimised to encourage bifurcations. Success on these minimal models demonstrates the proof of concept, and success in practice is demonstrated on more complicated genetic feedback systems taken from examples in synthetic biology.
 \begin{figure}[H]
 \centering{}
 \captionsetup{justification=centering}
 \includegraphics[width=11cm]{saddle-node}
-\caption{Saddle-node normal form $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ with set $\theta=(2,-1)$ and targets $\targets=\{-1/2,1/2\}$. Lighter shades indicate the determinant crossing zero for unstable solutions}
+\caption{Saddle-node model $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ with set $\theta=(2,-1)$ and targets $\targets=\{-1/2,1/2\}$. Lighter shades indicate the determinant crossing zero for unstable solutions}
 \label{fig:saddle-node}
 \end{figure}
 \begin{figure}[H]
 \centering{}
 \captionsetup{justification=centering}
 \includegraphics[width=11cm]{pitchfork}
-\caption{Pitchfork normal form $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$ with set $\theta=(-1/10,-1)$ and target $\targets=\{0\}$. Lighter shades indicate the determinant crossing zero for unstable solutions}
+\caption{Pitchfork model $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$ with set $\theta=(-1/10,-1)$ and target $\targets=\{0\}$. Lighter shades indicate the determinant crossing zero for unstable solutions}
 \label{fig:pitchfork}
 \end{figure}
 
@@ -84,7 +84,7 @@ since the determinant of any matrix with two identical rows or columns is zero. 
 \centering{}
 \captionsetup{justification=centering}
 \includegraphics[width=14cm]{tangent-field}
-\caption{Left/Right : Calculated tangent fields $\tangent(z)$ for the saddle-node/pitchfork normal forms for some set values of $\theta$ revealing that $\rates(z)=0$ picks out one of the traces in the field}
+\caption{Left/Right : Calculated tangent fields $\tangent(z)$ for the saddle-node/pitchfork models for some set values of $\theta$ revealing that $\rates(z)=0$ picks out one of the traces in the field}
 \label{fig:tangent-field}
 \end{figure}
 
@@ -107,7 +107,7 @@ crossing zero can be used as a readout of whether a bifurcation has occurred. Fi
 \centering{}
 \captionsetup{justification=centering}
 \includegraphics[width=14cm]{determinant-curvature}
-\caption{Left/Right : Determinant $\Det(z)$ and tangent field $\tangent(z)$ for the saddle-node/pitchfork normal forms for some set values of $\theta$ revealing that $\Det(z)=0$ defines bifurcations}
+\caption{Left/Right : Determinant $\Det(z)$ and tangent field $\tangent(z)$ for the saddle-node/pitchfork models for some set values of $\theta$ revealing that $\Det(z)=0$ defines bifurcations}
 \label{fig:determinant-curvature}
 \end{figure}
 
@@ -125,7 +125,7 @@ Consequently the curvature of the determinant $\partial_{\tangent}^2\Det$ along 
     \quad+\quad
     \partial_z\Det\cdot\partial_z\hat{\tangent}\cdot\hat{\tangent}
 \end{align}
-The first term in the expression above is the usual result involving the Hessian matrix $\partial_z^2\Det$ when taking second order directional derivatives. The second term involving the gradient $\partial_z\Det$ appears because $\hat{\tangent}(z)$ is a function of $z$ giving rise to a non-zero Jacobian matrix $\partial_z \hat{\tangent}$. Using expressions for tangent fields \eqref{eq:tangent-field-examples} and determinants for the saddle-node and pitchfork normal forms the determinant curvatures respectively become
+The first term in the expression above is the usual result involving the Hessian matrix $\partial_z^2\Det$ when taking second order directional derivatives. The second term involving the gradient $\partial_z\Det$ appears because $\hat{\tangent}(z)$ is a function of $z$ giving rise to a non-zero Jacobian matrix $\partial_z \hat{\tangent}$. Using expressions for tangent fields \eqref{eq:tangent-field-examples} and determinants for the saddle-node and pitchfork models the determinant curvatures respectively become
 \begin{align}
     \partial_{\tangent}^2\Det =
     -\frac{6 \theta_2 \left(\theta _1^2-9 \theta _2^2 u^4+2\right)}
@@ -134,27 +134,18 @@ The first term in the expression above is the usual result involving the Hessian
     \partial_{\tangent}^2\Det =
     -\frac{2 u^2 \left(p+3 \theta _2 u^2\right) \left(9 \theta _2 \left(p+\theta _2 u^2\right)+2\right)}{\left(p^2+6 \theta _2 p u^2+9 \theta _2^2 u^4+2 u^2\right){}^2}
 \end{align}
-\subsection{Semi-supervised Objective Function}
+\subsection{Semi-supervised Cost Function}
 
-This curvature of the determinant $\partial_{\tangent}^2\Det$ can be maximised to encourage bifurcations. For a particular bifurcation curve defined by $\rates(z)=0$ the total unsigned determinant curvature
+This curvature of the determinant $\partial_{\tangent}^2\Det$ can be extremised to encourage bifurcations. We can treat this curvature as an unsupervised correction of magnitude $\lambda$ to a supervised likelihood $L_{\theta}(z|\targets)$. For a particular bifurcation curve defined by $\rates(z)=0$ we can express the cost function as the negative log-likelihood
 \begin{align}
-    \kappa(\theta) := \int_{\rates(z)=0}\!
-    \big|\,\partial_{\tangent}^2\Det(z)\,\big|
-    \,\mathrm{d}z
+    \loss(\theta|\targets) := -\log\left(\int_{\rates(z)=0}\!
+    L_{\theta}(z|\targets) + \lambda\left( \frac{\partial^2\Det}{\partial\tangent^2} \right)^2
+    \,\mathrm{d}z\right)\\
+    L_{\theta}(z|\targets) := \mathbb{e}^{-|\targets-p|^2-\Det(z)^2}\qquad\qquad\quad
 \end{align}
-Here we note that the integrand as well as the limits are functions of $\theta$ and $z$. Once bifurcation points $\predictions(\theta)$ are present, the task is to match their locations to the targets $\targets$. However we do not know exactly now many bifurcations there for any given value of $\theta$ and there would be many different ways of satisfying the targets $\targets$. Therefore we borrow some concepts from electromagnetism and treat target locations as centres of attractive potentials and locations of predictions $\predictions(\theta)$ as interacting particles with a strong repulsive interaction.
-\begin{align}
-    L(\theta):=
-    -\log(1+\kappa(\theta)) \quad +
-    \!\!\!\!
-    \sum_{(x,y)\in\predictions\times\targets}
-    |y-x(\theta)| \quad -
-    \!\!\!\!
-    \sum_{(x,y)\in\predictions\times\predictions}
-    \log|y(\theta)-x(\theta)|
-\end{align}
+where we have chosen a Gaussian likelihood to bias optimisation of points in $z$ where the determinant $\Det(z)$ is close to zero towards targets $\targets$. Here we note that the integrand as well as the limits are functions of $\theta$ and $z$.
 
-\subsection{Hyper-parameter Preconditioning}
+\subsection{Adaptive Hyperparameters}
 
 
 \section{Method}
