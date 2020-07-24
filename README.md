@@ -1,6 +1,6 @@
 # FluxContinuation
 
-The purpose of this library is to extend the methods provided in `PseudoArcLengthContinuation.jl` to be used together with `Flux.jl`. This way the continuation method can be used as a layer in a machine learning proceedure and we can run inference problems directly on the geometry of state space.
+This library implements the method described in Szep, G. Dalchau, N. and Csikasz-Nagy, A. 2020. "Inference of Bifurcations with Differentiable Continuation" [[arxiv]](https://arxiv.org/abs/) using [[`BifurcationKit.jl`]](https://github.com/rveltz/BifurcationKit.jl) and auto-differentiation [[`Flux.jl`]](https://github.com/FluxML/Zygote.jl). This way the continuation method can be used as a layer in a machine learning proceedure and we can run inference problems directly on the geometry of state space.
 
 ## Co-dimension one methods
 Extending the one parameter continuation `Cont.continuation` which returns a `ContResult` type and now also contains `TrackedReal` types. This can be called in the same way `Cont.continuation` is called. See `tests/continuation.jl` for an example.
