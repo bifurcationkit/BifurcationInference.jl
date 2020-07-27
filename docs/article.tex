@@ -19,10 +19,11 @@ In this work we propose a gradient-based semi-supervised approach that focuses o
 
 We find that the cost function landscape contains basins that not only allow us to synthesise models with a desired bifurcation structure but also allow us to organise models in terms of topological and geometric equivalence. We discuss the relevance of this in model selection.
 
-\subsection{Similar Works}
+\subsection{Similar and Related Works}
 
 \begin{itemize}
-    \item some juliacon submissions?
+    \item smooth and match estimator methods \cite{Ranciati2017BayesianParameters}
+    \item bifurcation inference using Mixed Integer Nonlinear Programming optimization strategy \cite{Otero-Muras2018Optimization-basedModels}
 \end{itemize}
 \clearpage
 
@@ -214,13 +215,12 @@ Thus the integrands in the gradient \eqref{eq:gradient} are completely analytic,
 % \subsection{Pseudo-arclength Continuation}
 
 \subsection{Optimisation Loop}
-We use \texttt{BifurcationKit.jl} \cite{Veltz2019PseudoArcLengthContinuation.jl} to calculate bifurcation diagrams, which requires the rate function $\rates$, its Jacobian $J_\theta$, and an initial guess $u_0$ at an initial parameter $p_0$. Let this algorithm be called by function $\mathrm{getSteadyStates}$ and return the steady states that form the integration region $\Omega$ and a new guess $u_0$ that is the true steady state at $p_0$.
+Here provide a high-level view of Algorithm \ref{alg:optimisation-loop}. We use \texttt{BifurcationKit.jl} \cite{Veltz2019PseudoArcLengthContinuation.jl} to calculate bifurcation diagrams, which requires the rate function $\rates$, its Jacobian $J_\theta$, and an initial guess $u_0$ at an initial parameter $p_0$. Let this algorithm be called by function $\mathrm{getSteadyStates}$ and return the steady states that form the integration region $\Omega$ and a new guess $u_0$ that is the true steady state at $p_0$.
 
 The algorithm also takes hyperparameters $\beta$ which will contain arclength step sizes, eigenvalue and Newton solver options and unsupervised correction factor $\lambda$. The adaptive hyperparameter update is done by $\mathrm{updateHyperparameters}$ and should depend on the current solutions $\Omega$ and the targets $\targets$. The step sizes and solver options should adapt to the expected space of the solutions $\Omega$ so that the waiting time between iterations is minimised. The unsupervised correction factor $\lambda$ should be large when there are no predicted bifurcations and decrease as the number of predicted bifurcations approaches the number of targets.
 
-The evaluation of the cost gradient \eqref{eq:gradient}
-
-\\
+The evaluation of the cost gradient \eqref{eq:gradient} is done by $\mathrm{costGradient}$ using \texttt{Zygote.jl} \cite{Innes2018DontPrograms} and requires the following analytical forms: the determinant of the Jacobian $\Det$, its curvature $K_{\theta}$ and the integration region velocity $\frac{\partial z}{\partial\theta}$. It also requires the integration region $\Omega$ and the locations of targets $\targets$. This gradient is used by $\mathrm{updateParameters}$, which can be any gradient-based optimiser such as ADAM or Momentum gradient decent, to update the parameters $\theta$.
+\\\\
 \begin{algorithm*}[H]
 \label{alg:optimisation-loop}
 \SetAlgoLined
@@ -238,7 +238,7 @@ $\beta\leftarrow\mathrm{getHyperparameters}(\targets)$\\
 \While{$\mathrm{tolerance}(\beta)>\varepsilon$}{
   $\Omega,u_0\leftarrow\mathrm{getSteadyStates}(F_{\theta},J_{\theta},u_0,\beta)$\\
   $\beta\leftarrow\mathrm{updateHyperparameters}(\beta,\Omega,\targets)$\\
-  $\partial L\leftarrow\mathrm{costGradient}(\Delta_{\theta},K_{\theta},V_{\theta},\Omega,\targets)$\\
+  $\partial L\leftarrow\mathrm{costGradient}(\Delta_{\theta},K_{\theta},\frac{\partial z}{\partial\theta},\Omega,\targets)$\\
   $\theta\leftarrow\mathrm{updateParameters}(\theta,\partial L,\beta)$
 }
 \caption{Bifurcation Optimisation Loop}
@@ -247,6 +247,7 @@ $\beta\leftarrow\mathrm{getHyperparameters}(\targets)$\\
 \section{Results}
 
 \subsection{Model Synthesis}
+
 
 \subsection{Model Selection}
 
