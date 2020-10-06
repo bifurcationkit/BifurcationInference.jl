@@ -1,4 +1,4 @@
-using Flux,FluxContinuation,CuArrays
+using Flux,FluxContinuation,CUDA
 using StatsBase,LinearAlgebra
 
 using Plots.PlotMeasures

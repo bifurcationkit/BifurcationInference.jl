@@ -24,7 +24,7 @@ function updateParameters(parameters::ContinuationPar{T, S, E}, steady_states::V
 end
 @nograd updateParameters
 
-import CuArrays: cu
+import CUDA: cu
 function cu( steady_states::Vector{Branch{T}}; nSamples=50 ) where {T<:Number}
 
 	p  = vcat(map( branch -> branch.parameter,      steady_states)...)

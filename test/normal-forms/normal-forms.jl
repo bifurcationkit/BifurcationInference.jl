@@ -58,12 +58,12 @@ end
 @testset "Normal Forms" begin
 
 	@testset "Saddle Node" begin include("saddle-node.jl")
-		@test @time forward("normal-forms/saddle-node.forward.pdf")
-		@test @time backward("normal-forms/saddle-node.backward.pdf")
+		@test @time forward( joinpath(@__DIR__,"saddle-node.forward.pdf" ))
+		@test @time backward(joinpath(@__DIR__,"saddle-node.backward.pdf"))
 	end
 
 	@testset "Pitchfork" begin include("pitchfork.jl")
-		@test @time forward("normal-forms/pitchfork.forward.pdf")
-	    @test @time backward("normal-forms/pitchfork.backward.pdf")
+		@test @time forward( joinpath(@__DIR__,"pitchfork.forward.pdf" ))
+		@test @time backward(joinpath(@__DIR__,"pitchfork.backward.pdf"))
 	end
 end

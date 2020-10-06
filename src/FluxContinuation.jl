@@ -6,11 +6,10 @@ module FluxContinuation
 
 	using Setfield: @set,set,setproperties,Lens,@lens
 	using Parameters: @with_kw, @unpack
-	using Dates: now
 
 	using LinearAlgebra: dot,eigen,svd
 	using StatsBase: norm,mean,std
-	using CuArrays
+	using CUDA
 
 	using Plots.PlotMeasures
 	using LaTeXStrings
@@ -22,8 +21,6 @@ module FluxContinuation
 
 	export StateDensity,Branch,deflationContinuation,findRoots
 	export getParameters,updateParameters,loss,cu
-
-	@nograd now,string
 
 	""" root finding with newton deflation method"""
 	function findRoots( f::Function, J::Function, u₀::Vector{Array{T,2}}, params::NamedTuple, paramlens::Lens,
@@ -101,7 +98,7 @@ module FluxContinuation
 	                # main continuation method
 					branch = BranchBuffer(T)
 					params = set(params, paramlens, pDeflations[i]+hyperparameters.ds)
-					iterator = ContIterable( f, J, u, params, paramlens, hyperparameters, linsolver, verbosity=verbosity)
+					iterator = PALCIterable( f, J, u, params, paramlens, hyperparameters, linsolver, verbosity=verbosity)
 
 					for state in iterator
 
