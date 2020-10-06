@@ -1,7 +1,7 @@
 module FluxContinuation
 
-	using PseudoArcLengthContinuation
-	using PseudoArcLengthContinuation: AbstractLinearSolver, AbstractBorderedLinearSolver, AbstractEigenSolver, _axpy, detectBifucation, computeEigenvalues!
+	using BifurcationKit
+	using BifurcationKit: AbstractLinearSolver, AbstractBorderedLinearSolver, AbstractEigenSolver, _axpy, detectBifucation, computeEigenvalues!
 	using Zygote: Buffer, gradient, forward_jacobian, @nograd, @adjoint, @adjoint!
 
 	using Setfield: @set,set,setproperties,Lens,@lens
@@ -101,7 +101,7 @@ module FluxContinuation
 	                # main continuation method
 					branch = BranchBuffer(T)
 					params = set(params, paramlens, pDeflations[i]+hyperparameters.ds)
-					iterator = PALCIterable( f, J, u, params, paramlens, hyperparameters, linsolver, verbosity=verbosity)
+					iterator = ContIterable( f, J, u, params, paramlens, hyperparameters, linsolver, verbosity=verbosity)
 
 					for state in iterator
 
