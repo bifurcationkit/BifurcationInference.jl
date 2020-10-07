@@ -24,6 +24,7 @@ We find that the cost function landscape contains basins that not only allow us 
 \begin{itemize}
     \item smooth and match estimator methods \cite{Ranciati2017BayesianParameters}
     \item bifurcation inference using Mixed Integer Nonlinear Programming optimization strategy \cite{Otero-Muras2018Optimization-basedModels}
+    \item no other gradient-based bifurcation inference seen...?
 \end{itemize}
 \clearpage
 
@@ -130,7 +131,18 @@ Consequently the curvature of the determinant $\partial_{\tangent}^2\Det$ along 
     &=
     \hat{\tangent}\cdot\partial_z^2\Det\cdot\hat{\tangent}
     \quad+\quad
-    \partial_z\Det\cdot\partial_z\hat{\tangent}\cdot\hat{\tangent}
+    \partial_z\Det\cdot\partial_z\hat{\tangent}\cdot\hat{\tangent}\\
+    & = \frac{
+        |\tangent|^2\,\,
+        \tangent\cdot\partial_z^2\Det\cdot\tangent
+        \quad+\quad
+        \partial_z\Det\cdot
+        \left(
+        |\tangent|^2-\tangent\tangent^\top
+        \right)\cdot\partial_z\tangent
+        \cdot\tangent
+    }
+    {|\tangent|^4}
 \end{align}
 The first term in the expression above is the usual result involving the Hessian matrix $\partial_z^2\Det$ when taking second order directional derivatives. The second term involving the gradient $\partial_z\Det$ appears because $\hat{\tangent}(z)$ is a function of $z$ giving rise to a non-zero Jacobian matrix $\partial_z \hat{\tangent}$. Using expressions for tangent fields \eqref{eq:tangent-field-examples} and determinants for the saddle-node and pitchfork models the determinant curvatures respectively become
 \begin{align}
@@ -250,7 +262,6 @@ $\beta\leftarrow\mathrm{getHyperparameters}(\targets)$\\
 
 
 \subsection{Model Selection}
-
 
 
 
