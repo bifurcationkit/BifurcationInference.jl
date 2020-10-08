@@ -34,7 +34,10 @@ function backward(name::String;n=200,idx=2)
 			steady_states = deflationContinuation(rates,u₀,parameters,(@lens _.p),hyperparameters)		
 			L[i],dL = ∇loss(Ref(rates),steady_states,Ref(parameters.θ),targetData.bifurcations)
 			∇L[i] = dL[idx]
-		catch 
+
+		catch error
+			printstyled(color=:red,"$(error.msg)\n")
+
 			L[i] = NaN
 			∇L[i] = NaN
 		end
@@ -60,7 +63,7 @@ function backward(name::String;n=200,idx=2)
 	return median(errors[mask])<0.10
 end
 
-@testset "Normal Forms" begin
+@testset "Minimal Models" begin
 
 	@testset "Saddle Node" begin include("saddle-node.jl")
 		@test @time forward( joinpath(@__DIR__,"saddle-node.forward.pdf" ))
