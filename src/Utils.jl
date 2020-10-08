@@ -51,10 +51,11 @@ function (lbs::BorderedLinearSolver{S})( J, dR, dzu, dzp::T, R, n::T,
 end
 
 ############################################################################# training loop
-function train!( F::Function, u₀::Vector{Array{T,2}}, parameters::NamedTuple, data::StateDensity;
-				iter::Int=200, optimiser=Momentum(0.001), plot_solution = false ) where T<:Number
+function train!( F::Function, u₀::Vector{Vector{Vector{T}}}, parameters::NamedTuple, data::StateDensity;
+				iter::Int=200, optimiser=Momentum(0.001), plot_solution = false,
+				ϵ::T=0.1, λ::T=0.0 ) where T<:Number
 
-	Loss = steady_states = NaN
+	Loss = steady_states = nothing
 	trajectory = typeof(parameters.θ)[]
 
 	hyperparameters = getParameters(data)
@@ -63,18 +64,20 @@ function train!( F::Function, u₀::Vector{Array{T,2}}, parameters::NamedTuple, 
 	for i=1:iter
 		try
 			steady_states = deflationContinuation(F,u₀,parameters,(@lens _.p),hyperparameters)
-			Loss,∇Loss = ∇loss(Ref(F),steady_states,Ref(parameters.θ),data.bifurcations)
+			Loss,∇Loss = ∇loss(Ref(F),steady_states,Ref(parameters.θ),data.bifurcations;ϵ=ϵ,λ=λ)
 
-		catch
-			printstyled(color=:red,   "Iteration $i\tSkipped\n") end
+		catch error
+			printstyled(color=:red,   "Iteration $i\tError = $error\n") end
 			printstyled(color=:yellow,"Iteration $i\tLoss = $Loss\n")
 
+		printstyled(color=:blue,"$steady_states\n")
 		println("Parameters\t$(parameters.θ)")
 		println("Gradients\t$(∇Loss)")
+		if isinf(Loss) throw("infinite loss; consider increasing ϵ or λ") end
 
 		update!(optimiser, parameters.θ, ∇Loss )
 		push!(trajectory,copy(parameters.θ))
-		if plot_solution if i%plot_solution==0 plot(steady_states,data) end end
+		if plot_solution>0 if i%plot_solution==0 plot(steady_states,data) end end
 	end
 
 	return trajectory
@@ -88,7 +91,8 @@ function loss(F::Function, θ::AbstractVector{T}, data::StateDensity, u₀::Vect
 		steady_states = deflationContinuation(F,u₀,parameters,(@lens _.p),hyperparameters)
 		return loss(Ref(F),steady_states,Ref(θ),data.bifurcations; λ=λ,ϵ=ϵ)
 
-	catch
+	catch error
+		printstyled(color=:red,"$(error.msg)\n")
 		return NaN
 	end
 end
@@ -137,4 +141,12 @@ function plot(steady_states::Vector{Branch{T}}; displayPlot=true) where {T<:Numb
 		plot!(right_axis,[],[], color=:red, legend=:bottomleft, alpha=1.0, label="", linewidth=2)
 		return right_axis
 	end
+end
+
+function plot(F::Function, θ::AbstractVector{T}, data::StateDensity, u₀::Vector{Vector{Vector{T}}}, hyperparameters::ContinuationPar, save::String="") where T<:Number 
+	parameters = (θ=θ,p=minimum(data.parameter))
+	steady_states = deflationContinuation(F,u₀,parameters,(@lens _.p),hyperparameters)
+
+	plot(steady_states,data)
+	if length(save)>0 savefig(joinpath(@__DIR__,save)) end
 end
