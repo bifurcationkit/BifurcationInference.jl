@@ -5,7 +5,6 @@ version = "0.1.0"
 
 [deps]
 BifurcationKit = "0f109fa4-8a5d-4b75-95aa-f515264e7665"
-CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 InvertedIndices = "41ab1584-1d38-5bbf-9106-f11c6c58b48f"

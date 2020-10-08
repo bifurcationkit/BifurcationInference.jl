@@ -46,5 +46,3 @@ include("normal-forms/normal-forms.jl")
 # include("normal-forms/saddle-node.jl")
 # parameters = (θ=randn(3), p=-2.0)
 # train!(parameters, 4000, Momentum(0.001))
-
-parameters
