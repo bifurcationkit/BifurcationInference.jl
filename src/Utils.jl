@@ -1,4 +1,6 @@
-############################################# hyperparameter updates
+using BifurcationKit: AbstractLinearSolver, AbstractBorderedLinearSolver, AbstractEigenSolver, _axpy
+
+############################################################################ hyperparameter updates
 function getParameters(data::StateDensity{T}; maxIter::Int=100, tol=1e-5) where {T<:Number}
     return ContinuationPar{T,LinearSolver,EigenSolver}(
 
@@ -10,63 +12,17 @@ function getParameters(data::StateDensity{T}; maxIter::Int=100, tol=1e-5) where 
 
         detectFold = false, detectBifurcation = true)
 end
-@nograd getParameters
 
-function updateParameters(parameters::ContinuationPar{T, S, E}, steady_states::Vector{Branch{T}};
+function updateParameters!(parameters::ContinuationPar{T, S, E}, steady_states::Vector{Branch{T}};
     resolution=400 ) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
     # estimate scale from steady state curves
     branch_points = map(length,steady_states)
     ds = maximum(branch_points)*parameters.ds/resolution
     parameters = setproperties(parameters;ds=ds,dsmin=ds,dsmax=ds)
-
-    return parameters
-end
-@nograd updateParameters
-
-import CUDA: cu
-function cu( steady_states::Vector{Branch{T}}; nSamples=50 ) where {T<:Number}
-
-	p  = vcat(map( branch -> branch.parameter,      steady_states)...)
-	u  = hcat(map( branch -> hcat(branch.state...), steady_states)...)
-	ds = vcat(map( branch -> abs.(branch.ds),       steady_states)...)
-
-	# sample parameter region near solutions
-	pMax,pMin = maximum(p),minimum(p)
-	p = p .+ mean(ds)*(-nSamples:nSamples)'
-	nPoints,nSamples = size(p)
-
-	p = reshape(p,nPoints*nSamples)
-	u = repeat(u,1,nSamples)
-
-	# restrict final grid to original parameter region
-	region  = (pMin.<p) .& (p.<pMax)
-	return CuBranch(cu(u[:,region]),cu(p[region]))
-end
-@nograd cu
-
-################################################## differentiable solvers
-# reference: https://github.com/FluxML/Zygote.jl/pull/327
-import LinearAlgebra: eigen
-@adjoint function eigen(A::AbstractMatrix)
-    eV = eigen(A)
-    e,V = eV
-    n = size(A,1)
-    eV, function (Δ)
-        Δe, ΔV = Δ
-        if ΔV === nothing
-			(inv(V)'*Diagonal(Δe)*V', )
-        elseif Δe === nothing
-			F = [i==j ? 0 : inv(e[j] - e[i]) for i=1:n, j=1:n]
-			(inv(V)'*(F .* (V'ΔV))*V', )
-        else
-			F = [i==j ? 0 : inv(e[j] - e[i]) for i=1:n, j=1:n]
-			(inv(V)'*(Diagonal(Δe) + F .* (V'ΔV))*V', )
-        end
-    end
 end
 
-############################ non-mutating solvers
+############################################################################# non-mutating solvers for BifurcationKit
 struct EigenSolver <: AbstractEigenSolver end
 function (l::EigenSolver)(J, nev::Int64)
 	F = eigen(Array(J))
@@ -94,20 +50,61 @@ function (lbs::BorderedLinearSolver{S})( J, dR, dzu, dzp::T, R, n::T,
 	return x1, dl, true, (it1, it2)
 end
 
-############################################################## plotting
-import Plots: plot
-function plot(steady_states::Vector{Branch{T}}, data::StateDensity{T}; idx::Int=1) where {T<:Number,U<:Number}
-	right_axis = plot(steady_states; idx=idx, displayPlot=false)
+############################################################################# training loop
+function train!( F::Function, u₀::Vector{Array{T,2}}, parameters::NamedTuple, data::StateDensity;
+				iter::Int=200, optimiser=Momentum(0.001), plot_solution = false ) where T<:Number
 
-	vline!( data.bifurcations, label="", color=:gold)
-	plot!( right_axis,[],[], color=:gold, legend=:bottomleft,
-        alpha=1.0, label="") |> display
+	Loss = steady_states = NaN
+	trajectory = typeof(parameters.θ)[]
+
+	hyperparameters = getParameters(data)
+	∇Loss = similar(parameters.θ)
+
+	for i=1:iter
+		try
+			steady_states = deflationContinuation(F,u₀,parameters,(@lens _.p),hyperparameters)
+			Loss,∇Loss = ∇loss(Ref(F),steady_states,Ref(parameters.θ),data.bifurcations)
+
+		catch
+			printstyled(color=:red,   "Iteration $i\tSkipped\n") end
+			printstyled(color=:yellow,"Iteration $i\tLoss = $Loss\n")
+
+		println("Parameters\t$(parameters.θ)")
+		println("Gradients\t$(∇Loss)")
+
+		update!(optimiser, parameters.θ, ∇Loss )
+		push!(trajectory,copy(parameters.θ))
+		if plot_solution if i%plot_solution==0 plot(steady_states,data) end end
+	end
+
+	return trajectory
 end
 
-function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) where {T<:Number}
+############################################################################## loss evaluation helper
+function loss(F::Function, θ::AbstractVector{T}, data::StateDensity, u₀::Vector{Vector{Vector{T}}}, hyperparameters::ContinuationPar; λ::T=0.0, ϵ::T=0.1) where T<:Number 
+	parameters = (θ=θ,p=minimum(data.parameter))
 
-	plot([NaN],[NaN],label="",xlabel=L"\mathrm{bifurcation\,\,\,parameter,}p",
-		right_margin=20mm,size=(500,400))
+	try 
+		steady_states = deflationContinuation(F,u₀,parameters,(@lens _.p),hyperparameters)
+		return loss(Ref(F),steady_states,Ref(θ),data.bifurcations; λ=λ,ϵ=ϵ)
+
+	catch
+		return NaN
+	end
+end
+
+############################################################################# plotting
+import Plots: plot
+function plot(steady_states::Vector{Branch{T}}, data::StateDensity{T}) where {T<:Number,U<:Number}
+	right_axis = plot(steady_states; displayPlot=false)
+
+	vline!( data.bifurcations.x, label="", color=:gold)
+	plot!( right_axis,[],[], color=:gold, legend=:bottomleft, alpha=1.0, label="") |> display
+end
+
+function plot(steady_states::Vector{Branch{T}}; displayPlot=true) where {T<:Number}
+
+	plot([NaN],[NaN],label="",xlabel=L"\mathrm{parameter,}p", right_margin=20mm,size=(500,400))
 	right_axis = twinx()
 
     for branch in steady_states
@@ -115,30 +112,29 @@ function plot(steady_states::Vector{Branch{T}}; idx::Int=1, displayPlot=true) wh
         stability = map( λ -> all(real(λ).<0), branch.eigvals)
         determinants = map( λ -> prod(real(λ)), branch.eigvals)
 
-        plot!(branch.parameter, map(x->x[idx],branch.state), linewidth=2, alpha=0.5, label="", grid=false,
-            ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(u,p)=0",
-            color=map( stable -> stable ? :darkblue : :lightblue, stability )
-            )
-
         plot!(right_axis, branch.parameter, determinants, linewidth=2, alpha=0.5, label="", grid=false,
         	ylabel=L"\mathrm{determinant}\,\,\Delta_{\theta}(u,p)",
             color=map( stable -> stable ? :red : :pink, stability )
-        	)
+		)
+			
+		for idx ∈ 1:length(first(branch.state))
 
-        scatter!( branch.parameter[branch.bifurcations],
-				  map(x->x[idx],branch.state)[branch.bifurcations],
-            label="", m = (3.0,3.0,:black,stroke(0,:none)))
+			plot!(branch.parameter, map(x->x[idx],branch.state), linewidth=2, alpha=0.5, label="", grid=false,
+				ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(u,p)=0",
+				color=map( stable -> stable ? :darkblue : :lightblue, stability )
+			)
+
+			scatter!( branch.parameter[branch.bifurcations],
+				map(x->x[idx],branch.state)[branch.bifurcations],
+				label="", m = (3.0,3.0,:black,stroke(0,:none))
+			)
+		end
     end
 
 	if displayPlot
-		plot!(right_axis,[],[], color=:red, legend=:bottomleft,
-			alpha=1.0, label="", linewidth=2) |> display
+		plot!(right_axis,[],[], color=:red, legend=:bottomleft, alpha=1.0, label="", linewidth=2) |> display
 	else
-		plot!(right_axis,[],[], color=:red, legend=:bottomleft,
-			alpha=1.0, label="", linewidth=2)
-
+		plot!(right_axis,[],[], color=:red, legend=:bottomleft, alpha=1.0, label="", linewidth=2)
 		return right_axis
 	end
 end
-
-@nograd scatter,plot,display

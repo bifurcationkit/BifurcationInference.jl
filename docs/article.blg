@@ -1,4 +1,4 @@
-This is BibTeX, Version 0.99d (TeX Live 2019/MacPorts 2019.50896_2)
+This is BibTeX, Version 0.99d (TeX Live 2017/Debian)
 Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
 The top-level auxiliary file: article.aux
 The style file: ieeetr.bst
@@ -15,44 +15,49 @@ Reallocated ex_buf (elt_size=1) to 60000 items from 40000.
 Reallocated out_buf (elt_size=1) to 60000 items from 40000.
 Reallocated name_tok (elt_size=4) to 60000 items from 40000.
 Reallocated name_sep_char (elt_size=1) to 60000 items from 40000.
-You've used 3 entries,
+Warning--empty institution in Rackauckas2019DiffEqFlux.jl-AEquations
+Warning--empty journal in Stumpf2019ParameterBifurcations
+Warning--empty institution in Ranciati2017BayesianParameters
+Warning--empty journal in Innes2018DontPrograms
+You've used 13 entries,
             1876 wiz_defined-function locations,
-            497 strings with 3940 characters,
-and the built_in function-call counts, 641 in all, are:
-= -- 59
-> -- 19
+            568 strings with 6034 characters,
+and the built_in function-call counts, 2979 in all, are:
+= -- 287
+> -- 124
 < -- 0
-+ -- 8
-- -- 5
-* -- 43
-:= -- 96
-add.period$ -- 3
-call.type$ -- 3
-change.case$ -- 3
++ -- 47
+- -- 34
+* -- 227
+:= -- 451
+add.period$ -- 13
+call.type$ -- 13
+change.case$ -- 15
 chr.to.int$ -- 0
-cite$ -- 3
-duplicate$ -- 32
-empty$ -- 71
-format.name$ -- 5
-if$ -- 153
+cite$ -- 17
+duplicate$ -- 145
+empty$ -- 272
+format.name$ -- 34
+if$ -- 700
 int.to.chr$ -- 0
-int.to.str$ -- 3
-missing$ -- 2
-newline$ -- 12
-num.names$ -- 3
-pop$ -- 15
+int.to.str$ -- 13
+missing$ -- 10
+newline$ -- 42
+num.names$ -- 13
+pop$ -- 39
 preamble$ -- 1
 purify$ -- 0
 quote$ -- 0
-skip$ -- 22
+skip$ -- 100
 stack$ -- 0
-substring$ -- 32
-swap$ -- 10
+substring$ -- 161
+swap$ -- 52
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 0
-warning$ -- 0
-while$ -- 6
-width$ -- 4
-write$ -- 28
+warning$ -- 4
+while$ -- 32
+width$ -- 15
+write$ -- 118
+(There were 4 warnings)

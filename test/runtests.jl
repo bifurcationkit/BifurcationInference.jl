@@ -1,52 +1,35 @@
-using Flux,FluxContinuation,CUDA
-using StatsBase,LinearAlgebra
-
-using Plots.PlotMeasures
-using LaTeXStrings
-using Test,Plots
-
-using Flux: update!
-using Parameters: @unpack
-using Setfield: Lens,@lens,set
+using FluxContinuation
+using Test
 
 include("normal-forms/normal-forms.jl")
-function train!( parameters::NamedTuple, iter::Int, optimiser )
-	global u₀,steady_states,hyperparameters,supervised
 
-	for i=1:iter
-		try
-			steady_states,u₀ = deflationContinuation(rates,u₀,parameters,(@lens _.p),hyperparameters)
-			hyperparameters = updateParameters(hyperparameters,steady_states)
-			supervised = sum( branch -> sum(branch.bifurcations),steady_states) == 0 ? false : true
-		catch
-			printstyled(color=:red,"Iteration $i\tSkipped\n")
-		end
 
-		Loss = NaN
-		steady_states = cu(steady_states)
+# include("normal-forms/saddle-node.jl")
+# pyplot()
 
-		gradients, = gradient(parameters) do parameters
-			Loss = loss(steady_states,likelihood,curvature,rates,parameters,hyperparameters,supervised)
-		end
+# hyperparameters = getParameters(targetData)
+# heatmap( range(-π,π,length=50), range(0.03,7,length=10),
 
-		printstyled(color=:yellow,"Iteration $i\tLoss = $Loss\n")
-		println("Parameters\t$(parameters.θ)")
-		println("Gradients\t$(gradients.θ)")
-		update!(optimiser, parameters.θ, gradients.θ )
-	end
+#     (α,r) -> loss(rates, [r,α,0.0], targetData, u₀, hyperparameters),
+#     aspect_ratio=:equal, proj=:polar, legend=false
+# )
 
-	# plot final model
-	steady_states,u₀ = deflationContinuation(rates,u₀,parameters,(@lens _.p),hyperparameters)
-	plot(steady_states,targetData)
-end
+# @time trajectory = train!(rates, u₀, (θ=[5.0,-0.1,0.0], p=minimum(targetData.parameter)), targetData )
+# plot!( map( x -> x[2], trajectory), map( x -> x[1], trajectory), color=:black, linewidth=3)
+# plot!( map( x -> x[2], trajectory), map( x -> x[1], trajectory), color=:white, linewidth=1)
 
-include("normal-forms/saddle-node.jl")
-parameters = (θ=[5.0,3.2,0.0], p=-2.0)
-@time train!(parameters, 100, Momentum(0.001))
+# @time trajectory = train!(rates, u₀, (θ=[6.0,0.5,0.0], p=minimum(targetData.parameter)), targetData )
+# plot!( map( x -> x[2], trajectory), map( x -> x[1], trajectory), color=:black, linewidth=3)
+# plot!( map( x -> x[2], trajectory), map( x -> x[1], trajectory), color=:white, linewidth=1)
 
-include("normal-forms/pitchfork.jl")
-parameters = (θ=[5.0,4.36], p=-2.0)
-@time train!(parameters, 100, Momentum(0.001))
+# @time trajectory = train!(rates, u₀, (θ=[4.0,-2.4,0.0], p=minimum(targetData.parameter)), targetData )
+# plot!( map( x -> x[2], trajectory), map( x -> x[1], trajectory), color=:black, linewidth=3)
+# plot!( map( x -> x[2], trajectory), map( x -> x[1], trajectory), color=:white, linewidth=1)
+# plot!(xlabel="Cost Function")
+
+# include("normal-forms/pitchfork.jl")
+# parameters = (θ=[5.0,4.36], p=-2.0)
+# @time train(parameters, 100, Momentum(0.001))
 
 # include("normal-forms/saddle-node.jl")
 # parameters = (θ=[5.0,-0.1,0.0], p=-2.0)
@@ -63,3 +46,5 @@ parameters = (θ=[5.0,4.36], p=-2.0)
 # include("normal-forms/saddle-node.jl")
 # parameters = (θ=randn(3), p=-2.0)
 # train!(parameters, 4000, Momentum(0.001))
+
+parameters

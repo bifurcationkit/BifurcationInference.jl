@@ -16,44 +16,70 @@
 \gdef\HyperFirstAtBeginDocument#1{#1}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{Chen2018NeuralEquations}
+\citation{Rackauckas2019DiffEqFlux.jl-AEquations}
+\citation{Stumpf2019ParameterBifurcations}
+\providecommand \oddpage@label [2]{}
 \babel@aux{english}{}
-\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction and Motivation}{1}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction and Motivation}{1}{section.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Background}{1}{subsection.1.1}}
+\citation{Farrell2016TheDiagrams}
+\citation{Veltz2019PseudoArcLengthContinuation.jl}
+\citation{Avitabile2010ToEquation}
+\citation{Aruliah2016AlgorithmContinuation}
+\citation{Ranciati2017BayesianParameters}
+\citation{Otero-Muras2018Optimization-basedModels}
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}Similar and Related Works}{2}{subsection.1.2}}
+\citation{Goldman2005CurvatureSurfaces}
 \citation{Goldman2005CurvatureSurfaces}
 \citation{Veltz2019PseudoArcLengthContinuation.jl}
 \citation{Farrell2016TheDiagrams}
-\@writefile{toc}{\contentsline {section}{\numberline {2}Problem Statement}{2}{section.2}\protected@file@percent }
-\newlabel{eq:model}{{2.1}{2}{Problem Statement}{equation.2.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Methodology}{2}{section.3}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Saddle-node normal form $F_{\theta }(z) = p + \theta _{1}u+\theta _{2}u^3$ with set $\theta =(2,-1)$ and targets $\mathcal  {D}=\{-1/2,1/2\}$. Lighter shades indicate the determinant crossing zero for unstable solutions\relax }}{3}{figure.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Methodology}{3}{section.2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Problem Statement}{3}{subsection.2.1}}
+\newlabel{eq:model}{{2.1}{3}{Problem Statement}{equation.2.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Saddle-node model $F_{\theta }(z) = p + \theta _{1}u+\theta _{2}u^3$ with set $\theta =(2,-1)$ and targets $\mathcal  {D}=\{-1/2,1/2\}$. Lighter shades indicate the determinant crossing zero for unstable solutions\relax }}{4}{figure.1}}
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:saddle-node}{{1}{3}{Saddle-node normal form $\rates (z) = p + \theta _{1}u+\theta _{2}u^3$ with set $\theta =(2,-1)$ and targets $\targets =\{-1/2,1/2\}$. Lighter shades indicate the determinant crossing zero for unstable solutions\relax }{figure.1}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Pitchfork normal form $F_{\theta }(z) = \theta _{1} + p u+\theta _{2}u^3$ with set $\theta =(-1/10,-1)$ and target $\mathcal  {D}=\{0\}$. Lighter shades indicate the determinant crossing zero for unstable solutions\relax }}{3}{figure.2}\protected@file@percent }
-\newlabel{fig:pitchfork}{{2}{3}{Pitchfork normal form $\rates (z) = \theta _{1} + p u+\theta _{2}u^3$ with set $\theta =(-1/10,-1)$ and target $\targets =\{0\}$. Lighter shades indicate the determinant crossing zero for unstable solutions\relax }{figure.2}{}}
+\newlabel{fig:saddle-node}{{1}{4}{Saddle-node model $\rates (z) = p + \theta _{1}u+\theta _{2}u^3$ with set $\theta =(2,-1)$ and targets $\targets =\{-1/2,1/2\}$. Lighter shades indicate the determinant crossing zero for unstable solutions\relax }{figure.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Pitchfork model $F_{\theta }(z) = \theta _{1} + p u+\theta _{2}u^3$ with set $\theta =(-1/10,-1)$ and target $\mathcal  {D}=\{0\}$. Lighter shades indicate the determinant crossing zero for unstable solutions\relax }}{4}{figure.2}}
+\newlabel{fig:pitchfork}{{2}{4}{Pitchfork model $\rates (z) = \theta _{1} + p u+\theta _{2}u^3$ with set $\theta =(-1/10,-1)$ and target $\targets =\{0\}$. Lighter shades indicate the determinant crossing zero for unstable solutions\relax }{figure.2}{}}
 \citation{Goldman2005CurvatureSurfaces}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Bifurcation Curves as Tangent Fields}{4}{subsection.3.1}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Two implicit surfaces $f_{\theta }(z)=0$ and $g_{\theta }(z)=0$ in $\mathbb  {R}^3$ intersecting to form a  space curve which is tangent to field $T_{\theta }(z)$ and perpendicular to gradients $\partial _{z}f_{\theta }$ and $\partial _{z}g_{\theta }$\relax }}{4}{figure.3}\protected@file@percent }
-\newlabel{fig:implicit-surfaces}{{3}{4}{Two implicit surfaces $f_{\theta }(z)=0$ and $g_{\theta }(z)=0$ in $\mathbb {R}^3$ intersecting to form a\\ space curve which is tangent to field $\tangent (z)$ and perpendicular to gradients $\partial _{z}f_{\theta }$ and $\partial _{z}g_{\theta }$\relax }{figure.3}{}}
-\newlabel{eq:tangent-field}{{3.2}{4}{Bifurcation Curves as Tangent Fields}{equation.3.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Left/Right : Calculated tangent fields $T_{\theta }(z)$ for the saddle-node/pitchfork normal forms for some set values of $\theta $ revealing that $F_{\theta }(z)=0$ picks out one of the traces in the field\relax }}{5}{figure.4}\protected@file@percent }
-\newlabel{fig:tangent-field}{{4}{5}{Left/Right : Calculated tangent fields $\tangent (z)$ for the saddle-node/pitchfork normal forms for some set values of $\theta $ revealing that $\rates (z)=0$ picks out one of the traces in the field\relax }{figure.4}{}}
-\newlabel{eq:tangent-field-examples}{{3.4}{5}{Bifurcation Curves as Tangent Fields}{equation.3.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Evaluating Curvature of the Determinant}{6}{subsection.3.2}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Left/Right : Determinant $\Delta _{\theta }(z)$ and tangent field $T_{\theta }(z)$ for the saddle-node/pitchfork normal forms for some set values of $\theta $ revealing that $\Delta _{\theta }(z)=0$ defines bifurcations\relax }}{6}{figure.5}\protected@file@percent }
-\newlabel{fig:determinant-curvature}{{5}{6}{Left/Right : Determinant $\Det (z)$ and tangent field $\tangent (z)$ for the saddle-node/pitchfork normal forms for some set values of $\theta $ revealing that $\Det (z)=0$ defines bifurcations\relax }{figure.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Semi-supervised Objective Function}{7}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Bifurcation Curves as Tangent Fields}{5}{subsection.2.2}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Two implicit surfaces $f_{\theta }(z)=0$ and $g_{\theta }(z)=0$ in $\mathbb  {R}^3$ intersecting to form a  space curve which is tangent to field $T_{\theta }(z)$ and perpendicular to gradients $\partial _{z}f_{\theta }$ and $\partial _{z}g_{\theta }$\relax }}{5}{figure.3}}
+\newlabel{fig:implicit-surfaces}{{3}{5}{Two implicit surfaces $f_{\theta }(z)=0$ and $g_{\theta }(z)=0$ in $\mathbb {R}^3$ intersecting to form a\\ space curve which is tangent to field $\tangent (z)$ and perpendicular to gradients $\partial _{z}f_{\theta }$ and $\partial _{z}g_{\theta }$\relax }{figure.3}{}}
+\newlabel{eq:tangent-field}{{2.3}{5}{Bifurcation Curves as Tangent Fields}{equation.2.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Left/Right : Determinant $\Delta _{\theta }(z)$ and tangent field $T_{\theta }(z)$ for the saddle-node/pitchfork models for some set values of $\theta $ revealing that $\Delta _{\theta }(z)=0$ defines bifurcations\relax }}{6}{figure.4}}
+\newlabel{fig:determinant-curvature}{{4}{6}{Left/Right : Determinant $\Det (z)$ and tangent field $\tangent (z)$ for the saddle-node/pitchfork models for some set values of $\theta $ revealing that $\Det (z)=0$ defines bifurcations\relax }{figure.4}{}}
+\newlabel{eq:tangent-field-examples}{{2.5}{6}{Bifurcation Curves as Tangent Fields}{equation.2.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Evaluating Curvature of the Determinant}{7}{subsection.2.3}}
+\citation{Flanders1973DifferentiationSign}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Semi-supervised Cost Function}{8}{subsection.2.4}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Likelihood $L_{\theta }(z|\mathcal  {D})$ shown in dark gold is sharply peaked around the bifurcation points $\mathcal  {P}(\theta )$ and is maximal when they match the targets (Right). The light gold envelope shows the maxima of the likelihood as the points $\mathcal  {P}(\theta )$ sweep across different values of $p$\relax }}{8}{figure.5}}
+\newlabel{fig:likelihood}{{5}{8}{Likelihood $L_{\theta }(z|\targets )$ shown in dark gold is sharply peaked around the bifurcation points $\predictions (\theta )$ and is maximal when they match the targets (Right). The light gold envelope shows the maxima of the likelihood as the points $\predictions (\theta )$ sweep across different values of $p$\relax }{figure.5}{}}
+\citation{Jos2011OnSurface}
+\citation{Veltz2019PseudoArcLengthContinuation.jl}
+\newlabel{eq:gradient}{{2.13}{9}{Semi-supervised Cost Function}{equation.2.13}{}}
+\newlabel{eq:velocity-field-examples}{{2.16}{9}{Semi-supervised Cost Function}{equation.2.16}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.5}Optimisation Loop}{9}{subsection.2.5}}
+\citation{Innes2018DontPrograms}
+\newlabel{alg:optimisation-loop}{{1}{10}{Optimisation Loop}{algocfline.1}{}}
+\@writefile{loa}{\contentsline {algocf}{\numberline {1}{\ignorespaces Bifurcation Optimisation Loop\relax }}{10}{algocf.1}}
 \bibdata{refs}
-\bibcite{Goldman2005CurvatureSurfaces}{1}
-\bibcite{Veltz2019PseudoArcLengthContinuation.jl}{2}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Hyper-parameter Preconditioning}{8}{subsection.3.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}Method}{8}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Pseudo-arclength Continuation}{8}{subsection.4.1}\protected@file@percent }
-\newlabel{sec:continuation}{{4.1}{8}{Pseudo-arclength Continuation}{subsection.4.1}{}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.1.1}Optimization details}{8}{subsubsection.4.1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5}Normal Forms}{8}{section.5}\protected@file@percent }
-\newlabel{sec:normal-forms}{{5}{8}{Normal Forms}{section.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6}Chemical Reaction Networks}{8}{section.6}\protected@file@percent }
-\newlabel{sec:networks}{{6}{8}{Chemical Reaction Networks}{section.6}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusions and Extensions}{8}{section.7}\protected@file@percent }
-\newlabel{sec:conclusions}{{7}{8}{Conclusions and Extensions}{section.7}{}}
-\bibcite{Farrell2016TheDiagrams}{3}
+\bibcite{Chen2018NeuralEquations}{1}
+\bibcite{Rackauckas2019DiffEqFlux.jl-AEquations}{2}
+\bibcite{Stumpf2019ParameterBifurcations}{3}
+\bibcite{Farrell2016TheDiagrams}{4}
+\bibcite{Veltz2019PseudoArcLengthContinuation.jl}{5}
+\bibcite{Avitabile2010ToEquation}{6}
+\bibcite{Aruliah2016AlgorithmContinuation}{7}
+\bibcite{Ranciati2017BayesianParameters}{8}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Results}{11}{section.3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Model Synthesis}{11}{subsection.3.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Model Selection}{11}{subsection.3.2}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Conclusions and Extensions}{11}{section.4}}
+\newlabel{sec:conclusions}{{4}{11}{Conclusions and Extensions}{section.4}{}}
+\bibcite{Otero-Muras2018Optimization-basedModels}{9}
+\bibcite{Goldman2005CurvatureSurfaces}{10}
+\bibcite{Flanders1973DifferentiationSign}{11}
+\bibcite{Jos2011OnSurface}{12}
+\bibcite{Innes2018DontPrograms}{13}
 \bibstyle{ieeetr}

@@ -1,14 +1,59 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
+
+\bibitem{Chen2018NeuralEquations}
+R.~T.~Q. Chen, Y.~Rubanova, J.~Bettencourt, and D.~Duvenaud, ``{Neural Ordinary
+  Differential Equations},'' {\em NIPs}, vol.~109, pp.~31--60, 6 2018.
+
+\bibitem{Rackauckas2019DiffEqFlux.jl-AEquations}
+C.~Rackauckas, M.~Innes, Y.~Ma, J.~Bettencourt, L.~White, and V.~Dixit,
+  ``{DiffEqFlux.jl-A Julia Library for Neural Differential Equations},'' tech.
+  rep., 2019.
+
+\bibitem{Stumpf2019ParameterBifurcations}
+M.~P.~H. Stumpf and E.~Roesch, ``{Parameter inference in dynamical systems with
+  co-dimension 1 bifurcations},'' 2019.
+
+\bibitem{Farrell2016TheDiagrams}
+P.~E. Farrell, C.~H.~L. Beentjes, and Ã.~Birkisson, ``{The computation of
+  disconnected bifurcation diagrams},'' {\em arXiv}, 3 2016.
+
+\bibitem{Veltz2019PseudoArcLengthContinuation.jl}
+R.~Veltz, ``{PseudoArcLengthContinuation.jl},'' 2019.
+
+\bibitem{Avitabile2010ToEquation}
+D.~Avitabile, D.~J. Lloyd, J.~Burke, E.~Knobloch, and B.~Sandstede, ``{To snake
+  or not to snake in the planar Swift-Hohenberg Equation},'' {\em SIAM Journal
+  on Applied Dynamical Systems}, vol.~9, pp.~704--733, 7 2010.
+
+\bibitem{Aruliah2016AlgorithmContinuation}
+D.~A. Aruliah, L.~Van~Veen, and A.~Dubitski, ``{Algorithm 956: PAMPAC, a
+  parallel adaptive method for pseudo-arclength continuation},'' {\em ACM
+  Transactions on Mathematical Software}, vol.~42, pp.~1--18, 2 2016.
+
+\bibitem{Ranciati2017BayesianParameters}
+S.~Ranciati, C.~Viroli, and E.~Wit, ``{Bayesian Smooth-and-Match strategy for
+  ordinary differential equations models that are linear in the parameters},''
+  tech. rep., 2017.
+
+\bibitem{Otero-Muras2018Optimization-basedModels}
+I.~Otero-Muras and J.~R. Banga, ``{Optimization-based prediction of fold
+  bifurcations in nonlinear ODE models},'' {\em IFAC-PapersOnLine}, vol.~51,
+  pp.~485--490, 1 2018.
 
 \bibitem{Goldman2005CurvatureSurfaces}
 R.~Goldman, ``{Curvature formulas for implicit curves and surfaces},'' in {\em
   Computer Aided Geometric Design}, vol.~22, pp.~632--658, Elsevier, 10 2005.
 
-\bibitem{Veltz2019PseudoArcLengthContinuation.jl}
-R.~Veltz, ``{PseudoArcLengthContinuation.jl},'' 2019.
+\bibitem{Flanders1973DifferentiationSign}
+H.~Flanders, ``{Differentiation Under the Integral Sign},'' {\em The American
+  Mathematical Monthly}, vol.~80, p.~615, 6 1973.
 
-\bibitem{Farrell2016TheDiagrams}
-P.~E. Farrell, C.~H.~L. Beentjes, and Ã.~Birkisson, ``{The computation of
-  disconnected bifurcation diagrams},'' {\em arXiv}, 3 2016.
+\bibitem{Jos2011OnSurface}
+S.~Jos and R.~Schmidt, ``{On the velocity of an implicit surface},'' {\em ACM
+  Transactions on Graphics}, vol.~30, pp.~1--7, 5 2011.
+
+\bibitem{Innes2018DontPrograms}
+M.~Innes, ``{Don't Unroll Adjoint: Differentiating SSA-Form Programs},'' 10
+  2018.
 
 \end{thebibliography}
