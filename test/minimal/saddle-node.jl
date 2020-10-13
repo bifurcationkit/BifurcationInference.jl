@@ -1,5 +1,5 @@
 ######################################################## model
-function rates(u::AbstractVector{T},parameters::NamedTuple) where T<:Number
+function rates(u::AbstractVector,parameters::NamedTuple)
 
 	@unpack θ,p = parameters
 	θ₁,θ₂,c = θ[1]*cos(θ[2]), θ[1]*sin(θ[2]), θ[3]
@@ -14,6 +14,6 @@ function rates(u::AbstractVector{T},parameters::NamedTuple) where T<:Number
 end
 
 ######################################################### targets and initial guess
-targetData = StateDensity(-2:0.01:2,Ref([1.0,-1.0]))
-parameters = ( θ=[5.0,-0.93,0.0], p=minimum(targetData.parameter))
-u₀ = [ [[0.0,0.0]], [[0.0,0.0]] ]
+targetData = StateDensity( -2:0.01:2, Ref(SizedVector{2}(1.0,-1.0)) )
+parameters = ( θ=SizedVector{3}(5.0,-0.93,0.0), p=minimum(targetData.parameter))
+u₀ = SizedVector{2}( [ SizedVector{2}(0.0,0.0) ], [ SizedVector{2}(0.0,0.0) ] )

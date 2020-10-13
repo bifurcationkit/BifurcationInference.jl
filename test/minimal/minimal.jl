@@ -1,8 +1,3 @@
-using StatsBase: median
-using Plots.PlotMeasures
-using LaTeXStrings
-using Plots
-
 ######################################################## unit tests
 function forward(name::String)
 
@@ -19,10 +14,9 @@ function forward(name::String)
 	return true
 end
 
-function backward(name::String;n=200,idx=2)
+function backward(name::String; θ=range(0.03-π,π-0.03,length=200), idx=2)
 	hyperparameters = getParameters(targetData)
 
-	θ = range(0.03-π,π-0.03,length=n)
 	L,∇L = zero(θ),zero(θ)
 	target = parameters.θ[idx]
 
@@ -30,13 +24,13 @@ function backward(name::String;n=200,idx=2)
 	for i ∈ 1:length(θ) # loss gradient across parameter grid
 		parameters.θ[idx] = θ[i]
 
-		try 
-			steady_states = deflationContinuation(rates,u₀,parameters,(@lens _.p),hyperparameters)		
+		try
+			steady_states = deflationContinuation(rates,u₀,parameters,(@lens _.p),hyperparameters)
 			L[i],dL = ∇loss(Ref(rates),steady_states,Ref(parameters.θ),targetData.bifurcations)
 			∇L[i] = dL[idx]
 
 		catch error
-			printstyled(color=:red,"$(error.msg)\n")
+			printstyled(color=:red,"$error\n")
 
 			L[i] = NaN
 			∇L[i] = NaN

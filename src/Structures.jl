@@ -1,13 +1,10 @@
-import Base: length,show
-@with_kw struct Branch{T<:Number}
+import Base: length,show,push!
+struct Branch{V<:AbstractVector,T<:Number}
 
-    state::Vector{Vector{T}}
-    parameter::Vector{T}
+    solutions::Vector{BorderedArray{V,T}}
+    eigvals::Vector{Vector{Complex{T}}}
     ds::Vector{T}
 
-    bifurcations::Vector{Bool}
-    eigvals::Vector{Vector{Complex{T}}}
-    # dim::UInt = length(first(state))
 end
 
 """
@@ -22,7 +19,7 @@ Returns target bifurcation data to be used in optimisation such as `loss(steady_
 """
 struct StateDensity{T<:Number}
     parameter::StepRangeLen{T}
-    bifurcations::Ref{<:Vector{T}}
+    bifurcations::Ref{<:AbstractVector{T}}
 end
 
 """
@@ -37,12 +34,19 @@ Object to contain the accumulation of continuation results for one branch
 - `bifurcations` vector locations where an eigenvalue crosses zero
 - `eigvals` vector of eigenvalues at each point
 """
-Branch(T::DataType) = Branch(Vector{T}[], T[], T[], Bool[], Vector{Complex{T}}[])
-length(branch::Branch) = length(branch.parameter)
+Branch(V::DataType,T::DataType) = Branch( BorderedArray{V,T}[], Vector{Complex{T}}[], T[] )
+length(branch::Branch) = length(branch.solutions)
+dim(branch::Branch) = length(first(branch.solutions).u)
+
+function push!(branch::Branch,state::PALCStateVariables)
+    push!(branch.solutions,copy(solution(state)))
+    push!(branch.eigvals,state.eigvals)
+    push!(branch.ds,state.ds)
+end
 
 # display methods
-show(io::IO, branch::Branch{T}) where T = print(io,
-    "Branch{$T}[bifurcations=$(sum(branch.bifurcations)), states=$(length(branch)), parameter=($(round(branch.parameter[1],sigdigits=3))->$(round(branch.parameter[end],sigdigits=3)))]")
-show(io::IO, branches::Vector{Branch{T}}) where T = print(io,
-    "Vector{Branch{$T}}[branches=$(length(branches)), bifurcations=$(sum(branch->sum(branch.bifurcations),branches)÷2), states=$(sum(branch->length(branch),branches))]")
-show(io::IO, M::MIME"text/plain", branches::Vector{Branch{T}}) where T = show(io,branches)
+show(io::IO, branch::Branch{V,T}) where {V,T} = print(io,
+    "Branch{$V,$T}[dim=$(dim(branch)) states=$(length(branch)), parameter=($(round(first(branch.solutions).p,sigdigits=3))->$(round(last(branch.solutions).p,sigdigits=3)))]")
+show(io::IO, branches::Vector{Branch{V,T}}) where {V,T} = print(io,
+    "Vector{Branches}[dim=$(dim(first(branches))) branches=$(length(branches)), states=$(sum(branch->length(branch),branches))]")
+show(io::IO, M::MIME"text/plain", branches::Vector{Branch{V,T}}) where {V,T} = show(io,branches)

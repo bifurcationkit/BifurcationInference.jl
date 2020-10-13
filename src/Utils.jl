@@ -1,20 +1,16 @@
-using BifurcationKit: AbstractLinearSolver, AbstractBorderedLinearSolver, AbstractEigenSolver, _axpy
-
 ############################################################################ hyperparameter updates
-function getParameters(data::StateDensity{T}; maxIter::Int=100, tol=1e-5) where {T<:Number}
-    return ContinuationPar{T,LinearSolver,EigenSolver}(
+function getParameters(data::StateDensity{T}; maxIter::Int=100, tol=1e-5) where T<:Number
+    return ContinuationPar(
 
         pMin=minimum(data.parameter),pMax=maximum(data.parameter), maxSteps=10*length(data.parameter),
         ds=step(data.parameter), dsmax=step(data.parameter), dsmin=step(data.parameter),
 
-            newtonOptions = NewtonPar( linsolver=LinearSolver(), eigsolver=EigenSolver(),
-            verbose=false,maxIter=maxIter,tol=T(tol)),
-
+            newtonOptions = NewtonPar(verbose=false,maxIter=maxIter,tol=T(tol)),
         detectFold = false, detectBifurcation = true)
 end
 
-function updateParameters!(parameters::ContinuationPar{T, S, E}, steady_states::Vector{Branch{T}};
-    resolution=400 ) where {T<:Number, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
+function updateParameters!(parameters::ContinuationPar{T, S, E}, steady_states::Vector{Branch{V,T}};
+    resolution=400 ) where {T<:Number, V<:AbstractVector{T}, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
     # estimate scale from steady state curves
     branch_points = map(length,steady_states)
@@ -22,38 +18,12 @@ function updateParameters!(parameters::ContinuationPar{T, S, E}, steady_states::
     parameters = setproperties(parameters;ds=ds,dsmin=ds,dsmax=ds)
 end
 
-############################################################################# non-mutating solvers for BifurcationKit
-struct EigenSolver <: AbstractEigenSolver end
-function (l::EigenSolver)(J, nev::Int64)
-	F = eigen(Array(J))
-	return Complex.(F.values), Complex.(F.vectors), true, 1
-end
-
-struct LinearSolver <: AbstractLinearSolver end
-function (l::LinearSolver)(J, rhs; a₀ = 0, a₁ = 1, kwargs...)
-	return _axpy(J, a₀, a₁) \ rhs, true, 1
-end
-function (l::LinearSolver)(J, rhs1, rhs2; a₀ = 0, a₁ = 1, kwargs...)
-	return J \ rhs1, J \ rhs2, true, (1, 1)
-end
-
-@with_kw struct BorderedLinearSolver{S<:AbstractLinearSolver} <: AbstractBorderedLinearSolver
-	solver::S = LinearSolver()
-end
-function (lbs::BorderedLinearSolver{S})( J, dR, dzu, dzp::T, R, n::T,
-		xiu::T = T(1), xip::T = T(1); shift::Ts = nothing)  where {T, S, Ts}
-
-	x1, x2, _, (it1, it2) = lbs.solver(J, R, dR)
-	dl = (n - dot(dzu, x1) * xiu) / (dzp * xip - dot(dzu, x2) * xiu)
-	x1 = x1 .- dl .* x2
-
-	return x1, dl, true, (it1, it2)
-end
-
 ############################################################################# training loop
-function train!( F::Function, u₀::Vector{Vector{Vector{T}}}, parameters::NamedTuple, data::StateDensity;
-				iter::Int=200, optimiser=Momentum(0.001), plot_solution = false,
-				ϵ::T=0.1, λ::T=0.0 ) where T<:Number
+function train!( F::Function, roots::AbstractVector{<:AbstractVector{<:AbstractVector}},
+	             parameters::NamedTuple, data::StateDensity;
+
+				 iter::Int=200, optimiser=Momentum(0.001), plot_solution = false,
+				 ϵ::Number=0.1, λ::Number=0.0 )
 
 	Loss = steady_states = nothing
 	trajectory = typeof(parameters.θ)[]
@@ -63,7 +33,7 @@ function train!( F::Function, u₀::Vector{Vector{Vector{T}}}, parameters::Named
 
 	for i=1:iter
 		try
-			steady_states = deflationContinuation(F,u₀,parameters,(@lens _.p),hyperparameters)
+			steady_states = deflationContinuation(F,roots,parameters,(@lens _.p),hyperparameters)
 			Loss,∇Loss = ∇loss(Ref(F),steady_states,Ref(parameters.θ),data.bifurcations;ϵ=ϵ,λ=λ)
 
 		catch error
@@ -84,55 +54,52 @@ function train!( F::Function, u₀::Vector{Vector{Vector{T}}}, parameters::Named
 end
 
 ############################################################################## loss evaluation helper
-function loss(F::Function, θ::AbstractVector{T}, data::StateDensity, u₀::Vector{Vector{Vector{T}}}, hyperparameters::ContinuationPar; λ::T=0.0, ϵ::T=0.1) where T<:Number 
-	parameters = (θ=θ,p=minimum(data.parameter))
+function loss(F::Function, θ::AbstractVector, data::StateDensity,
+	          roots::AbstractVector{<:AbstractVector{<:AbstractVector}},
+			  hyperparameters::ContinuationPar; λ::Number=0.0, ϵ::Number=0.1)
 
-	try 
-		steady_states = deflationContinuation(F,u₀,parameters,(@lens _.p),hyperparameters)
+	try
+		steady_states = deflationContinuation(F,roots,(θ=θ,p=minimum(data.parameter)),(@lens _.p),hyperparameters)
 		return loss(Ref(F),steady_states,Ref(θ),data.bifurcations; λ=λ,ϵ=ϵ)
 
 	catch error
-		printstyled(color=:red,"$(error.msg)\n")
+		printstyled(color=:red,"$error\n")
 		return NaN
 	end
 end
 
 ############################################################################# plotting
 import Plots: plot
-function plot(steady_states::Vector{Branch{T}}, data::StateDensity{T}) where {T<:Number,U<:Number}
+function plot(steady_states::Vector{Branch{V,T}}, data::StateDensity{T}) where {T<:Number,V<:AbstractVector{T}}
 	right_axis = plot(steady_states; displayPlot=false)
 
 	vline!( data.bifurcations.x, label="", color=:gold)
 	plot!( right_axis,[],[], color=:gold, legend=:bottomleft, alpha=1.0, label="") |> display
 end
 
-function plot(steady_states::Vector{Branch{T}}; displayPlot=true) where {T<:Number}
+function plot(steady_states::Vector{Branch{V,T}}; displayPlot=true) where {T<:Number,V<:AbstractVector{T}}
 
 	plot([NaN],[NaN],label="",xlabel=L"\mathrm{parameter,}p", right_margin=20mm,size=(500,400))
 	right_axis = twinx()
 
-    for branch in steady_states
+    for branch ∈ steady_states
 
         stability = map( λ -> all(real(λ).<0), branch.eigvals)
         determinants = map( λ -> prod(real(λ)), branch.eigvals)
+		parameter = map(z->z.p,branch.solutions)
 
-        plot!(right_axis, branch.parameter, determinants, linewidth=2, alpha=0.5, label="", grid=false,
-        	ylabel=L"\mathrm{determinant}\,\,\Delta_{\theta}(u,p)",
-            color=map( stable -> stable ? :red : :pink, stability )
-		)
-			
-		for idx ∈ 1:length(first(branch.state))
+		for idx ∈ 1:dim(branch)
 
-			plot!(branch.parameter, map(x->x[idx],branch.state), linewidth=2, alpha=0.5, label="", grid=false,
+			plot!( parameter, map(z->z.u[idx],branch.solutions), linewidth=2, alpha=0.5, label="", grid=false,
 				ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(u,p)=0",
 				color=map( stable -> stable ? :darkblue : :lightblue, stability )
 			)
-
-			scatter!( branch.parameter[branch.bifurcations],
-				map(x->x[idx],branch.state)[branch.bifurcations],
-				label="", m = (3.0,3.0,:black,stroke(0,:none))
-			)
 		end
+
+		plot!(right_axis, parameter, determinants, linewidth=2, alpha=0.5, label="", grid=false,
+        	ylabel=L"\mathrm{determinant}\,\,\Delta_{\theta}(u,p)",
+            color=map( stable -> stable ? :red : :pink, stability )
+		)
     end
 
 	if displayPlot
@@ -143,9 +110,12 @@ function plot(steady_states::Vector{Branch{T}}; displayPlot=true) where {T<:Numb
 	end
 end
 
-function plot(F::Function, θ::AbstractVector{T}, data::StateDensity, u₀::Vector{Vector{Vector{T}}}, hyperparameters::ContinuationPar, save::String="") where T<:Number 
+function plot(F::Function, θ::AbstractVector, data::StateDensity,
+			  roots::AbstractVector{<:AbstractVector{<:AbstractVector}},
+			  hyperparameters::ContinuationPar, save::String="")
+
 	parameters = (θ=θ,p=minimum(data.parameter))
-	steady_states = deflationContinuation(F,u₀,parameters,(@lens _.p),hyperparameters)
+	steady_states = deflationContinuation(F,roots,parameters,(@lens _.p),hyperparameters)
 
 	plot(steady_states,data)
 	if length(save)>0 savefig(joinpath(@__DIR__,save)) end
