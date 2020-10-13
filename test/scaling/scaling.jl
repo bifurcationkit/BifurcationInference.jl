@@ -26,7 +26,7 @@ function benchmark(N::Int,M::Int)
 	parameters = ( θ=ones(M), p=-π )
 	u₀ = [ [ones(N)], [-ones(N)] ]
 
-	steady_states = deflationContinuation( F, u₀, parameters, (@lens _.p), hyperparameters )
+	steady_states = deflationContinuation( F, u₀, parameters, hyperparameters )
 	θ = Ref(parameters.θ)
 	F = Ref(F)
 

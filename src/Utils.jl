@@ -1,12 +1,14 @@
 ############################################################################ hyperparameter updates
-function getParameters(data::StateDensity{T}; maxIter::Int=100, tol=1e-5) where T<:Number
-    return ContinuationPar(
+function getParameters(data::StateDensity{T}; maxIter::Int=800, tol=1e-6) where T<:Number
+	newtonOptions = NewtonPar(verbose=false,maxIter=maxIter,tol=T(tol))
 
-        pMin=minimum(data.parameter),pMax=maximum(data.parameter), maxSteps=10*length(data.parameter),
+	# support for StaticArrays github.com/JuliaArrays/StaticArrays.jl/issues/73
+	newtonOptions = @set newtonOptions.linsolver.useFactorization = false
+
+	return ContinuationPar(
+        pMin=minimum(data.parameter), pMax=maximum(data.parameter), maxSteps=10*length(data.parameter),
         ds=step(data.parameter), dsmax=step(data.parameter), dsmin=step(data.parameter),
-
-            newtonOptions = NewtonPar(verbose=false,maxIter=maxIter,tol=T(tol)),
-        detectFold = false, detectBifurcation = true)
+		newtonOptions=newtonOptions, detectFold=false, detectBifurcation=true)
 end
 
 function updateParameters!(parameters::ContinuationPar{T, S, E}, steady_states::Vector{Branch{V,T}};
@@ -33,7 +35,7 @@ function train!( F::Function, roots::AbstractVector{<:AbstractVector{<:AbstractV
 
 	for i=1:iter
 		try
-			steady_states = deflationContinuation(F,roots,parameters,(@lens _.p),hyperparameters)
+			steady_states = deflationContinuation(F,roots,parameters,hyperparameters)
 			Loss,∇Loss = ∇loss(Ref(F),steady_states,Ref(parameters.θ),data.bifurcations;ϵ=ϵ,λ=λ)
 
 		catch error
@@ -59,7 +61,8 @@ function loss(F::Function, θ::AbstractVector, data::StateDensity,
 			  hyperparameters::ContinuationPar; λ::Number=0.0, ϵ::Number=0.1)
 
 	try
-		steady_states = deflationContinuation(F,roots,(θ=θ,p=minimum(data.parameter)),(@lens _.p),hyperparameters)
+		parameters = (θ=θ,p=minimum(data.parameter))
+		steady_states = deflationContinuation(F,roots,parameters,hyperparameters)
 		return loss(Ref(F),steady_states,Ref(θ),data.bifurcations; λ=λ,ϵ=ϵ)
 
 	catch error
@@ -115,7 +118,7 @@ function plot(F::Function, θ::AbstractVector, data::StateDensity,
 			  hyperparameters::ContinuationPar, save::String="")
 
 	parameters = (θ=θ,p=minimum(data.parameter))
-	steady_states = deflationContinuation(F,roots,parameters,(@lens _.p),hyperparameters)
+	steady_states = deflationContinuation(F,roots,parameters,hyperparameters)
 
 	plot(steady_states,data)
 	if length(save)>0 savefig(joinpath(@__DIR__,save)) end

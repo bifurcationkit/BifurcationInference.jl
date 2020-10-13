@@ -1,18 +1,17 @@
 module FluxContinuation
 
 	using BifurcationKit: PALCIterable, newton, ContinuationPar, NewtonPar, DeflationOperator
-	using BifurcationKit: BorderedArray, AbstractLinearSolver, AbstractEigenSolver
+	using BifurcationKit: BorderedArray, AbstractLinearSolver, AbstractEigenSolver, BorderingBLS
 	using BifurcationKit: PALCStateVariables, solution, computeEigenvalues!
 
 	using ForwardDiff: jacobian,gradient,hessian
 	using Flux: Momentum,update!
 
-	using Setfield: @lens,@set,set,setproperties,Lens
+	using Setfield: @lens,@set,setproperties
 	using Parameters: @unpack
 
 	using InvertedIndices: Not
 	using LinearAlgebra
-	include("patches/LinearAlgebra.jl")
 
 	using Plots.PlotMeasures
 	using LaTeXStrings
@@ -24,71 +23,78 @@ module FluxContinuation
 
 	export StateDensity,deflationContinuation,train!
 	export getParameters,loss,∇loss
-	export plot,@unpack,@lens,set
+	export plot,@unpack
 
 	""" root finding with newton deflation method"""
 	function findRoots!( f::Function, J::Function, roots::AbstractVector{<:AbstractVector},
-		params::NamedTuple, paramlens::Lens, hyperparameters::ContinuationPar,
+		parameters::NamedTuple, hyperparameters::ContinuationPar,
 		maxRoots::Int = 3, maxIter::Int=500; verbosity=0 )
 
 		hyperparameters = @set hyperparameters.newtonOptions = setproperties(
 			hyperparameters.newtonOptions; maxIter = maxIter, verbose = verbosity )
 
+		# search for roots across parameter range
 		pRange = range(hyperparameters.pMin,hyperparameters.pMax,length=length(roots))
-		roots .= findRoots.( Ref(f), Ref(J), roots, pRange, Ref(params), Ref(paramlens), Ref(hyperparameters), Ref(maxRoots) )
+		roots .= findRoots.( Ref(f), Ref(J), roots, pRange, Ref(parameters), Ref(hyperparameters), Ref(maxRoots) )
 	end
 
 	function findRoots( f::Function, J::Function, roots::AbstractVector{V}, p::T,
-		params::NamedTuple, paramlens::Lens, hyperparameters::ContinuationPar{T, S, E}, maxRoots::Int = 3
+		parameters::NamedTuple, hyperparameters::ContinuationPar{T, S, E}, maxRoots::Int = 3
 		) where { T<:Number, V<:AbstractVector{T}, S<:AbstractLinearSolver, E<:AbstractEigenSolver }
 
+		# initialise dummy deflation at infinity
 		inf = convert(V, fill(Inf,length(first(roots))) )
-		deflation = DeflationOperator(T(1.0), dot, T(1.0), [inf] ) # initialise dummy deflation at ∞
-		converged = true
+		deflation = DeflationOperator(T(1.0), dot, T(1.0), [inf] )
+
+		# search for roots at specific parameter value
+		parameters = @set parameters.p = p
+		converged = false
 
         for u ∈ roots # update existing roots
-    		u, residual, converged, niter = newton( f, J, u.+hyperparameters.ds, set(params, paramlens, p),
+    		u, residual, converged, niter = newton( f, J, u.+hyperparameters.ds, parameters,
 				hyperparameters.newtonOptions, deflation)
 
-			if any(isnan.(residual)) throw("f(u,p) = NaN, u = $u, p = $(set(params, paramlens, p))") end
+			@assert( !any(isnan.(residual)), "f(u,p) = $(residual[end]) at u = $u, p = $(parameters.p), θ = $(parameters.θ)")
     		if converged push!(deflation,u) else break end
         end
 
 		u = convert(V, fill(0,length(first(roots))) )
-		if converged # search for new roots
+		if converged || length(deflation)==1 # search for new roots
 			while length(deflation)-1 < maxRoots
 
-				u, residual, converged, niter = newton( f, J, u.+hyperparameters.ds, set(params, paramlens, p),
+				u, residual, converged, niter = newton( f, J, u.+hyperparameters.ds, parameters,
 					hyperparameters.newtonOptions, deflation)
 
+				# make sure new roots are different from existing
 				if any( isapprox.( Ref(u), deflation.roots, atol=2*hyperparameters.ds ) ) break end
 				if converged push!(deflation,u) else break end
 			end
 		end
 
-		filter!( root->root≠inf, deflation.roots ) # remove dummy deflation at ∞
+		filter!( root->root≠inf, deflation.roots ) # remove dummy deflation at infinity
+		@assert( length(deflation.roots)>0, "No roots f(u,p)=0 found at p = $(parameters.p), θ = $(parameters.θ); try increasing maxIter")
 		return deflation.roots
 	end
 
 	""" deflation continuation method """
 	function deflationContinuation( f::Function, roots::AbstractVector{<:AbstractVector{V}},
-		params::NamedTuple, paramlens::Lens, hyperparameters::ContinuationPar{T, S, E},
+		parameters::NamedTuple, hyperparameters::ContinuationPar{T, S, E},
 		maxRoots::Int = 3, maxIter::Int=500, resolution=400; verbosity=0
 		) where {T<:Number, V<:AbstractVector{T}, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
 		maxIterContinuation,ds = hyperparameters.newtonOptions.maxIter,hyperparameters.ds
 		J(u,p) = jacobian(x->f(x,p),u)
 
-		findRoots!( f, J, roots, params, paramlens, hyperparameters, maxRoots, maxIter; verbosity=verbosity )
+		findRoots!( f, J, roots, parameters, hyperparameters, maxRoots, maxIter; verbosity=verbosity )
 		pRange = range(hyperparameters.pMin,hyperparameters.pMax,length=length(roots))
 	    intervals = ([T(0.0),step(pRange)],[-step(pRange),T(0.0)])
 
-		# continuation per root
 		branches = Branch{V,T}[]
 		hyperparameters = @set hyperparameters.newtonOptions.maxIter = maxIterContinuation
+		linsolver = BorderingBLS(hyperparameters.newtonOptions.linsolver)
 
 	    for (i,us) ∈ enumerate(roots)
-	        for u ∈ us
+	        for u ∈ us # perform continuation for each root
 
 	            # forwards and backwards branches
 	            for (pMin,pMax) ∈ intervals
@@ -97,20 +103,26 @@ module FluxContinuation
 						pMin=pRange[i]+pMin, pMax=pRange[i]+pMax,
 						ds=sign(hyperparameters.ds)*ds)
 
+					# only store branches within observation range
 					if hyperparameters.pMax <= maximum(pRange) && hyperparameters.pMin >= minimum(pRange)
 
 		                # main continuation method
 						branch = Branch(V,T)
-						params = set(params, paramlens, pRange[i]+hyperparameters.ds)
+						parameters = @set parameters.p = pRange[i]+hyperparameters.ds
 
-						iterator = PALCIterable( f, J, u, params, paramlens, hyperparameters, verbosity=verbosity)
-						for state ∈ iterator
+						try
+							iterator = PALCIterable( f, J, u, parameters, (@lens _.p), hyperparameters, linsolver, verbosity=verbosity)
+							for state ∈ iterator
 
-							computeEigenvalues!(iterator,state)
-							push!(branch,state)
+								computeEigenvalues!(iterator,state)
+								push!(branch,state)
+							end
+							push!(branches,branch)
+
+						catch error
+							printstyled(color=:red,"Continuation Error at f(u,p)=$(f(u,parameters))\nu=$u, p=$(parameters.p), θ=$(parameters.θ)\n")
+							rethrow(error)
 						end
-
-		        		push!(branches,branch)
 		        		hyperparameters = @set hyperparameters.ds = -hyperparameters.ds
 					end
 	            end

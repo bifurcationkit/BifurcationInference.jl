@@ -5,7 +5,7 @@ function forward(name::String)
 	hyperparameters = getParameters(targetData)
 
 	# perform psuedoarlength continuation
-	steady_states = deflationContinuation(rates,u₀,parameters,(@lens _.p),hyperparameters)
+	steady_states = deflationContinuation(rates,u₀,parameters,hyperparameters)
 
 	# show and store results
 	plot(steady_states,targetData)
@@ -25,7 +25,7 @@ function backward(name::String; θ=range(0.03-π,π-0.03,length=200), idx=2)
 		parameters.θ[idx] = θ[i]
 
 		try
-			steady_states = deflationContinuation(rates,u₀,parameters,(@lens _.p),hyperparameters)
+			steady_states = deflationContinuation(rates,u₀,parameters,hyperparameters)
 			L[i],dL = ∇loss(Ref(rates),steady_states,Ref(parameters.θ),targetData.bifurcations)
 			∇L[i] = dL[idx]
 
