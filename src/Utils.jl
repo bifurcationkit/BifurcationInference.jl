@@ -8,7 +8,7 @@ function getParameters(data::StateDensity{T}; maxIter::Int=800, tol=1e-6) where 
 	return ContinuationPar(
         pMin=minimum(data.parameter), pMax=maximum(data.parameter), maxSteps=10*length(data.parameter),
         ds=step(data.parameter), dsmax=step(data.parameter), dsmin=step(data.parameter),
-		newtonOptions=newtonOptions, detectFold=false, detectBifurcation=true)
+		newtonOptions=newtonOptions, detectFold=false, detectBifurcation=true, saveEigenvectors=false)
 end
 
 function updateParameters!(parameters::ContinuationPar{T, S, E}, steady_states::Vector{Branch{V,T}};
