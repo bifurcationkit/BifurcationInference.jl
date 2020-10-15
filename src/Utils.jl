@@ -67,8 +67,8 @@ function loss(F::Function, θ::AbstractVector, data::StateSpace, hyperparameters
 			Δi = 0.25
 			for (i,branch) ∈ enumerate(steady_states)
 
-				densityA = bifucation_weight.(Ref(F),branch.solutions,Ref(θ);kwargs...) / sum( bifucation_norm.(Ref(F),steady_states,Ref(θ);kwargs...) )
-				densityB = target_weight.(data.targets,branch.solutions;kwargs...) / sum( target_norm.(data.targets,steady_states;kwargs...) )
+				densityA = bifucation_weight.(Ref(F),branch.solutions,Ref(θ)) / sum( normalisation.(Ref(F),steady_states,Ref(θ)) )
+				densityB = gaussian_mixture.(data.targets,branch.solutions;kwargs...)
 				arclength = cumsum(branch.ds) .- sum(cumsum(branch.ds)) / length(branch)
 
 				plot!( arclength, Δi*i.+min.(densityA,densityB), label="", linewidth=0, fillrange=Δi*i, fillcolor=:gold, alpha=0.5 )

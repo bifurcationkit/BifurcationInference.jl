@@ -1,4 +1,4 @@
-################################################################################# loss function L(θ|D)
+################################################################################# loss gradient
 function ∇loss( F::Ref{<:Function}, branches::AbstractVector{<:Branch}, θ::Ref{<:AbstractVector}, targets::Ref{<:AbstractVector}; kwargs...)
 
 	∇L = sum( ∇marginal_likelihood.(F,branches,θ,targets; kwargs...) )
@@ -53,5 +53,5 @@ function ∇marginal_likelihood( F::Function, branch::Branch, θ::AbstractVector
 end
 
 function ∇normalisation(F::Function,branch::Branch,θ::AbstractVector)
-	return gradient( θ -> normalisation(F,branch,θ), θ ) .+ branch.ds'∇region.( Ref(F), Ref(bifucation_weight), branch.solutions,Ref(θ) )
+	return gradient( θ -> normalisation(F,branch,θ), θ ) .+ branch.ds'∇region.( Ref(F), Ref(bifucation_weight), branch.solutions, Ref(θ))
 end

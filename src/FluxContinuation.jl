@@ -17,11 +17,11 @@ module FluxContinuation
 	using LaTeXStrings
 	using Plots
 
-	include("Objectives.jl")
-	include("Gradients.jl")
-
 	include("Structures.jl")
 	include("Utils.jl")
+
+	include("Objectives.jl")
+	include("Gradients.jl")
 
 	export StateSpace,deflationContinuation,train!
 	export getParameters,loss,∇loss
@@ -104,28 +104,27 @@ module FluxContinuation
 						pMin=pRange[i]+pMin, pMax=pRange[i]+pMax,
 						ds=sign(hyperparameters.ds)*ds)
 
-					# only store branches within observation range
-					if hyperparameters.pMax <= maximum(pRange) && hyperparameters.pMin >= minimum(pRange)
+	                # main continuation method
+					branch = Branch(V,T)
+					parameters = @set parameters.p = pRange[i]+hyperparameters.ds
 
-		                # main continuation method
-						branch = Branch(V,T)
-						parameters = @set parameters.p = pRange[i]+hyperparameters.ds
+					try
+						iterator = PALCIterable( f, J, u, parameters, (@lens _.p), hyperparameters, linsolver, verbosity=verbosity)
+						for state ∈ iterator
 
-						try
-							iterator = PALCIterable( f, J, u, parameters, (@lens _.p), hyperparameters, linsolver, verbosity=verbosity)
-							for state ∈ iterator
-
-								computeEigenvalues!(iterator,state)
-								push!(branch,state)
-							end
-							push!(branches,branch)
-
-						catch error
-							printstyled(color=:red,"Continuation Error at f(u,p)=$(f(u,parameters))\nu=$u, p=$(parameters.p), θ=$(parameters.θ)\n")
-							rethrow(error)
+							computeEigenvalues!(iterator,state)
+							push!(branch,state)
 						end
-		        		hyperparameters = @set hyperparameters.ds = -hyperparameters.ds
+
+						midpoint = sum( z -> z.p, branch.solutions ) / length(branch)
+						if minimum(pRange) < midpoint && midpoint < maximum(pRange)
+							push!(branches,branch) end
+
+					catch error
+						printstyled(color=:red,"Continuation Error at f(u,p)=$(f(u,parameters))\nu=$u, p=$(parameters.p), θ=$(parameters.θ)\n")
+						rethrow(error)
 					end
+	        		hyperparameters = @set hyperparameters.ds = -hyperparameters.ds
 	            end
 	    	end
 	    end
