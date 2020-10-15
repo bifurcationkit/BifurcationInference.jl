@@ -55,11 +55,18 @@ function train!( F::Function, parameters::NamedTuple, data::StateSpace;
 end
 
 ############################################################################## loss evaluation helper
-function loss(F::Function, θ::AbstractVector, data::StateSpace, hyperparameters::ContinuationPar; kwargs...)
+function loss(F::Function, θ::AbstractVector, data::StateSpace, hyperparameters::ContinuationPar; plot_likelihood = false, kwargs...)
 
 	try
 		parameters = (θ=θ,p=minimum(data.parameter))
 		steady_states = deflationContinuation(F,data.roots,parameters,hyperparameters;kwargs...)
+
+		if plot_likelihood
+			for branch ∈ steady_states
+				likelihood.( Ref(F), branch.solutions, Ref(θ), Ref(data.targets); kwargs...)
+			end
+		end
+
 		return loss(Ref(F),steady_states,Ref(θ),data.targets;kwargs...)
 
 	catch error

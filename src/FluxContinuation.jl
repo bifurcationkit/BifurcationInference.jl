@@ -17,8 +17,10 @@ module FluxContinuation
 	using LaTeXStrings
 	using Plots
 
-	include("Structures.jl")
+	include("Objectives.jl")
 	include("Gradients.jl")
+
+	include("Structures.jl")
 	include("Utils.jl")
 
 	export StateSpace,deflationContinuation,train!
