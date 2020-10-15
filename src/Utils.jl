@@ -55,16 +55,31 @@ function train!( F::Function, parameters::NamedTuple, data::StateSpace;
 end
 
 ############################################################################## loss evaluation helper
-function loss(F::Function, θ::AbstractVector, data::StateSpace, hyperparameters::ContinuationPar; plot_likelihood = false, kwargs...)
+function loss(F::Function, θ::AbstractVector, data::StateSpace, hyperparameters::ContinuationPar; plot_densities = false, kwargs...)
 
 	try
 		parameters = (θ=θ,p=minimum(data.parameter))
 		steady_states = deflationContinuation(F,data.roots,parameters,hyperparameters;kwargs...)
 
-		if plot_likelihood
-			for branch ∈ steady_states
-				likelihood.( Ref(F), branch.solutions, Ref(θ), Ref(data.targets); kwargs...)
+		if plot_densities
+
+			plot(size=(400,400))
+			Δi = 0.25
+			for (i,branch) ∈ enumerate(steady_states)
+
+				densityA = bifucation_weight.(Ref(F),branch.solutions,Ref(θ);kwargs...) / sum( bifucation_norm.(Ref(F),steady_states,Ref(θ);kwargs...) )
+				densityB = target_weight.(data.targets,branch.solutions;kwargs...) / sum( target_norm.(data.targets,steady_states;kwargs...) )
+				arclength = cumsum(branch.ds) .- sum(cumsum(branch.ds)) / length(branch)
+
+				plot!( arclength, Δi*i.+min.(densityA,densityB), label="", linewidth=0, fillrange=Δi*i, fillcolor=:gold, alpha=0.5 )
+				plot!( arclength, Δi*i.+densityB, label="", color=:gold )
+				plot!( arclength, Δi*i.+densityA, label="", color=:red )
+
 			end
+
+			plot!([NaN],[NaN],color=:red, label="Bifurcations")
+			plot!([NaN],[NaN],color=:gold,label="Targets")
+			plot!(xlabel=L"\mathrm{Arclength}\quad s",ylabel=L"\mathrm{Density}\quad p(s)") |> display
 		end
 
 		return loss(Ref(F),steady_states,Ref(θ),data.targets;kwargs...)
@@ -83,7 +98,7 @@ end
 import Plots: plot
 function plot(steady_states::Vector{<:Branch}; displayPlot=true)
 
-	plot([NaN],[NaN],label="",xlabel=L"\mathrm{parameter,}p", right_margin=20mm,size=(500,400))
+	plot(xlabel=L"\mathrm{parameter,}p", grid=false, right_margin=20mm, size=(500,400) )
 	right_axis = twinx()
 
     for branch ∈ steady_states
@@ -94,24 +109,20 @@ function plot(steady_states::Vector{<:Branch}; displayPlot=true)
 
 		for idx ∈ 1:dim(branch)
 
-			plot!( parameter, map(z->z.u[idx],branch.solutions), linewidth=2, alpha=0.5, label="", grid=false,
-				ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(u,p)=0",
+			plot!( parameter, map(z->z.u[idx],branch.solutions), linewidth=2, label="",
+				ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(u,p)=0", alpha=0.5,
 				color=map( stable -> stable ? :darkblue : :lightblue, stability )
 			)
 		end
 
-		plot!(right_axis, parameter, determinants, linewidth=2, alpha=0.5, label="", grid=false,
+		plot!(right_axis, parameter, determinants, linewidth=2, label="",
         	ylabel=L"\mathrm{determinant}\,\,\Delta_{\theta}(u,p)",
             color=map( stable -> stable ? :red : :pink, stability )
 		)
     end
 
-	if displayPlot
-		plot!(right_axis,[],[], color=:red, legend=:bottomleft, alpha=1.0, label="", linewidth=2) |> display
-	else
-		plot!(right_axis,[],[], color=:red, legend=:bottomleft, alpha=1.0, label="", linewidth=2)
-		return right_axis
-	end
+	if displayPlot plot!() |> display
+	else return right_axis end
 end
 
 function plot(steady_states::Vector{<:Branch}, data::StateSpace)
