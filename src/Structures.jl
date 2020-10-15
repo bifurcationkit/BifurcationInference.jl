@@ -7,19 +7,36 @@ struct Branch{V<:AbstractVector,T<:Number}
 
 end
 
+struct StateSpace{N,T}
+
+    roots::AbstractVector{<:AbstractVector{<:AbstractVector}}
+    parameter::AbstractRange
+    targets::Ref{<:AbstractVector}
+
+end
+
 """
-	data = StateDensity(parameter,bifurcations)
+	data = StateSpace( dimension, parameter, targets; nRoots=2, eltype=Float64 )
 
-Returns target bifurcation data to be used in optimisation such as `loss(steady_states::Vector{Branch{T}}, data::StateDensity{T}, curvature::Function)`
+Define state space with targets to be used in optimisation
 
-# Arguments
-- `parameter` bifurcation parameter grid to use
-- `bifurcations` vector of bifurcation locations
+# Positional Arguments
+- `dimension` dimensionality of state space `u`
+- `parameter` one dimensional bifurcation parameter grid `p`
+- `targets` vector of target locations
 
+# Keyword Arguments
+- `nRoots` number of roots to continue solutions from
+- `eltype` numeric type for vector elements
+
+# Struct Fields
+- `roots` vector of roots `F(u.p)=0` to continue solutions from
+- `parameter` one dimensional bifurcation parameter grid `p`
+- `targets` vector of target locations
 """
-struct StateDensity{T<:Number}
-    parameter::StepRangeLen{T}
-    bifurcations::Ref{<:AbstractVector{T}}
+function StateSpace(dimension::Integer,parameter::AbstractRange,targets::AbstractVector; nRoots::Integer=2, eltype::DataType=Float64)
+    roots, nTargets = fill( [zero(SizedVector{dimension,eltype})] ,nRoots ), length(targets)
+    return StateSpace{dimension,eltype}( SizedVector{nRoots}(roots), StepRangeLen{eltype}(parameter), Ref(SVector{nTargets,eltype}(targets)) )
 end
 
 """
@@ -28,11 +45,9 @@ end
 Object to contain the accumulation of continuation results for one branch
 
 # Fields
-- `state` vector of steady state values along branch
-- `parameter` vector of parameter values along branch
-- `ds` vector of arclength steps sizes between continuation points
-- `bifurcations` vector locations where an eigenvalue crosses zero
+- `solutions` vector of steady state values `(u,p)` along branch
 - `eigvals` vector of eigenvalues at each point
+- `ds` vector of arclength steps sizes between continuation points
 """
 Branch(V::DataType,T::DataType) = Branch( BorderedArray{V,T}[], Vector{Complex{T}}[], T[] )
 length(branch::Branch) = length(branch.solutions)
@@ -41,7 +56,7 @@ dim(branch::Branch) = length(first(branch.solutions).u)
 function push!(branch::Branch,state::PALCStateVariables)
     push!(branch.solutions,copy(solution(state)))
     push!(branch.eigvals,state.eigvals)
-    push!(branch.ds,state.ds)
+    push!(branch.ds,abs(state.ds))
 end
 
 # display methods
@@ -50,3 +65,4 @@ show(io::IO, branch::Branch{V,T}) where {V,T} = print(io,
 show(io::IO, branches::Vector{Branch{V,T}}) where {V,T} = print(io,
     "Vector{Branches}[dim=$(dim(first(branches))) branches=$(length(branches)), states=$(sum(branch->length(branch),branches))]")
 show(io::IO, M::MIME"text/plain", branches::Vector{Branch{V,T}}) where {V,T} = show(io,branches)
+show(io::IO, states::StateSpace{N,T}) where {N,T} = print(io,"StateSpace{$N,$T}(parameters=$(states.parameter),targets=$(states.targets.x))")

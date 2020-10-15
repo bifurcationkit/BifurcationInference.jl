@@ -2,31 +2,27 @@
 function forward(name::String)
 
 	println("Forward pass: ",name)
-	hyperparameters = getParameters(targetData)
+	plot(rates,θ,targetData)
 
-	# perform psuedoarlength continuation
-	steady_states = deflationContinuation(rates,u₀,parameters,hyperparameters)
-
-	# show and store results
-	plot(steady_states,targetData)
 	savefig(name)
-
 	return true
 end
 
-function backward(name::String; θ=range(0.03-π,π-0.03,length=200), idx=2)
-	hyperparameters = getParameters(targetData)
+function backward(name::String; θi=range(0.03-π,π-0.03,length=200), idx=2)
 
-	L,∇L = zero(θ),zero(θ)
-	target = parameters.θ[idx]
+	hyperparameters = getParameters(targetData)
+	parameters = (θ=θ,p=minimum(targetData.parameter))
+
+	L,∇L = zero(θi),zero(θi)
+	target = θ[idx]
 
 	println("Backward pass: ",name)
-	for i ∈ 1:length(θ) # loss gradient across parameter grid
-		parameters.θ[idx] = θ[i]
+	for i ∈ 1:length(θi) # loss gradient across parameter grid
+		parameters.θ[idx] = θi[i]
 
 		try
-			steady_states = deflationContinuation(rates,u₀,parameters,hyperparameters)
-			L[i],dL = ∇loss(Ref(rates),steady_states,Ref(parameters.θ),targetData.bifurcations)
+			steady_states = deflationContinuation(rates,targetData.roots,parameters,hyperparameters)
+			L[i],dL = ∇loss(Ref(rates),steady_states,Ref(parameters.θ),targetData.targets)
 			∇L[i] = dL[idx]
 
 		catch error
@@ -38,16 +34,16 @@ function backward(name::String; θ=range(0.03-π,π-0.03,length=200), idx=2)
 	end
 
 	# estimate gradient using finite differences
-	d̃L = vcat(NaN,diff(L)) / step(θ)
+	d̃L = vcat(NaN,diff(L)) / step(θi)
 
 	# show and store results
-	plot( θ, asinh.(d̃L),fillrange=0,label="Finite Differences",color=:darkcyan,alpha=0.5)
-	plot!(θ, asinh.(∇L),            label="ForwardDiff",       color=:gold,linewidth=3)
+	plot( θi, asinh.(d̃L),fillrange=0,label="Finite Differences",color=:darkcyan,alpha=0.5)
+	plot!(θi, asinh.(∇L),            label="ForwardDiff",       color=:gold,linewidth=3)
 
 	plot!(xlabel=L"\mathrm{parameter}, \theta",ylabel="∂Loss",right_margin=20mm)
 	vline!([target], label="", color=:gold)
 
-	plot!(twinx(),θ, asinh.(L), ylabel="Loss",color=:black,label="") |> display
+	plot!(twinx(),θi, asinh.(L), ylabel="Loss",color=:black,label="") |> display
 	savefig(name)
 
 	errors = abs.((∇L.-d̃L)./d̃L)

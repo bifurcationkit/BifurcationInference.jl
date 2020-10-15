@@ -1,3 +1,34 @@
+################################################################################
+function likelihood( F::Function, z::BorderedArray, θ::AbstractVector, targets::AbstractVector; ϵ=0.1)
+	return gaussian_mixture(targets,z;ϵ=ϵ) * bifucation_weight(F,z,θ)
+end
+
+function gaussian_mixture(targets::AbstractVector,z::BorderedArray; ϵ=0.1)
+	errors = ( targets .- z.p ) .^ 2
+	return sum(exp.(-errors/ϵ)) / (length(targets)*√(ϵ*π))
+end
+
+function bifucation_weight(F::Function,z::BorderedArray,θ::AbstractVector)
+	return exp( -det(∂Fu(F,z,θ))^2 )
+end
+
+################################################################################# loss function L(θ|D)
+function loss( F::Ref{<:Function}, branches::AbstractVector{<:Branch}, θ::Ref{<:AbstractVector}, targets::Ref{<:AbstractVector}; kwargs...)
+	return -log(sum( marginal_likelihood.(F,branches,θ,targets; kwargs...) )) + log(sum( normalisation.(F,branches,θ) ))
+end
+
+# gradient of loss wrt θ
+function ∇loss( F::Ref{<:Function}, branches::AbstractVector{<:Branch}, θ::Ref{<:AbstractVector}, targets::Ref{<:AbstractVector}; kwargs...)
+
+	∇L = sum( ∇marginal_likelihood.(F,branches,θ,targets; kwargs...) )
+	L = sum( marginal_likelihood.(F,branches,θ,targets; kwargs...) )
+
+	∇Z = sum( ∇normalisation.(F,branches,θ) )
+	Z = sum( normalisation.(F,branches,θ) )
+
+	return log(Z)-log(L), ∇Z/Z - ∇L/L
+end
+
 ########################################################################### jacobians
 
 # statespace jacobian
@@ -11,71 +42,46 @@ function ∂Fθ(F::Function,z::BorderedArray,θ::AbstractVector)
 end
 
 # augmented jacobian
-function ∂Fz(F::Function,z::BorderedArray,θ::AbstractVector) # allocation needed?
+function ∂Fz(F::Function,z::BorderedArray,θ::AbstractVector)
 	return jacobian( z -> F( z[Not(end)], (θ=θ,p=z[end]) ), [z.u; z.p] )
 end
 
-################################################################################# bifurcation density
-function bifucation_density(F::Function,z::BorderedArray,θ::AbstractVector)
-	return exp( -det(∂Fu(F,z,θ))^2 ) / √π
-end
+################################### gradient terms due to changing integration region dz
+function ∇region( F::Function, integrand::Function, z::BorderedArray, θ::AbstractVector)
 
-# ################################################################################# likelihood
-function likelihood( F::Function, z::BorderedArray, θ::AbstractVector,
-		 targets::AbstractVector; λ=0.0, ϵ=0.1)
-
-	errors = ( targets .- z.p ) .^ 2
-	mixture = sum(exp.(-errors/ϵ)) / (length(targets)*√(ϵ*π))
-	return bifucation_density(F,z,θ) * mixture
-end
-
-function ∇likelihood( F::Function, z::BorderedArray, θ::AbstractVector,
-		 targets::AbstractVector; λ=0.0, ϵ=0.1)
-
-	# term due to changing integration region
-	∂region = jacobian( z -> ∇region(F,z,θ,targets;λ=λ,ϵ=ϵ), [z.u; z.p] )
+	∂z = jacobian( z -> velocity(F,integrand,z,θ), [z.u; z.p] )
 	idx = [ (i-1)*length(z)+1:i*length(z) for i ∈ 1:length(θ) ]
 
-	# divergence for each component θ
-	∂region = [ tr(∂region[i,:]) for i ∈ idx ]
-	return gradient( θ -> likelihood(F,z,θ,targets;λ=λ,ϵ=ϵ), θ ) .+ ∂region
+	# div(z) = tr(∂z) for each component θ
+	return [ tr(∂z[i,:]) for i ∈ idx ]
 end
 
-function ∇region( F::Function, z::AbstractVector, θ::AbstractVector,
-		 targets::AbstractVector; λ=0.0, ϵ=0.1)
-
+function velocity( F::Function, integrand::Function, z::AbstractVector, θ::AbstractVector)
 	z = BorderedArray(z[Not(end)],z[end])
-	return -∂Fz(F,z,θ)\∂Fθ(F,z,θ) * likelihood(F,z,θ,targets;λ=λ,ϵ=ϵ)
+	return -∂Fz(F,z,θ)\∂Fθ(F,z,θ) * integrand(F,z,θ)
 end
 
-function likelihood( F::Function, branch::Branch, θ::AbstractVector,
-	     targets::AbstractVector; λ=0.0, ϵ=0.1)
-
-	integrand = likelihood.( Ref(F), branch.solutions, Ref(θ), Ref(targets); λ=λ, ϵ=ϵ)
-	return abs.(branch.ds)'integrand
+################################################################################
+function ∇likelihood( F::Function, z::BorderedArray, θ::AbstractVector, targets::AbstractVector; kwargs...)
+	integrand(F,z,θ) = likelihood(F,z,θ,targets; kwargs...)
+	return gradient(θ->integrand(F,z,θ),θ) .+ ∇region(F,integrand,z,θ)
 end
 
-function ∇likelihood( F::Function, branch::Branch, θ::AbstractVector,
-		 targets::AbstractVector; λ=0.0, ϵ=0.1)
-
-	∇integrand = ∇likelihood.( Ref(F), branch.solutions, Ref(θ), Ref(targets); λ=λ, ϵ=ϵ)
-	return abs.(branch.ds)'∇integrand
+function marginal_likelihood( F::Function, branch::Branch, θ::AbstractVector, targets::AbstractVector; kwargs...)
+	return branch.ds'likelihood.( Ref(F), branch.solutions, Ref(θ), Ref(targets); kwargs...)
 end
 
-################################################################################# loss function L(θ|D)
-function loss( F::Ref{<:Function}, branches::AbstractVector{<:Branch}, θ::Ref{<:AbstractVector},
-	     targets::Ref{<:AbstractVector}; λ=0.0, ϵ=0.1)
-
-	return -log(sum( likelihood.(F,branches,θ,targets;λ=λ,ϵ=ϵ) ) )
+function ∇marginal_likelihood( F::Function, branch::Branch, θ::AbstractVector, targets::AbstractVector; kwargs...)
+	return branch.ds'∇likelihood.( Ref(F), branch.solutions, Ref(θ), Ref(targets); kwargs...)
 end
 
-# gradient of loss wrt θ
-function ∇loss( F::Ref{<:Function}, branches::AbstractVector{<:Branch}, θ::Ref{<:AbstractVector},
-	     targets::Ref{<:AbstractVector}; λ=0.0, ϵ=0.1)
+################################################################################
+function normalisation(F::Function,branch::Branch,θ::AbstractVector)
+	return branch.ds'bifucation_weight.( Ref(F), branch.solutions, Ref(θ))
+end
 
-	L = loss(F,branches,θ,targets;λ=λ,ϵ=ϵ)
-	∇L = -exp(L) * sum( ∇likelihood.(F,branches,θ,targets;λ=λ,ϵ=ϵ) )
-	return L, ∇L
+function ∇normalisation(F::Function,branch::Branch,θ::AbstractVector)
+	return gradient( θ -> normalisation(F,branch,θ), θ ) .+ branch.ds'∇region.( Ref(F), Ref(bifucation_weight), branch.solutions,Ref(θ) )
 end
 
 ########################################################################### tangent field

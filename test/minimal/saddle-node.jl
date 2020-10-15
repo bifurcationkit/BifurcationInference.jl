@@ -14,6 +14,5 @@ function rates(u::AbstractVector,parameters::NamedTuple)
 end
 
 ######################################################### targets and initial guess
-targetData = StateDensity( -2:0.01:2, Ref(SizedVector{2}(1.0,-1.0)) )
-parameters = ( θ=SizedVector{3}(5.0,-0.93,0.0), p=minimum(targetData.parameter))
-u₀ = SizedVector{2}( [ SizedVector{2}(0.0,0.0) ], [ SizedVector{2}(0.0,0.0) ] )
+targetData = StateSpace( 2, -2:0.01:2, [1,-1] )
+θ = SizedVector{3}(5.0,-0.93,0.0)

@@ -11,7 +11,7 @@ module FluxContinuation
 	using Parameters: @unpack
 
 	using InvertedIndices: Not
-	using LinearAlgebra
+	using LinearAlgebra, StaticArrays
 
 	using Plots.PlotMeasures
 	using LaTeXStrings
@@ -21,34 +21,33 @@ module FluxContinuation
 	include("Gradients.jl")
 	include("Utils.jl")
 
-	export StateDensity,deflationContinuation,train!
+	export StateSpace,deflationContinuation,train!
 	export getParameters,loss,∇loss
 	export plot,@unpack
 
 	""" root finding with newton deflation method"""
 	function findRoots!( f::Function, J::Function, roots::AbstractVector{<:AbstractVector},
-		parameters::NamedTuple, hyperparameters::ContinuationPar,
-		maxRoots::Int = 3, maxIter::Int=500; verbosity=0 )
+		parameters::NamedTuple, hyperparameters::ContinuationPar;
+		maxRoots::Int = 3, maxIter::Int=500, verbosity=0 )
 
 		hyperparameters = @set hyperparameters.newtonOptions = setproperties(
 			hyperparameters.newtonOptions; maxIter = maxIter, verbose = verbosity )
 
 		# search for roots across parameter range
 		pRange = range(hyperparameters.pMin,hyperparameters.pMax,length=length(roots))
-		roots .= findRoots.( Ref(f), Ref(J), roots, pRange, Ref(parameters), Ref(hyperparameters), Ref(maxRoots) )
+		roots .= findRoots.( Ref(f), Ref(J), roots, pRange, Ref(parameters), Ref(hyperparameters); maxRoots=maxRoots )
 	end
 
 	function findRoots( f::Function, J::Function, roots::AbstractVector{V}, p::T,
-		parameters::NamedTuple, hyperparameters::ContinuationPar{T, S, E}, maxRoots::Int = 3
+		parameters::NamedTuple, hyperparameters::ContinuationPar{T, S, E}; maxRoots::Int = 3, converged = false
 		) where { T<:Number, V<:AbstractVector{T}, S<:AbstractLinearSolver, E<:AbstractEigenSolver }
 
-		# initialise dummy deflation at infinity
-		inf = convert(V, fill(Inf,length(first(roots))) )
-		deflation = DeflationOperator(T(1.0), dot, T(1.0), [inf] )
+		Zero = zero(first(roots))
+		inf = Zero .+ Inf
 
 		# search for roots at specific parameter value
+		deflation = DeflationOperator(one(T), dot, one(T), [inf] ) # dummy deflation at infinity
 		parameters = @set parameters.p = p
-		converged = false
 
         for u ∈ roots # update existing roots
     		u, residual, converged, niter = newton( f, J, u.+hyperparameters.ds, parameters,
@@ -58,7 +57,7 @@ module FluxContinuation
     		if converged push!(deflation,u) else break end
         end
 
-		u = convert(V, fill(0,length(first(roots))) )
+		u = Zero
 		if converged || length(deflation)==1 # search for new roots
 			while length(deflation)-1 < maxRoots
 
@@ -78,16 +77,16 @@ module FluxContinuation
 
 	""" deflation continuation method """
 	function deflationContinuation( f::Function, roots::AbstractVector{<:AbstractVector{V}},
-		parameters::NamedTuple, hyperparameters::ContinuationPar{T, S, E},
-		maxRoots::Int = 3, maxIter::Int=500, resolution=400; verbosity=0
+		parameters::NamedTuple, hyperparameters::ContinuationPar{T, S, E};
+		maxRoots::Int = 3, maxIter::Int=500, resolution=400, verbosity=0, kwargs...
 		) where {T<:Number, V<:AbstractVector{T}, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
 		maxIterContinuation,ds = hyperparameters.newtonOptions.maxIter,hyperparameters.ds
 		J(u,p) = jacobian(x->f(x,p),u)
 
-		findRoots!( f, J, roots, parameters, hyperparameters, maxRoots, maxIter; verbosity=verbosity )
+		findRoots!( f, J, roots, parameters, hyperparameters; maxRoots=maxRoots, maxIter=maxIter, verbosity=verbosity)
 		pRange = range(hyperparameters.pMin,hyperparameters.pMax,length=length(roots))
-	    intervals = ([T(0.0),step(pRange)],[-step(pRange),T(0.0)])
+	    intervals = ([zero(T),step(pRange)],[-step(pRange),zero(T)])
 
 		branches = Branch{V,T}[]
 		hyperparameters = @set hyperparameters.newtonOptions.maxIter = maxIterContinuation

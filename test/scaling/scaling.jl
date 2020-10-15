@@ -17,7 +17,7 @@ function rates(u::AbstractVector{T},parameters::NamedTuple,N::Int,M::Int) where 
 	return F
 end
 
-targetData = StateDensity(-π:0.01:π,Ref([0.0]))
+targetData = StateSpace(-π:0.01:π,Ref([0.0]))
 hyperparameters = getParameters(targetData)
 
 function benchmark(N::Int,M::Int)
@@ -30,8 +30,8 @@ function benchmark(N::Int,M::Int)
 	θ = Ref(parameters.θ)
 	F = Ref(F)
 
-	@time ∇loss( F, steady_states, θ, targetData.bifurcations )
-	return @elapsed ∇loss( F, steady_states, θ, targetData.bifurcations )
+	@time ∇loss( F, steady_states, θ, targetData.targets )
+	return @elapsed ∇loss( F, steady_states, θ, targetData.targets )
 end
 
 pyplot()

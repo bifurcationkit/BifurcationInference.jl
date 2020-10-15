@@ -1,14 +1,16 @@
 ############################################################################ hyperparameter updates
-function getParameters(data::StateDensity{T}; maxIter::Int=800, tol=1e-6) where T<:Number
+function getParameters(data::StateSpace{N,T}; maxIter::Int=800, tol=1e-6, kwargs...) where {N,T<:Number}
 	newtonOptions = NewtonPar(verbose=false,maxIter=maxIter,tol=T(tol))
 
 	# support for StaticArrays github.com/JuliaArrays/StaticArrays.jl/issues/73
 	newtonOptions = @set newtonOptions.linsolver.useFactorization = false
-
 	return ContinuationPar(
+
         pMin=minimum(data.parameter), pMax=maximum(data.parameter), maxSteps=10*length(data.parameter),
         ds=step(data.parameter), dsmax=step(data.parameter), dsmin=step(data.parameter),
-		newtonOptions=newtonOptions, detectFold=false, detectBifurcation=true, saveEigenvectors=false)
+
+		newtonOptions=newtonOptions, detectFold=false, detectBifurcation=true,
+		saveEigenvectors=false, nev=N )
 end
 
 function updateParameters!(parameters::ContinuationPar{T, S, E}, steady_states::Vector{Branch{V,T}};
@@ -21,22 +23,19 @@ function updateParameters!(parameters::ContinuationPar{T, S, E}, steady_states::
 end
 
 ############################################################################# training loop
-function train!( F::Function, roots::AbstractVector{<:AbstractVector{<:AbstractVector}},
-	             parameters::NamedTuple, data::StateDensity;
+function train!( F::Function, parameters::NamedTuple, data::StateSpace;
+				 iter::Int=200, optimiser=Momentum(0.001), plot_solution = false, kwargs...)
 
-				 iter::Int=200, optimiser=Momentum(0.001), plot_solution = false,
-				 ϵ::Number=0.1, λ::Number=0.0 )
-
+	hyperparameters = getParameters(data;kwargs...)
 	Loss = steady_states = nothing
-	trajectory = typeof(parameters.θ)[]
 
-	hyperparameters = getParameters(data)
 	∇Loss = similar(parameters.θ)
+	trajectory = typeof(parameters.θ)[]
 
 	for i=1:iter
 		try
-			steady_states = deflationContinuation(F,roots,parameters,hyperparameters)
-			Loss,∇Loss = ∇loss(Ref(F),steady_states,Ref(parameters.θ),data.bifurcations;ϵ=ϵ,λ=λ)
+			steady_states = deflationContinuation(F,data.roots,parameters,hyperparameters;kwargs...)
+			Loss,∇Loss = ∇loss(Ref(F),steady_states,Ref(parameters.θ),data.targets;kwargs...)
 
 		catch error
 			printstyled(color=:red,   "Iteration $i\tError = $error\n") end
@@ -45,7 +44,7 @@ function train!( F::Function, roots::AbstractVector{<:AbstractVector{<:AbstractV
 		printstyled(color=:blue,"$steady_states\n")
 		println("Parameters\t$(parameters.θ)")
 		println("Gradients\t$(∇Loss)")
-		if isinf(Loss) throw("infinite loss; consider increasing ϵ or λ") end
+		if isinf(Loss) throw("infinite loss") end
 
 		update!(optimiser, parameters.θ, ∇Loss )
 		push!(trajectory,copy(parameters.θ))
@@ -56,14 +55,12 @@ function train!( F::Function, roots::AbstractVector{<:AbstractVector{<:AbstractV
 end
 
 ############################################################################## loss evaluation helper
-function loss(F::Function, θ::AbstractVector, data::StateDensity,
-	          roots::AbstractVector{<:AbstractVector{<:AbstractVector}},
-			  hyperparameters::ContinuationPar; λ::Number=0.0, ϵ::Number=0.1)
+function loss(F::Function, θ::AbstractVector, data::StateSpace, hyperparameters::ContinuationPar; kwargs...)
 
 	try
 		parameters = (θ=θ,p=minimum(data.parameter))
-		steady_states = deflationContinuation(F,roots,parameters,hyperparameters)
-		return loss(Ref(F),steady_states,Ref(θ),data.bifurcations; λ=λ,ϵ=ϵ)
+		steady_states = deflationContinuation(F,data.roots,parameters,hyperparameters;kwargs...)
+		return loss(Ref(F),steady_states,Ref(θ),data.targets;kwargs...)
 
 	catch error
 		printstyled(color=:red,"$error\n")
@@ -71,16 +68,13 @@ function loss(F::Function, θ::AbstractVector, data::StateDensity,
 	end
 end
 
-############################################################################# plotting
-import Plots: plot
-function plot(steady_states::Vector{Branch{V,T}}, data::StateDensity{T}) where {T<:Number,V<:AbstractVector{T}}
-	right_axis = plot(steady_states; displayPlot=false)
-
-	vline!( data.bifurcations.x, label="", color=:gold)
-	plot!( right_axis,[],[], color=:gold, legend=:bottomleft, alpha=1.0, label="") |> display
+function loss(F::Function, θ::AbstractVector, data::StateSpace; kwargs...)
+	return loss(F,θ,data,getParameters(data); kwargs...)
 end
 
-function plot(steady_states::Vector{Branch{V,T}}; displayPlot=true) where {T<:Number,V<:AbstractVector{T}}
+############################################################################# plotting
+import Plots: plot
+function plot(steady_states::Vector{<:Branch}; displayPlot=true)
 
 	plot([NaN],[NaN],label="",xlabel=L"\mathrm{parameter,}p", right_margin=20mm,size=(500,400))
 	right_axis = twinx()
@@ -113,13 +107,18 @@ function plot(steady_states::Vector{Branch{V,T}}; displayPlot=true) where {T<:Nu
 	end
 end
 
-function plot(F::Function, θ::AbstractVector, data::StateDensity,
-			  roots::AbstractVector{<:AbstractVector{<:AbstractVector}},
-			  hyperparameters::ContinuationPar, save::String="")
+function plot(steady_states::Vector{<:Branch}, data::StateSpace)
+	right_axis = plot(steady_states; displayPlot=false)
+	vline!( data.targets.x, label="", color=:gold)
+	plot!( right_axis,[],[], color=:gold, legend=:bottomleft, alpha=1.0, label="") |> display
+end
+
+function plot(F::Function, θ::AbstractVector, data::StateSpace; kwargs...)
 
 	parameters = (θ=θ,p=minimum(data.parameter))
-	steady_states = deflationContinuation(F,roots,parameters,hyperparameters)
+	hyperparameters = getParameters(data;kwargs...)
 
+	steady_states = deflationContinuation(F,data.roots,parameters,hyperparameters;kwargs...)
+	println(steady_states)
 	plot(steady_states,data)
-	if length(save)>0 savefig(joinpath(@__DIR__,save)) end
 end
