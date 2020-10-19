@@ -2,9 +2,9 @@ module FluxContinuation
 
 	using BifurcationKit: PALCIterable, newton, ContinuationPar, NewtonPar, DeflationOperator
 	using BifurcationKit: BorderedArray, AbstractLinearSolver, AbstractEigenSolver, BorderingBLS
-	using BifurcationKit: PALCStateVariables, solution, computeEigenvalues!
+	using BifurcationKit: PALCStateVariables, solution, computeEigenvalues!, detectBifucation
 
-	using ForwardDiff: jacobian,gradient,hessian
+	using ForwardDiff,ReverseDiff
 	using Flux: Momentum,update!
 
 	using Setfield: @lens,@set,setproperties
@@ -84,7 +84,7 @@ module FluxContinuation
 		) where {T<:Number, V<:AbstractVector{T}, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
 		maxIterContinuation,ds = hyperparameters.newtonOptions.maxIter,hyperparameters.ds
-		J(u,p) = jacobian(x->f(x,p),u)
+		J(u,p) = ForwardDiff.jacobian(x->f(x,p),u)
 
 		findRoots!( f, J, roots, parameters, hyperparameters; maxRoots=maxRoots, maxIter=maxIter, verbosity=verbosity)
 		pRange = range(hyperparameters.pMin,hyperparameters.pMax,length=length(roots))
