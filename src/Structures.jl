@@ -2,6 +2,8 @@ import Base: length,show,push!
 struct Branch{V<:AbstractVector,T<:Number}
 
     solutions::Vector{BorderedArray{V,T}}
+    bifurcations::Vector{Bool}
+
     eigvals::Vector{Vector{Complex{T}}}
     ds::Vector{T}
 
@@ -49,20 +51,23 @@ Object to contain the accumulation of continuation results for one branch
 - `eigvals` vector of eigenvalues at each point
 - `ds` vector of arclength steps sizes between continuation points
 """
-Branch(V::DataType,T::DataType) = Branch( BorderedArray{V,T}[], Vector{Complex{T}}[], T[] )
+Branch(V::DataType,T::DataType) = Branch( BorderedArray{V,T}[], Bool[], Vector{Complex{T}}[], T[] )
 length(branch::Branch) = length(branch.solutions)
 dim(branch::Branch) = length(first(branch.solutions).u)
 
 function push!(branch::Branch,state::PALCStateVariables)
+
     push!(branch.solutions,copy(solution(state)))
+    push!(branch.bifurcations,detectBifucation(state))
+
     push!(branch.eigvals,state.eigvals)
     push!(branch.ds,abs(state.ds))
 end
 
 # display methods
 show(io::IO, branch::Branch{V,T}) where {V,T} = print(io,
-    "Branch{$V,$T}[dim=$(dim(branch)) states=$(length(branch)), parameter=($(round(first(branch.solutions).p,sigdigits=3))->$(round(last(branch.solutions).p,sigdigits=3)))]")
+    "Branch{$V,$T}[dim=$(dim(branch)) bifurcations=$(sum(branch.bifurcations)) states=$(length(branch)), parameter=($(round(first(branch.solutions).p,sigdigits=3))->$(round(last(branch.solutions).p,sigdigits=3)))]")
 show(io::IO, branches::Vector{Branch{V,T}}) where {V,T} = print(io,
-    "Vector{Branches}[dim=$(dim(first(branches))) branches=$(length(branches)), states=$(sum(branch->length(branch),branches))]")
+    "Vector{Branches}[dim=$(dim(first(branches))) bifurcations=$(sum(branch->sum(branch.bifurcations),branches)) branches=$(length(branches)), states=$(sum(branch->length(branch),branches))]")
 show(io::IO, M::MIME"text/plain", branches::Vector{Branch{V,T}}) where {V,T} = show(io,branches)
 show(io::IO, states::StateSpace{N,T}) where {N,T} = print(io,"StateSpace{$N,$T}(parameters=$(states.parameter),targets=$(states.targets))")
