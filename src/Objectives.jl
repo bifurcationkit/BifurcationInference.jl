@@ -13,9 +13,15 @@ end
 
 ################################################################################# loss function
 function loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::AbstractVector; kwargs...)
-	marginals = sum( branch->marginal_likelihood(F,branch,θ,targets;kwargs...), branches )
-	norms = sum( branch->normalisation(F,branch,θ), branches )
-	return log(norms)-log(marginals)
+	if sum( branch->sum(branch.bifurcations), branches ) ≥ 2length(targets)
+
+		marginals,norms = sum( branch->marginal_likelihood(F,branch,θ,targets;kwargs...), branches ), sum( branch->normalisation(F,branch,θ), branches )
+		return log(norms)-log(marginals)
+	else
+
+		curvatures = sum( branch->curvature(F,branch,θ), branches )
+		return -log(curvatures)
+	end
 end
 
 function marginal_likelihood( F::Function, branch::Branch, θ::AbstractVector, targets::AbstractVector; kwargs...)
@@ -30,19 +36,23 @@ end
 ########################################################################### determinant curvature
 function curvature(F::Function,z::BorderedArray,θ::AbstractVector)
 
-	∂det = gradient(z->det(∂Fu(F,z,θ)),z)
-	∂∂det = hessian(z->det(∂Fu(F,z,θ)),z)
+	∂det = ForwardDiff.gradient(z->det(∂Fu(F,z,θ)),z)
+	∂∂det = ForwardDiff.hessian(z->det(∂Fu(F,z,θ)),z)
 
 	# tangent field basis
-	Jz = jacobian(z->tangent_field(F,z,θ),z)
+	Jz = ForwardDiff.jacobian(z->tangent_field(F,z,θ),z)
 	Tz = tangent_field(F,z,θ)
 
 	return Tz'∂∂det*Tz + ∂det'Jz*Tz
 end
 
+function curvature(F::Function,branch::Branch,θ::AbstractVector)
+	return branch.ds'curvature.( Ref(F), branch.solutions, Ref(θ) )
+end
+
 function tangent_field( F::Function, z::BorderedArray, θ::AbstractVector)
 
 	∂F = ∂Fz(F,z,θ) # construct tangent field T(z) := det[ ẑ , ∂Fz ]
-	field = [ det(∂F[:,Not(zi)]) for zi ∈ 1:length(z) ]
+	field = [ (-1)^(zi+1) * det(∂F[:,Not(zi)]) for zi ∈ 1:length(z) ] # cofactor expansion
 	return field / norm(field) # unit tangent field
 end
