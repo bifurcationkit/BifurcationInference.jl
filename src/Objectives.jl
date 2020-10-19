@@ -4,8 +4,7 @@ function likelihood( F::Function, z::BorderedArray, θ::AbstractVector, targets:
 end
 
 function gaussian_mixture( targets::AbstractVector, z::BorderedArray; ϵ=0.1, kwargs...)
-	errors = ( targets .- z.p ) .^ 2
-	return sum(exp.(-errors/ϵ)) / (length(targets)*√(ϵ*π))
+	return sum( p->exp(-(p-z.p)^2/ϵ), targets ) / (length(targets)*√(ϵ*π))
 end
 
 function bifucation_weight( F::Function, z::BorderedArray, θ::AbstractVector )
@@ -13,8 +12,10 @@ function bifucation_weight( F::Function, z::BorderedArray, θ::AbstractVector )
 end
 
 ################################################################################# loss function
-function loss( F::Ref{<:Function}, branches::AbstractVector{<:Branch}, θ::Ref{<:AbstractVector}, targets::Ref{<:AbstractVector}; kwargs...)
-	return -log(sum( marginal_likelihood.(F,branches,θ,targets;kwargs...) )) + log(sum( normalisation.(F,branches,θ) ))
+function loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::AbstractVector; kwargs...)
+	marginals = sum( branch->marginal_likelihood(F,branch,θ,targets;kwargs...), branches )
+	norms = sum( branch->normalisation(F,branch,θ), branches )
+	return log(norms)-log(marginals)
 end
 
 function marginal_likelihood( F::Function, branch::Branch, θ::AbstractVector, targets::AbstractVector; kwargs...)
@@ -24,4 +25,24 @@ end
 ################################################################################ normalisations
 function normalisation( F::Function, branch::Branch, θ::AbstractVector )
 	return branch.ds'bifucation_weight.( Ref(F), branch.solutions, Ref(θ))
+end
+
+########################################################################### determinant curvature
+function curvature(F::Function,z::BorderedArray,θ::AbstractVector)
+
+	∂det = gradient(z->det(∂Fu(F,z,θ)),z)
+	∂∂det = hessian(z->det(∂Fu(F,z,θ)),z)
+
+	# tangent field basis
+	Jz = jacobian(z->tangent_field(F,z,θ),z)
+	Tz = tangent_field(F,z,θ)
+
+	return Tz'∂∂det*Tz + ∂det'Jz*Tz
+end
+
+function tangent_field( F::Function, z::BorderedArray, θ::AbstractVector)
+
+	∂F = ∂Fz(F,z,θ) # construct tangent field T(z) := det[ ẑ , ∂Fz ]
+	field = [ det(∂F[:,Not(zi)]) for zi ∈ 1:length(z) ]
+	return field / norm(field) # unit tangent field
 end

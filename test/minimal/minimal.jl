@@ -18,19 +18,12 @@ function backward(name::String; θi=range(0.03-π,π-0.03,length=200), idx=2)
 
 	println("Backward pass: ",name)
 	for i ∈ 1:length(θi) # loss gradient across parameter grid
+
 		parameters.θ[idx] = θi[i]
+		steady_states = deflationContinuation(rates,targetData.roots,parameters,hyperparameters)
 
-		try
-			steady_states = deflationContinuation(rates,targetData.roots,parameters,hyperparameters)
-			L[i],dL = ∇loss(Ref(rates),steady_states,Ref(parameters.θ),targetData.targets)
-			∇L[i] = dL[idx]
-
-		catch error
-			printstyled(color=:red,"$error\n")
-
-			L[i] = NaN
-			∇L[i] = NaN
-		end
+		L[i],dL = ∇loss(rates,steady_states,parameters.θ,targetData.targets)
+		∇L[i] = dL[idx]
 	end
 
 	# estimate gradient using finite differences

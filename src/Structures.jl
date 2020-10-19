@@ -11,7 +11,7 @@ struct StateSpace{N,T}
 
     roots::AbstractVector{<:AbstractVector{<:AbstractVector}}
     parameter::AbstractRange
-    targets::Ref{<:AbstractVector}
+    targets::AbstractVector
 
 end
 
@@ -36,7 +36,7 @@ Define state space with targets to be used in optimisation
 """
 function StateSpace(dimension::Integer,parameter::AbstractRange,targets::AbstractVector; nRoots::Integer=2, eltype::DataType=Float64)
     roots, nTargets = fill( [zero(SizedVector{dimension,eltype})] ,nRoots ), length(targets)
-    return StateSpace{dimension,eltype}( SizedVector{nRoots}(roots), StepRangeLen{eltype}(parameter), Ref(SVector{nTargets,eltype}(targets)) )
+    return StateSpace{dimension,eltype}( SizedVector{nRoots}(roots), StepRangeLen{eltype}(parameter), SVector{nTargets,eltype}(targets) )
 end
 
 """
@@ -65,4 +65,4 @@ show(io::IO, branch::Branch{V,T}) where {V,T} = print(io,
 show(io::IO, branches::Vector{Branch{V,T}}) where {V,T} = print(io,
     "Vector{Branches}[dim=$(dim(first(branches))) branches=$(length(branches)), states=$(sum(branch->length(branch),branches))]")
 show(io::IO, M::MIME"text/plain", branches::Vector{Branch{V,T}}) where {V,T} = show(io,branches)
-show(io::IO, states::StateSpace{N,T}) where {N,T} = print(io,"StateSpace{$N,$T}(parameters=$(states.parameter),targets=$(states.targets.x))")
+show(io::IO, states::StateSpace{N,T}) where {N,T} = print(io,"StateSpace{$N,$T}(parameters=$(states.parameter),targets=$(states.targets))")

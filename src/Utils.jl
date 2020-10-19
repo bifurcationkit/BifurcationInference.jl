@@ -35,7 +35,7 @@ function train!( F::Function, parameters::NamedTuple, data::StateSpace;
 	for i=1:iter
 		try
 			steady_states = deflationContinuation(F,data.roots,parameters,hyperparameters;kwargs...)
-			Loss,∇Loss = ∇loss(Ref(F),steady_states,Ref(parameters.θ),data.targets;kwargs...)
+			Loss,∇Loss = ∇loss(F,steady_states,parameters.θ,data.targets;kwargs...)
 
 		catch error
 			printstyled(color=:red,   "Iteration $i\tError = $error\n") end
@@ -82,7 +82,7 @@ function loss(F::Function, θ::AbstractVector, data::StateSpace, hyperparameters
 			plot!(xlabel=L"\mathrm{Arclength}\quad s",ylabel=L"\mathrm{Density}\quad p(s)") |> display
 		end
 
-		return loss(Ref(F),steady_states,Ref(θ),data.targets;kwargs...)
+		return loss(F,steady_states,θ,data.targets;kwargs...)
 
 	catch error
 		printstyled(color=:red,"$error\n")
@@ -127,7 +127,7 @@ end
 
 function plot(steady_states::Vector{<:Branch}, data::StateSpace)
 	right_axis = plot(steady_states; displayPlot=false)
-	vline!( data.targets.x, label="", color=:gold)
+	vline!( data.targets, label="", color=:gold)
 	plot!( right_axis,[],[], color=:gold, legend=:bottomleft, alpha=1.0, label="") |> display
 end
 
