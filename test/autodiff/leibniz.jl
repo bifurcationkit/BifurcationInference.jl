@@ -122,3 +122,6 @@ plot!( x, maximum(y)*ones(length(x)), label="", fillrange=minimum(y), color=:whi
 
 quiver!( x[1:end-1], y[1:end-1]', quiver=(x,y)->∇cost((x,y)), color=:darkblue, lw=3)
 quiver!( Px, Py, quiver=(Vx,Vy), lw=2, color=:gold)
+
+plot!([],[],color=:darkblue, lw=3, label="ForwardDiff")
+plot!([],[],color=:gold, lw=3, label="Finite Differences")
