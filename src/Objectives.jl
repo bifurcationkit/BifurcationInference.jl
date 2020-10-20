@@ -43,7 +43,7 @@ function curvature(F::Function,z::BorderedArray,θ::AbstractVector)
 	Jz = ForwardDiff.jacobian(z->tangent_field(F,z,θ),z)
 	Tz = tangent_field(F,z,θ)
 
-	return Tz'∂∂det*Tz + ∂det'Jz*Tz
+	return (Tz'∂∂det*Tz + ∂det'Jz*Tz)^2
 end
 
 function curvature(F::Function,branch::Branch,θ::AbstractVector)

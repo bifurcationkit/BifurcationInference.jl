@@ -1,8 +1,8 @@
 module FluxContinuation
 
-	using BifurcationKit: PALCIterable, newton, ContinuationPar, NewtonPar, DeflationOperator
+	using BifurcationKit: ContIterable, newton, ContinuationPar, NewtonPar, DeflationOperator
 	using BifurcationKit: BorderedArray, AbstractLinearSolver, AbstractEigenSolver, BorderingBLS
-	using BifurcationKit: PALCStateVariables, solution, computeEigenvalues!, detectBifucation
+	using BifurcationKit: ContState, solution, computeEigenvalues!, detectBifucation
 
 	using ForwardDiff,ReverseDiff
 	using Flux: Momentum,update!
@@ -109,7 +109,7 @@ module FluxContinuation
 					parameters = @set parameters.p = pRange[i]+hyperparameters.ds
 
 					try
-						iterator = PALCIterable( f, J, u, parameters, (@lens _.p), hyperparameters, linsolver, verbosity=verbosity)
+						iterator = ContIterable( f, J, u, parameters, (@lens _.p), hyperparameters, linsolver, verbosity=verbosity)
 						for state ∈ iterator
 
 							computeEigenvalues!(iterator,state)

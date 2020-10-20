@@ -55,7 +55,7 @@ Branch(V::DataType,T::DataType) = Branch( BorderedArray{V,T}[], Bool[], Vector{C
 length(branch::Branch) = length(branch.solutions)
 dim(branch::Branch) = length(first(branch.solutions).u)
 
-function push!(branch::Branch,state::PALCStateVariables)
+function push!(branch::Branch,state::ContState)
 
     push!(branch.solutions,copy(solution(state)))
     push!(branch.bifurcations,detectBifucation(state))
