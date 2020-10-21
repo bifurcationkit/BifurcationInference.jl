@@ -34,8 +34,8 @@ function ∇region( z::AbstractVector, θ::AbstractVector )
 	# using formula for velocities of implicit regions
 	∂z = ForwardDiff.jacobian( z -> -∂Fz(z,θ)\∂Fθ(z,θ) * integrand(z,θ), z )
 
-	∂z = reshape(∂z, length(z), length(z), length(θ))
-	return [ tr(∂z[:,:,i]) for i ∈ 1:length(θ) ] # div(z) = tr(∂z) for each component θ
+	θi = [ (i-1)*length(z)+1:i*length(z) for i ∈ 1:length(θ) ]
+	return tr.( getindex.( Ref(∂z), θi, : ) ) # div(z) = tr(∂z) for each component θ
 end
 
 ########################################################
@@ -114,7 +114,7 @@ end
 ##################################
 function unit_test()
 
-	x,y = range(1,2,length=31), range(4,5,length=29)
+	x,y = range(1,2,length=51), range(4,5,length=29)
 	plot(size=(600,600), xlabel="parameters, θ")
 
 	contourf!( x, y, (x,y)->cost((x,y)) )
