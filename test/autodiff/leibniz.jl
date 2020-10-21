@@ -10,7 +10,7 @@ function F( u::AbstractVector, p::Number, θ::AbstractVector )
 	F = similar(u,typeof(f))
 
 	F[1] = 1 / ( 1 + (p*u[2])^2 ) - θ[1]*u[1]
-	F[2] = 1 / ( 1 + (3*u[1])^2 ) - θ[2]*u[2]
+	F[2] = 1 / ( 1 + (3*u[1])^2 ) - θ[2]*u[2]/10
 
 	return F
 end
@@ -18,7 +18,7 @@ end
 # integrand under dz
 integrand( z::AbstractVector, θ::AbstractVector ) = integrand( z[Not(end)], z[end], θ )
 function integrand( u::AbstractVector, p::Number, θ::AbstractVector )
-	return 3exp(-(p-1)^2/0.01) # just an example
+	return 3exp(-(p-1)^2/0.1) # just an example
 end
 
 ########################################################## gradients
@@ -112,15 +112,19 @@ end
 ##################################
 ##################################
 ##################################
+function unit_test()
 
-x,y = range(1.4,2,length=31), range(0.4,0.6,length=29)
-plot(size=(600,600), xlabel="parameters, θ")
+	x,y = range(1,2,length=31), range(4,5,length=29)
+	plot(size=(600,600), xlabel="parameters, θ")
 
-contourf!( x, y, (x,y)->cost((x,y)) )
-plot!( x, maximum(y)*ones(length(x)), label="", fillrange=minimum(y), color=:white, alpha=0.5 )
+	contourf!( x, y, (x,y)->cost((x,y)) )
+	plot!( x, maximum(y)*ones(length(x)), label="", fillrange=minimum(y), color=:white, alpha=0.5 )
 
-quiver!( x, y',  quiver=(x,y)->1e-12*∇cost((x,y)), color=:darkblue, lw=3)
-quiver!(  x, y', quiver=(x,y)->1e-12*central_differences((x,y)), color=:gold, lw=2)
+	quiver!( x, y', quiver=(x,y)->1e-12*∇cost((x,y)), color=:darkblue, lw=3)
+	quiver!( x, y', quiver=(x,y)->1e-12*central_differences((x,y)), color=:gold, lw=2)
 
-plot!([],[],color=:darkblue, lw=3, label="ForwardDiff")
-plot!([],[],color=:gold, lw=3, label="Central Differences")
+	plot!([],[],color=:darkblue, lw=3, label="ForwardDiff")
+	plot!([],[],color=:gold, lw=3, label="Central Differences") |> display
+
+end
+unit_test()
