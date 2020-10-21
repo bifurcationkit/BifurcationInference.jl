@@ -42,16 +42,13 @@ end
 function cost(θ;ds=0.01)
 	θ = typeof(θ) <: Tuple ? [θ...] : θ
 	∂S = solutions(θ,ds=ds)
-
 	return sum(z->integrand(z,θ),∂S)*ds
 end
 
-function ∇cost(θ;scale=1e-3,ds=0.01)
+function ∇cost(θ;ds=0.01)
 	θ = typeof(θ) <: Tuple ? [θ...] : θ
 	∂S = solutions(θ,ds=ds)
-
-	gradient = sum(z->∇integrand(z,θ),∂S)*ds
-	return scale * gradient / norm(gradient)
+	return sum(z->∇integrand(z,θ),∂S)*ds
 end
 
 ########################################################### utils
@@ -98,16 +95,18 @@ import Base: size,getindex
 size(x::OneHot) = (x.n,)
 getindex(x::OneHot,i::Int) = Int(x.k==i)
 
-function central_differences(θ;scale=1e-3,Δx=1e-2)
+function central_differences(θ;Δθ=1e-6)
 	θ = typeof(θ) <: Tuple ? [θ...] : θ
 	gradient = similar(θ)
 
 	for i ∈ 1:length(θ)
-		Δθ = Δx*OneHot(length(θ),i)
-		gradient[i] = ( cost(θ+Δθ)-cost(θ-Δθ) )/(2Δx)
-	end
+		d = OneHot(length(θ),i)
+		Δf₊, Δf₋ = cost(θ+Δθ*d), cost(θ-Δθ*d)
 
-	return scale * gradient / norm(gradient)
+		gradient[i] = (Δf₊-Δf₋)/(2Δθ)
+		@assert( (Δf₊+Δf₋)/2 ≈ cost(θ) )
+	end
+	return gradient
 end
 
 ##################################
@@ -120,8 +119,8 @@ plot(size=(600,600), xlabel="parameters, θ")
 contourf!( x, y, (x,y)->cost((x,y)) )
 plot!( x, maximum(y)*ones(length(x)), label="", fillrange=minimum(y), color=:white, alpha=0.5 )
 
-quiver!( x, y',  quiver=(x,y)->∇cost((x,y)), color=:darkblue, lw=3)
-quiver!(  x, y', quiver=(x,y)->central_differences((x,y)), color=:gold, lw=2)
+quiver!( x, y',  quiver=(x,y)->1e-12*∇cost((x,y)), color=:darkblue, lw=3)
+quiver!(  x, y', quiver=(x,y)->1e-12*central_differences((x,y)), color=:gold, lw=2)
 
 plot!([],[],color=:darkblue, lw=3, label="ForwardDiff")
 plot!([],[],color=:gold, lw=3, label="Central Differences")
