@@ -41,11 +41,13 @@ end
 function ∇region( z::AbstractVector, θ::AbstractVector )
 
 	# using formula for velocities of implicit regions
-	∂z = ForwardDiff.jacobian( z -> -∂Fz(z,θ)\∂Fθ(z,θ) * integrand(z,θ), z )
+	∂z = ForwardDiff.jacobian( z -> velocity(z,θ) * integrand(z,θ), z )
 
 	θi = [ (i-1)*length(z)+1:i*length(z) for i ∈ 1:length(θ) ]
 	return tr.( getindex.( Ref(∂z), θi, : ) ) # div(z) = tr(∂z) for each component θ
 end
+
+velocity( z::AbstractVector, θ::AbstractVector) = -∂Fz(z,θ)\∂Fθ(z,θ)
 
 ########################################################
 cost(θ1, θ2; ds=0.01) = cost((θ1,θ2); ds=ds)
