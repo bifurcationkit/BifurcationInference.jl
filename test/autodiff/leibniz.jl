@@ -27,7 +27,7 @@ u = [0.0,0.0] # initial root to peform continuation from
 # integrand under dz
 integrand( z::AbstractVector, θ::AbstractVector ) = integrand( z[Not(end)], z[end], θ )
 function integrand( u::AbstractVector, p::Number, θ::AbstractVector )
-	return norm(θ)
+	return 1.0
 end
 
 ########################################################## gradients
@@ -143,11 +143,11 @@ end
 ##################################
 function unit_test()
 
-	x,y = range(-1,1,length=50), range(-1,1,length=50)
+	x,y = range(-3/2,-1/2,length=50), range(1,2,length=50)
 	plot(size=(600,600), xlabel="parameters, θ")
 	contour!( x, y, cost, alpha=0.5 )
 
-	x,y = range(-1,1,length=10), range(-1,1,length=10)
+	x,y = range(-3/2,-1/2,length=20), range(1,2,length=20)
 	grid = collect(Iterators.product(x,y))
 	ϵ = 1e-6
 
