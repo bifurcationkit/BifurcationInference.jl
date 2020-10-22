@@ -46,7 +46,6 @@ function ∇region( z::AbstractVector, θ::AbstractVector )
 	θi = [ (i-1)*length(z)+1:i*length(z) for i ∈ 1:length(θ) ]
 	return tr.( getindex.( Ref(∂z), θi, : ) ) # div(z) = tr(∂z) for each component θ
 end
-
 velocity( z::AbstractVector, θ::AbstractVector) = -∂Fz(z,θ)\∂Fθ(z,θ)
 
 ########################################################
