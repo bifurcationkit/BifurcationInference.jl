@@ -46,14 +46,14 @@ end
 
 ∧(u::AbstractVector,v::AbstractVector) = u*v' - v*u'
 
-function unit_test(; xlim=(-1,1),ylim=(-1,1),ϵ=5e-3,order=5)
+function unit_test(; xlim=(-1,1),ylim=(-1,1),ϵ=5e-2,order=5)
 	x,y = range(xlim...,length=30), range(ylim...,length=30)
 
 	plot(size=(600,600), xlim=xlim, ylim=ylim, xlabel="parameters, θ")
 	contour!( x, y, (x,y) -> cost([x,y]), alpha=0.5 )
 
-	x,y = range(xlim...,length=11), range(ylim...,length=11)
-	grid = collect(Iterators.product(x,y))
+	x,y = range(xlim...,length=12), range(ylim...,length=12)
+	grid = collect(Iterators.product(x[2:end-1],y[2:end-1]))
 
 	xGrid = vcat(map(x->x[1], grid)...) + 1e-3*randn(length(grid))
 	yGrid = vcat(map(x->x[2], grid)...) + 1e-3*randn(length(grid))
@@ -80,6 +80,7 @@ function plot_field(θ::Vector{T}; Δθ = 0.1, θidx = 1, Uidxs=1:2, ds=0.005, �
 
 	∂S,∂S₊,∇S = solutions(θ,ds=ds), solutions(θ+D,ds=ds), NamedTuple{(:z, :ds),Tuple{Vector{T},T}}[]
 	for s ∈ ∂S push!( ∇S, ( z = s.z + Δθ*deformation(s.z,θ)[:,θidx], ds = s.ds ) ) end
+	alpha,alpha₊,∇alpha = map(s->integrand(s.z,θ),∂S), map(s->integrand(s.z,θ),∂S₊), map(s->integrand(s.z,θ),∇S)
 
 	@assert(maximum( z->maximum(deformation(z.z,θ)'tangent_field(z.z,θ)), ∂S)<1e-12)
 	@assert(maximum( z->maximum(tangent_field(z.z,θ)'ForwardDiff.jacobian(θ->tangent_field(z.z,θ),θ)), ∂S)<1e-12)
@@ -90,9 +91,9 @@ function plot_field(θ::Vector{T}; Δθ = 0.1, θidx = 1, Uidxs=1:2, ds=0.005, �
 		parameter,parameter₊,∇parameter = map(z->z.z[end],∂S), map(z->z.z[end],∂S₊), map(z->z.z[end],∇S)
 		state,state₊,∇state = map(z->z.z[Uidx],∂S), map(z->z.z[Uidx],∂S₊), map(z->z.z[Uidx],∇S)
 		
-		plot!(parameter,  state,  label="", color=:darkblue,  lw=3, linestyle=:solid)
-		plot!(parameter₊, state₊, label="", color=:lightblue, lw=3, linestyle=:solid)
-		plot!(∇parameter, ∇state, label="", color=:darkblue,  lw=3, linestyle=:dot)
+		plot!(parameter,  state,  label="", color=:darkblue,  alpha=alpha,  lw=3, linestyle=:solid)
+		plot!(parameter₊, state₊, label="", color=:lightblue, alpha=alpha₊, lw=4, linestyle=:solid)
+		plot!(∇parameter, ∇state, label="", color=:darkblue,  alpha=∇alpha, lw=1, linestyle=:solid)
 	end
 
 	plot!()|>display
