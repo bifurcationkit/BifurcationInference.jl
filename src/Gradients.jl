@@ -1,21 +1,64 @@
 ################################################################################# loss gradient
-function ∇loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::AbstractVector; kwargs...)
-	if sum( branch->sum(branch.bifurcations), branches ) ≥ 2length(targets)
+function ∇loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
+	if sum( branch->sum(s->s.bif,branch), branches ) ≥ 2length(targets.targets)
 
-		∇marginals = sum( branch->∇marginal_likelihood(F,branch,θ,targets;kwargs...), branches )
-		marginals = sum( branch->marginal_likelihood(F,branch,θ,targets;kwargs...), branches )
+		L,ω = likelihood(F,branches,θ,targets;kwargs...), weight(F,branches,θ,targets;kwargs...)
+		∇L,∇ω = ∇likelihood(F,branches,θ,targets;kwargs...), ∇weight(F,branches,θ,targets;kwargs...)
 
-		∇norms = sum( branch->∇normalisation(F,branch,θ), branches )
-		norms = sum( branch->normalisation(F,branch,θ), branches )
-
-		return log(norms)-log(marginals), ∇norms/norms -∇marginals/marginals
+		return -log(L) + log(ω), -∇L/L + ∇ω/ω 
 	else
 
-		∇curvatures = sum( branch->∇curvature(F,branch,θ), branches )
-		curvatures = sum( branch->curvature(F,branch,θ), branches )
+		K = curvature(F,branches,θ,targets;kwargs...)
+		∇K = ∇curvature(F,branches,θ,targets;kwargs...)
 
-		return -log(curvatures), -∇curvatures/curvatures
+		return -log(K), -∇K/K
 	end
+end
+
+################################################################################
+struct Gradient <: Function
+	f::Function
+	integrand::Integrand
+end
+(f::Gradient)(args...;kwargs...) = f.f(args...;kwargs...)
+
+∇likelihood = Gradient( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs...)
+	∇likelihood = ForwardDiff.gradient(θ->likelihood(F,z,θ,targets; kwargs...),θ) + deformation(F,z,θ)'ForwardDiff.gradient(z->likelihood(F,z,θ,targets; kwargs...),z)
+	return ∇likelihood + likelihood(F,z,θ,targets; kwargs...)*∇region(F,z,θ)
+end, likelihood)
+
+∇weight = Gradient(function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs...)
+	∇weight = ForwardDiff.gradient(θ->weight(F,z,θ,targets; kwargs...),θ) + deformation(F,z,θ)'ForwardDiff.gradient(z->weight(F,z,θ,targets; kwargs...),z)
+	return ∇weight + weight(F,z,θ,targets; kwargs...)*∇region(F,z,θ)
+end, weight)
+
+∇curvature = Gradient(function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs...)
+	∇curvature = ForwardDiff.gradient(θ->curvature(F,z,θ,targets; kwargs...),θ) + deformation(F,z,θ)'ForwardDiff.gradient(z->curvature(F,z,θ,targets; kwargs...),z)
+	return ∇curvature + curvature(F,z,θ,targets; kwargs...)*∇region(F,z,θ)
+end, curvature)
+
+###########################################################################
+function (gradient::Gradient)( F::Function, branch::Branch, θ::AbstractVector, targets::StateSpace; kwargs...)
+	boundary_term = sum( s->deformation(F,s.z,θ)[end,:]*gradient.integrand( F, s.z, θ, targets; kwargs...)*boundaries( targets.parameter, s.z; kwargs... )*s.ds, branch )
+	return sum( s -> window_function( targets.parameter, s.z; kwargs... )*gradient( F, s.z, θ, targets; kwargs...)s.ds, branch ) + boundary_term
+end
+
+function (gradient::Gradient)( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
+	return sum( branch -> gradient( F, branch, θ, targets; kwargs...), branches )
+end
+
+############################################## gradient term due to changing integration region dz
+deformation( F::Function, z::BorderedArray, θ::AbstractVector ) = -∂Fz(F,z,θ)\∂Fθ(F,z,θ)
+function ∇region( F::Function, z::BorderedArray, θ::AbstractVector )
+	∇deformation = reshape( ForwardDiff.jacobian(z->deformation(F,z,θ),z), length(z),length(θ),length(z) )
+	tangent = tangent_field(F,z,θ)
+
+	∇region = similar(θ)
+	for k ∈ 1:length(θ)
+		∇region[k] = tangent'∇deformation[:,k,:]tangent
+	end
+
+	return ∇region
 end
 
 ########################################################################### jacobians
@@ -35,38 +78,8 @@ function ∂Fz(F::Function,z::BorderedArray,θ::AbstractVector)
 	return ForwardDiff.jacobian( z -> F( z[Not(end)], (θ=θ,p=z[end]) ), [z.u; z.p] )
 end
 
-################################### gradient terms due to changing integration region dz
-function ∇region( F::Function, integrand::Function, z::BorderedArray, θ::AbstractVector)
-	∂z = ForwardDiff.jacobian( z -> -∂Fz(F,z,θ)\∂Fθ(F,z,θ) * integrand(F,z,θ), z )
-	θi = [ (i-1)*length(z)+1:i*length(z) for i ∈ 1:length(θ) ]
-	return tr.( getindex.( Ref(∂z), θi, : ) ) # div(z) = tr(∂z) for each component θ
-end
-
-################################################################################
-function ∇likelihood( F::Function, z::BorderedArray, θ::AbstractVector, targets::AbstractVector; kwargs...)
-	integrand(F,z,θ) = likelihood(F,z,θ,targets; kwargs...)
-	return ForwardDiff.gradient(θ->integrand(F,z,θ),θ) + ∇region(F,integrand,z,θ)
-end
-
-function ∇marginal_likelihood( F::Function, branch::Branch, θ::AbstractVector, targets::AbstractVector; kwargs...)
-	return branch.ds'∇likelihood.( Ref(F), branch.solutions, Ref(θ), Ref(targets); kwargs...)
-end
-
-function ∇normalisation( F::Function, branch::Branch, θ::AbstractVector)
-	return ForwardDiff.gradient( θ -> normalisation(F,branch,θ), θ ) + branch.ds'∇region.( Ref(F), Ref(bifucation_weight), branch.solutions, Ref(θ))
-end
-
-###########################################################################
-function ∇curvature(F::Function,z::BorderedArray,θ::AbstractVector)
-	return ForwardDiff.gradient(θ->curvature(F,z,θ),θ) + ∇region(F,curvature,z,θ) #bottleneck
-end
-
-function ∇curvature(F::Function,branch::Branch,θ::AbstractVector)
-	return branch.ds'∇curvature.( Ref(F), branch.solutions, Ref(θ) )
-end
-
 ############################################################# autodiff wrappers for BorderedArray
-import ForwardDiff,ReverseDiff
+import ForwardDiff
 
 function ForwardDiff.gradient( f, z::BorderedArray )
 	return ForwardDiff.gradient( z -> f( BorderedArray(z[Not(end)],z[end]) ), [z.u; z.p] )
@@ -78,16 +91,4 @@ end
 
 function ForwardDiff.hessian( f, z::BorderedArray )
 	return ForwardDiff.hessian( z -> f( BorderedArray(z[Not(end)],z[end]) ), [z.u; z.p] )
-end
-
-function ReverseDiff.gradient( f, z::BorderedArray )
-	return ReverseDiff.gradient( z -> f( BorderedArray(z[Not(end)],z[end]) ), [z.u; z.p] )
-end
-
-function ReverseDiff.jacobian( f, z::BorderedArray )
-	return ReverseDiff.jacobian( z -> f( BorderedArray(z[Not(end)],z[end]) ), [z.u; z.p] )
-end
-
-function ReverseDiff.hessian( f, z::BorderedArray )
-	return ReverseDiff.hessian( z -> f( BorderedArray(z[Not(end)],z[end]) ), [z.u; z.p] )
 end

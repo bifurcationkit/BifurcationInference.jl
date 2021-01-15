@@ -1,40 +1,25 @@
-################################################################################ likelihood defition
-function likelihood( F::Function, z::BorderedArray, θ::AbstractVector, targets::AbstractVector; kwargs...)
-	return gaussian_mixture(targets,z; kwargs...) * bifucation_weight(F,z,θ)
-end
-
-function gaussian_mixture( targets::AbstractVector, z::BorderedArray; ϵ=0.1, kwargs...)
-	return sum( p->exp(-(p-z.p)^2/ϵ), targets ) / (length(targets)*√(ϵ*π))
-end
-
-function bifucation_weight( F::Function, z::BorderedArray, θ::AbstractVector )
-	return exp( -det(∂Fu(F,z,θ))^2 )
-end
-
-################################################################################# loss function
-function loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::AbstractVector; kwargs...)
-	if sum( branch->sum(branch.bifurcations), branches ) ≥ 2length(targets)
-
-		marginals,norms = sum( branch->marginal_likelihood(F,branch,θ,targets;kwargs...), branches ), sum( branch->normalisation(F,branch,θ), branches )
-		return log(norms)-log(marginals)
+################################################################################
+function loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
+	if sum( branch->sum(s->s.bif,branch), branches ) ≥ 2length(targets.targets)
+		return -log(likelihood(F,branches,θ,targets;kwargs...)) + log(weight(F,branches,θ,targets;kwargs...))
 	else
-
-		curvatures = sum( branch->curvature(F,branch,θ), branches )
-		return -log(curvatures)
+		return -log(curvature(F,branches,θ,targets;kwargs...))
 	end
 end
 
-function marginal_likelihood( F::Function, branch::Branch, θ::AbstractVector, targets::AbstractVector; kwargs...)
-	return branch.ds'likelihood.( Ref(F), branch.solutions, Ref(θ), Ref(targets); kwargs...)
-end
+################################################################################
+struct Integrand <: Function f::Function end
+(f::Integrand)(args...;kwargs...) = f.f(args...;kwargs...)
 
-################################################################################ normalisations
-function normalisation( F::Function, branch::Branch, θ::AbstractVector )
-	return branch.ds'bifucation_weight.( Ref(F), branch.solutions, Ref(θ))
-end
+likelihood = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs...)
+	return gaussian_mixture(targets,z; kwargs...) * weight(F,z,θ,targets; kwargs...)
+end)
 
-########################################################################### determinant curvature
-function curvature(F::Function,z::BorderedArray,θ::AbstractVector)
+weight = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs... )
+	return exp( -det(∂Fu(F,z,θ))^2 )
+end)
+
+curvature = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs... )
 
 	∂det = ForwardDiff.gradient(z->det(∂Fu(F,z,θ)),z)
 	∂∂det = ForwardDiff.hessian(z->det(∂Fu(F,z,θ)),z)
@@ -44,15 +29,51 @@ function curvature(F::Function,z::BorderedArray,θ::AbstractVector)
 	Tz = tangent_field(F,z,θ)
 
 	return (Tz'∂∂det*Tz + ∂det'Jz*Tz)^2
+end)
+
+################################################################################
+function gaussian_mixture( targets::StateSpace, z::BorderedArray; ϵ::Real=0.1, kwargs...)
+	return sum( p->exp( -(p-z.p)^2/ϵ ), targets.targets ) / length(targets.targets) / √(ϵ*π)
 end
 
-function curvature(F::Function,branch::Branch,θ::AbstractVector)
-	return branch.ds'curvature.( Ref(F), branch.solutions, Ref(θ) )
+################################################################################
+function (integrand::Integrand)( F::Function, branch::Branch, θ::AbstractVector, targets::StateSpace; kwargs...)
+	return sum( s -> window_function( targets.parameter, s.z; kwargs... )*integrand( F, s.z, θ, targets; kwargs...)s.ds, branch )
 end
 
-function tangent_field( F::Function, z::BorderedArray, θ::AbstractVector)
+function (integrand::Integrand)( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
+	return sum( branch -> integrand( F, branch, θ, targets; kwargs...), branches )
+end
 
-	∂F = ∂Fz(F,z,θ) # construct tangent field T(z) := det[ ẑ , ∂Fz ]
-	field = [ (-1)^(zi+1) * det(∂F[:,Not(zi)]) for zi ∈ 1:length(z) ] # cofactor expansion
+################################################################################
+function tangent_field( F::Function, z::BorderedArray, θ::AbstractVector )
+
+	∂F = ∂Fz(F,z,θ)
+	field = similar(∂F[1,:])
+
+	for i ∈ 1:length(z) # construct tangent field T(z) := det[ ẑ , ∂Fz ]
+		field[i] = (-1)^(i+1) * det(∂F[:,Not(i)]) # laplace expansion of det
+	end
+
 	return field / norm(field) # unit tangent field
+end
+
+################################################################################
+function window_function( parameter::AbstractVector, z::BorderedArray; β::Real=10, kwargs... )
+	pMin,pMax = extrema(parameter)
+	return σ(z.p-pMin;β=β) * ( 1 - σ(z.p-pMax;β=β) )
+end
+
+function boundaries( parameter::AbstractVector, z::BorderedArray; β::Real=10, kwargs... )
+	pMin,pMax = extrema(parameter)
+	return ℕ(z.p-pMin;β=β) - ℕ(z.p-pMax;β=β)
+end
+
+using SpecialFunctions: erf
+function σ(x;β=10)
+	return ( 1 + erf(β*x/√2) )/2
+end
+
+function ℕ(x;β=10)
+	return β*exp(-(β*x)^2/2)/√(2π)
 end

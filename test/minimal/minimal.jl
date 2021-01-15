@@ -20,9 +20,7 @@ function backward(name::String; θi=range(0.03-π,π-0.03,length=200), idx=2)
 	for i ∈ 1:length(θi) # loss gradient across parameter grid
 
 		parameters.θ[idx] = θi[i]
-		steady_states = deflationContinuation(rates,targetData.roots,parameters,hyperparameters)
-
-		L[i],dL = ∇loss(rates,steady_states,parameters.θ,targetData.targets)
+		L[i],dL = ∇loss(rates,parameters.θ,targetData,hyperparameters)
 		∇L[i] = dL[idx]
 	end
 

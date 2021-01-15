@@ -4,7 +4,7 @@ module FluxContinuation
 	using BifurcationKit: BorderedArray, AbstractLinearSolver, AbstractEigenSolver, BorderingBLS
 	using BifurcationKit: ContState, solution, computeEigenvalues!, detectBifucation
 
-	using ForwardDiff,ReverseDiff
+	using ForwardDiff
 	using Flux: Momentum,update!
 
 	using Setfield: @lens,@set,setproperties
@@ -90,7 +90,7 @@ module FluxContinuation
 		pRange = range(hyperparameters.pMin,hyperparameters.pMax,length=length(roots))
 	    intervals = ([zero(T),step(pRange)],[-step(pRange),zero(T)])
 
-		branches = Branch{V,T}[]
+		branches = Vector{Branch{V,T}}()
 		hyperparameters = @set hyperparameters.newtonOptions.maxIter = maxIterContinuation
 		linsolver = BorderingBLS(hyperparameters.newtonOptions.linsolver)
 
@@ -105,7 +105,7 @@ module FluxContinuation
 						ds=sign(hyperparameters.ds)*ds)
 
 	                # main continuation method
-					branch = Branch(V,T)
+					branch = Branch{V,T}()
 					parameters = @set parameters.p = pRange[i]+hyperparameters.ds
 
 					try
@@ -116,7 +116,7 @@ module FluxContinuation
 							push!(branch,state)
 						end
 
-						midpoint = sum( z -> z.p, branch.solutions ) / length(branch)
+						midpoint = sum( s -> s.z.p, branch ) / length(branch)
 						if minimum(pRange) < midpoint && midpoint < maximum(pRange)
 							push!(branches,branch) end
 
