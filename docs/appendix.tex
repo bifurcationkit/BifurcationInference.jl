@@ -1,0 +1,105 @@
+\section{Gradient of Space Curve}
+\label{appendix:space-curve}
+Suppose there exists a one dimensional space curve $\mathcal{C(\theta)}$ embedded in $z\in\Reals^{N+1}$ whos geometry changes depending on input parameters $\theta\in\Reals^M$. This curve could be open or closed and changes in $\theta$ could change the curve topology as well. Let the function $\gamma_{\theta}:\Reals\rightarrow\Reals^{N+1}$ be a parameterisation of the position vector along the curve within a fixed domain $s\in\mathcal{S}$. Note that the choice of parameterisation is arbitrary and our results should not depend on this choice. Furthermore, if we parametrise the curve $\mathcal{C}(\theta)$ with respect to a fixed domain $\mathcal{S}$ the dependence on $\theta$ is picked up by the parameterisation $\gamma_{\theta}(s)$. We can write a line integral of any scalar function $L_{\theta}:\Reals^{N+1}\rightarrow\Reals$ on the curve as
+\begin{align}
+    L(\theta):=
+    \int_\mathcal{C(\theta)}\! L_{\theta}(z)\,\mathrm{d}z
+    =\int_\mathcal{S}\! L_{\theta}(z)\left|\frac{d\gamma_{\theta}}{ds}\right|\mathrm{d}s_{\,\,z=\gamma_{\theta}(s)}
+\end{align}
+where $\left|\frac{d\gamma_{\theta}}{ds}\right|$ is the magnitude of tangent vectors to the space curve and we remind ourselves that the integrand is evaluated at $z=\gamma_{\theta}(s)$. We would like to track how this integral changes with respect to $\theta$. The total derivative with respect to $\theta$ can be propagated into the integrand \cite{Flanders1973DifferentiationSign} as long as we keep track of implicit dependencies
+\begin{align}
+    \frac{dL}{d\theta} &=\int_\mathcal{S}
+    \left|\frac{d\gamma_{\theta}}{ds}\right|
+    \left(
+        \frac{\partial L}{\partial\theta}+
+        \frac{\partial L}{\partial z}\cdot
+        \frac{dz}{d\theta}
+    \right)
+    +L_{\theta}(z)\frac{d}{d\theta}\left|\frac{d\gamma_{\theta}}{ds}\right|
+    \mathrm{d}s_{\,\,z=\gamma_{\theta}(s)}
+    % \\&=\int_\mathcal{C(\theta)}
+    %     \frac{\partial L}{\partial\theta}+
+    %     \frac{\partial L}{\partial z}\cdot
+    %     \frac{dz}{d\theta}
+    % +L_{\theta}(z)\frac{d}{d\theta}\log\left|\frac{d\gamma_{\theta}}{ds}\right|
+    % \mathrm{d}z
+\end{align}
+Here we applied the total derivative rule in the first term due to the implicit dependence of $z$ on $\theta$ through $z=\gamma_{\theta}(s)$. Applying the chain rule to the second term
+\begin{align}
+    \frac{d}{d\theta}\left|\frac{d\gamma_{\theta}}{ds}\right|=
+    \left|\frac{d\gamma_{\theta}}{ds}\right|^{-1}
+    \frac{d\gamma_{\theta}}{ds}\cdot\frac{d}{d\theta}
+    \left(\frac{d\gamma_{\theta}}{ds}\right)
+\end{align}
+By choosing an $s$ that has no implicit $\theta$ dependence we can commute derivatives
+\begin{align}
+    \frac{d}{d\theta}\left(\frac{d\gamma_{\theta}}{ds}\right)
+    = \frac{d}{ds}\left(\frac{d\gamma_{\theta}}{d\theta}\right)
+    \quad\Rightarrow\quad
+    \frac{d}{d\theta}\left|\frac{d\gamma_{\theta}}{ds}\right|=
+    \left|\frac{d\gamma_{\theta}}{ds}\right|^{-1}
+    \frac{d\gamma_{\theta}}{ds}\cdot\frac{d}{d s}
+    \left(\frac{d\gamma_{\theta}}{d\theta}\right)
+\end{align}
+To proceed we note that the unit tangent vector can be written as an evaluation of a tangent field $\hat{T}_{\theta}(z)$ defined in the whole domain $z\in\Reals^{N+1}$ along the parametric curve $z=\gamma_{\theta}(s)$. The unit tangent field may disagree with the tangent given by $\frac{d\gamma_{\theta}}{ds}$ up to a sign
+\begin{align}
+    \left.\hat{\tangent}(z)\right|_{z=\gamma_{\theta}(s)}=
+    \pm\left|\frac{d\gamma_{\theta}}{ds}\right|^{-1}\frac{d\gamma_{\theta}}{d s}
+\end{align}
+and somehow this leads to numerically verified result\todo{perhaps not valid in general?}
+\begin{align}
+    \frac{d}{d\theta}\left|\frac{d\gamma_{\theta}}{ds}\right|=
+    \left|\frac{d\gamma_{\theta}}{ds}\right|\left(
+   \hat{\tangent}(z)\cdot\frac{\partial }{\partial z}\left(\frac{d\Gamma_{\theta}}{d \theta}\right)\cdot
+   \hat{\tangent}(z)
+    \right)_{z=\gamma_\theta(s)}
+    \label{eq:divergence-term}
+\end{align}
+
+\section{Deformation of Implicit Surfaces}
+\label{appendix:deformation}
+It is possible to find the normal deformation of the implicit space curves due to changes in $\theta$. This can be done by taking the total derivative of the implicit equation defining the level set
+\begin{align}
+    \frac{d\rates(z)}{d\theta}=\frac{\partial F}{\partial\theta}+
+    \frac{\partial F}{\partial z}\cdot\frac{d z}{d \theta}
+\end{align}
+
+We can rearrange for $\frac{d z}{d \theta}$ using the Moore-Penrose inverse of the rectangular Jacobian matrix $\frac{\partial F}{\partial z}$ which appeared in equation \eqref{eq:tangent-field}. Since the level set is defined by $\rates(z)=0$ the total derivative along the level set $d\rates(z)=0$ and we arrive at an expression for the deformation field \cite{Jos2011OnSurface}
+\begin{align}
+    \frac{d z}{d \theta} = - \frac{\partial F}{\partial z}^\top
+    \left(\,
+        \frac{\partial F}{\partial z}\,\frac{\partial F}{\partial z}^\top
+    \right)^{-1}
+    \frac{\partial F}{\partial\theta}
+\end{align}
+The tangential component of the deformation field is not uniquely determined because there is no unique way of parameterising a surface. This is the subject of many computer graphics papers \cite{Jos2011OnSurface,Tao2016Near-IsometricTracking,Fujisawa2013CalculationInvariance}. We are however not interested in the continuous propagation of a mesh - as is the subject of those papers. In fact we are looking for a deformation field that is orthogonal to the tangent vector $\hat{\tangent}(z) \cdot\frac{d z}{d\theta} =0$ for the space curve, and therefore letting the tangential component of the deformation equal zero is a valid choice and we can it instead of the parameterised deformation
+\todo{this is possibly quite shifty. Is this really valid?}
+\begin{align}
+    \frac{d \gamma_{\theta}}{d\theta} \rightarrow \frac{d z}{d\theta}
+\end{align}
+To summarise we now have the gradient of our line integral only in terms of the implicit function defining the integration region.
+\begin{align}
+    \frac{d L}{d\theta} =\int_{\rates(z)=0}
+        \frac{\partial L}{\partial\theta}+
+        \frac{\partial L}{\partial z}\cdot
+        \varphi_{\theta}(z)
+    +L_{\theta}(z)\,\,
+    \hat{\tangent}(z)\cdot\frac{\partial \varphi}{\partial z}\cdot\hat{\tangent}(z)
+    \,\mathrm{d}z\qquad\qquad\\
+    \mathrm{where}\quad
+    \hat{\tangent}(z):= \frac{\tangent(z)}{|\tangent(z)|}
+    \qquad
+    \tangent(z):=
+    \left|\begin{matrix}
+        \hat{z} \\
+        \,\partial_{z}\rates\,
+    \end{matrix}\right|
+    \qquad
+    \varphi_{\theta}(z) :=
+- \frac{\partial F}{\partial z}^\top
+    \left(\,
+        \frac{\partial F}{\partial z}\,\frac{\partial F}{\partial z}^\top
+    \right)^{-1}
+    \frac{\partial F}{\partial\theta}
+\end{align}
+We have settled on choosing normal deformations which we will call $\varphi_\theta(z)$. The above result can be seen a the generalised Leibniz rule \cite{Flanders1973DifferentiationSign} for the case of line integration regions. The last integrand term can be seen as the divergence the vector field $\varphi_\theta(z)$ projected onto the one dimensional space curve.
