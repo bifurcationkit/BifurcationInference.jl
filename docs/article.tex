@@ -89,7 +89,8 @@ where $\hat{z}$ is a collection of unit basis vectors in the $\Reals^{N+1}$ spac
     \end{matrix}\right|
     \quad =0 \quad\forall f_{\theta}\in \rates
 \end{align}
-since the determinant of any matrix with two identical rows or columns is zero. Note that the tangent field $\tangent(z)$ is actually defined for all values of $z$ where adjacent field lines trace out other level sets where $\rates(z)\neq0$. Furthermore deformations with respect to $\theta$ are always orthogonal to the tangent \todo{numerically true. analytic proof?}
+since the determinant of any matrix with two identical rows or columns is zero. Note that the tangent field $\tangent(z)$ is actually defined for all values of $z$ where adjacent field lines trace out other level sets where $\rates(z)\neq0$. Furthermore deformations with respect to $\theta$ are always orthogonal to the tangent
+% \todo{numerically true. analytic proof?}
 \begin{align}
     \tangent(z)\cdot\frac{d\tangent}{d\theta}=0
 \end{align}
@@ -217,58 +218,63 @@ $\beta\leftarrow\texttt{getHyperparameters}(\targets)$\\
 \section{Results}
 
 \subsection{Minimal Models}
-Fig
+Figures \ref{fig:saddle-node:results} and \ref{fig:pitchfork:results} show example optimisations of $(\theta_1,\theta_2)$ for the minimal saddle-node and pitchfork models respectively. The magnitude of the correction factor $\lambda=0$ when bifurcations are present and $\lambda\neq0$ otherwise.
 
 \subsection{Applied Models}
+In progress...
+\begin{itemize}
+    \item Genetic toggle switch
+    \item FitzHugh-Nagumo
+\end{itemize}
+% \subsubsection{Genetic toggle switch}
+% \subsubsection{FitzHugh-Nagumo}
 
-\subsubsection{Two-state model (mutual inhibition)}
 
-\begin{equation}
-    \dfrac{du_1}{dt} = \dfrac{a_1} { 1 + (p u_2)^2 } - \mu_1 u_1, \quad
-    \dfrac{du_2}{dt} = \dfrac{a_2} { 1 + (k u_1)^2 } - \mu_2 u_2
-\end{equation}
-Without loss of generality, we can rescale $u_1$ by $a_1$ and $u_2$ by $a_2$:
-\begin{equation*}
-    \dfrac{du_1}{dt} = \dfrac{1} { 1 + (\hat{p} u_2)^2 } - \mu_1 u_1, \quad
-    \dfrac{du_2}{dt} = \dfrac{1} { 1 + (\hat{k} u_1)^2 } - \mu_2 u_2
-\end{equation*}
-where $\hat{p} = p a_2$ and $\hat{k} = k a_1$. The equilibria for this system are defined by
-\begin{equation}
-    \mu_1u_1^*(1+\hat{p}u_2^*)^2 = 1, \quad \mu_2u_2^*(1+\hat{k}u_1^*)^2 = 1
-\end{equation}
-Obtaining closed form expressions for $u_1^*$ and $u_2^*$ requires solving a quintic polynomial. We won't do that here.
+% \begin{equation}
+%     \dfrac{du_1}{dt} = \dfrac{a_1} { 1 + (p u_2)^2 } - \mu_1 u_1, \quad
+%     \dfrac{du_2}{dt} = \dfrac{a_2} { 1 + (k u_1)^2 } - \mu_2 u_2
+% \end{equation}
+% Without loss of generality, we can rescale $u_1$ by $a_1$ and $u_2$ by $a_2$:
+% \begin{equation*}
+%     \dfrac{du_1}{dt} = \dfrac{1} { 1 + (\hat{p} u_2)^2 } - \mu_1 u_1, \quad
+%     \dfrac{du_2}{dt} = \dfrac{1} { 1 + (\hat{k} u_1)^2 } - \mu_2 u_2
+% \end{equation*}
+% where $\hat{p} = p a_2$ and $\hat{k} = k a_1$. The equilibria for this system are defined by
+% \begin{equation}
+%     \mu_1u_1^*(1+\hat{p}u_2^*)^2 = 1, \quad \mu_2u_2^*(1+\hat{k}u_1^*)^2 = 1
+% \end{equation}
+% Obtaining closed form expressions for $u_1^*$ and $u_2^*$ requires solving a quintic polynomial. We won't do that here.
 
-What is the determinant for this system?
-\begin{equation*}
-    \left|\dfrac{\partial F}{\partial u}\right| = 
-    \begin{vmatrix} -\mu_1 & -\frac{2 p^2 u_2^*}{(1 + (p u_2^*)^2)^2} \\
-        -\frac{2k^2u_1^*}{(1+(k u_1^*)^2)^2} & -\mu_2
-    \end{vmatrix}
-    = \mu_1\mu_2 - \frac{4p^2k^2u_1^*u_2^*}{(1+(p u_2^*)^2)^2(1+(k u_1^*)^2)^2}
-\end{equation*}
+% What is the determinant for this system?
+% \begin{equation*}
+%     \left|\dfrac{\partial F}{\partial u}\right| = 
+%     \begin{vmatrix} -\mu_1 & -\frac{2 p^2 u_2^*}{(1 + (p u_2^*)^2)^2} \\
+%         -\frac{2k^2u_1^*}{(1+(k u_1^*)^2)^2} & -\mu_2
+%     \end{vmatrix}
+%     = \mu_1\mu_2 - \frac{4p^2k^2u_1^*u_2^*}{(1+(p u_2^*)^2)^2(1+(k u_1^*)^2)^2}
+% \end{equation*}
 
-\subsubsection{Two-state (generalised)}
-\begin{equation}
-    \dfrac{du_1}{dt} = \dfrac{a_1 + b_1(p u_2)^2} { 1 + (p u_2)^2 } - \mu_1 u_1, \quad
-    \dfrac{du_2}{dt} = \dfrac{a_2 + b_2(k u_1)^2} { 1 + (k u_1)^2 } - \mu_2 u_2
-\end{equation}
+% \subsubsection{Two-state (generalised)}
+% \begin{equation}
+%     \dfrac{du_1}{dt} = \dfrac{a_1 + b_1(p u_2)^2} { 1 + (p u_2)^2 } - \mu_1 u_1, \quad
+%     \dfrac{du_2}{dt} = \dfrac{a_2 + b_2(k u_1)^2} { 1 + (k u_1)^2 } - \mu_2 u_2
+% \end{equation}
 
-Applying the same rescaling as above, we can simplify as
-\begin{equation}
-    \dfrac{du_1}{dt} = \dfrac{1 + \rho_1(p u_2)^2} { 1 + (p u_2)^2 } - \mu_1 u_1, \quad
-    \dfrac{du_2}{dt} = \dfrac{1 + \rho_2(k u_1)^2} { 1 + (k u_1)^2 } - \mu_2 u_2
-\end{equation}
-where $\rho_i = \frac{b_i}{a_i}$, with other parameters rescaled as above (but dropping hats).
+% Applying the same rescaling as above, we can simplify as
+% \begin{equation}
+%     \dfrac{du_1}{dt} = \dfrac{1 + \rho_1(p u_2)^2} { 1 + (p u_2)^2 } - \mu_1 u_1, \quad
+%     \dfrac{du_2}{dt} = \dfrac{1 + \rho_2(k u_1)^2} { 1 + (k u_1)^2 } - \mu_2 u_2
+% \end{equation}
+% where $\rho_i = \frac{b_i}{a_i}$, with other parameters rescaled as above (but dropping hats).
+
 
 \subsection{Computational Complexity}
 
-\section{Discussion}
-\label{sec:discussion}
+% \section{Discussion}
+% \label{sec:discussion}
 
-\subsection{Model Synthesis}
-
-
-\subsection{Model Selection}
+% \subsection{Model Synthesis}
+% \subsection{Model Selection}
 
 \appendix
 \appendixpage
