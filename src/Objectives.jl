@@ -1,6 +1,9 @@
 ################################################################################
 function loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
-	if sum( branch->sum(s->s.bif,branch), branches ) ≥ 2length(targets.targets)
+
+	pmin,pmax = extrema(targets.parameter)
+	if any( p -> pmin ≤ p ≤ pmax, [ s.z.p for branch ∈ branches for s ∈ branch if s.bif ])
+
 		return -log(likelihood(F,branches,θ,targets;kwargs...)) + log(weight(F,branches,θ,targets;kwargs...))
 	else
 		return -log(curvature(F,branches,θ,targets;kwargs...))
@@ -59,12 +62,12 @@ function tangent_field( F::Function, z::BorderedArray, θ::AbstractVector )
 end
 
 ################################################################################
-function window_function( parameter::AbstractVector, z::BorderedArray; β::Real=10, kwargs... )
+function window_function( parameter::AbstractVector, z::BorderedArray; β::Real=1e16, kwargs... )
 	pMin,pMax = extrema(parameter)
 	return σ(z.p-pMin;β=β) * ( 1 - σ(z.p-pMax;β=β) )
 end
 
-function boundaries( parameter::AbstractVector, z::BorderedArray; β::Real=10, kwargs... )
+function boundaries( parameter::AbstractVector, z::BorderedArray; β::Real=1e16, kwargs... )
 	pMin,pMax = extrema(parameter)
 	return ℕ(z.p-pMin;β=β) - ℕ(z.p-pMax;β=β)
 end

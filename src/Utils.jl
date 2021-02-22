@@ -86,7 +86,7 @@ end
 
 ############################################################################# plotting
 import Plots: plot
-function plot(steady_states::Vector{<:Branch}; padding=0.1, displayPlot=true)
+function plot(steady_states::Vector{<:Branch}; padding=0.2, displayPlot=true)
 
 	pMin,pMax = extrema(vcat([ map(s->s.z.p,branch) for branch ∈ steady_states ]...))
 	pMin,pMax = ( pMin+(pMin+pMax)*padding )/(1+2padding),( pMax+(pMin+pMax)*padding )/(1+2padding)

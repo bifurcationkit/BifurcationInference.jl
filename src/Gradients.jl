@@ -1,6 +1,8 @@
 ################################################################################# loss gradient
 function ∇loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
-	if sum( branch->sum(s->s.bif,branch), branches ) ≥ 2length(targets.targets)
+
+	pmin,pmax = extrema(targets.parameter)
+	if any( p -> pmin ≤ p ≤ pmax, [ s.z.p for branch ∈ branches for s ∈ branch if s.bif ])
 
 		L,ω = likelihood(F,branches,θ,targets;kwargs...), weight(F,branches,θ,targets;kwargs...)
 		∇L,∇ω = ∇likelihood(F,branches,θ,targets;kwargs...), ∇weight(F,branches,θ,targets;kwargs...)
