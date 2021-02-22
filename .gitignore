@@ -1,6 +1,6 @@
-.*
-!.gitignore
 /Manifest.toml
 *.jl.*.cov
 *.jl.cov
 *.jl.mem
+
+.vscode
