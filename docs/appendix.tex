@@ -46,7 +46,7 @@ To proceed we note that the unit tangent vector can be written as an evaluation 
     \left.\hat{\tangent}(z)\right|_{z=\gamma_{\theta}(s)}=
     \pm\left|\frac{d\gamma_{\theta}}{ds}\right|^{-1}\frac{d\gamma_{\theta}}{d s}
 \end{align}
-and somehow this leads to numerically verified result\todo{perhaps not valid in general?}
+and somehow this leads to numerically verified result%\todo{perhaps not valid in general?}
 \begin{align}
     \frac{d}{d\theta}\left|\frac{d\gamma_{\theta}}{ds}\right|=
     \left|\frac{d\gamma_{\theta}}{ds}\right|\left(
@@ -73,7 +73,7 @@ We can rearrange for $\frac{d z}{d \theta}$ using the Moore-Penrose inverse of t
     \frac{\partial F}{\partial\theta}
 \end{align}
 The tangential component of the deformation field is not uniquely determined because there is no unique way of parameterising a surface. This is the subject of many computer graphics papers \cite{Jos2011OnSurface,Tao2016Near-IsometricTracking,Fujisawa2013CalculationInvariance}. We are however not interested in the continuous propagation of a mesh - as is the subject of those papers. In fact we are looking for a deformation field that is orthogonal to the tangent vector $\hat{\tangent}(z) \cdot\frac{d z}{d\theta} =0$ for the space curve, and therefore letting the tangential component of the deformation equal zero is a valid choice and we can it instead of the parameterised deformation
-\todo{this is possibly quite shifty. Is this really valid?}
+% \todo{this is possibly quite shifty. Is this really valid?}
 \begin{align}
     \frac{d \gamma_{\theta}}{d\theta} \rightarrow \frac{d z}{d\theta}
 \end{align}
