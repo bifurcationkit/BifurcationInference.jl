@@ -162,12 +162,14 @@ The first term in the expression above is the usual result involving the Hessian
 In order for predicted bifurcations $\predictions(\theta)$ to match targets $\targets$ we need to evaluate some form of error term on the bifurcation curve defined by $\rates(z)=0$. We can see from Figures \ref{fig:saddle-node} and \ref{fig:pitchfork} that predictions can be identified by look for points $p$ along the curve where the determinant $|\frac{\partial\rates}{\partial u}|=0$. We can constrain the cost function to be evaluated in the vicinity of predicted bifurcation points by weighting the likelihood by a function $\omega_\theta(z|\alpha)$ sharply peaked where $|\frac{\partial\rates}{\partial u}|=0$ and going to zero elsewhere. Similarly, we can construct a mixture distribution $\mathcal{N}(p|\targets,\varepsilon)$ peaking at the locations of targets $\targets$ and falling to zero elsewhere. If we choose Gaussian basis functions for both the target mixture and prediction weighting, the likelihood $L_{\theta}(z|\targets)$ takes the form
 \begin{align}
     L_{\theta}(z|\targets) := 
-    \frac{\omega_\theta(z|\alpha)\,\mathcal{N}(p|\targets,\varepsilon)}{\int_{\rates(z)=0} \omega_\theta(z|\alpha)\,\mathrm{d}z}\label{eq:likelihood}\qquad\qquad\qquad\\
+    \lim_{\alpha\rightarrow\infty}\frac{\omega_\theta(z|\alpha)\,\mathcal{N}(p|\targets,\varepsilon)}{\int_{\rates(z)=0} \omega_\theta(z|\alpha)\,\mathrm{d}z}\label{eq:likelihood}\qquad\qquad\qquad\\
     \mathcal{N}(p|\targets,\varepsilon):=\frac{\sum_{p'\in\targets}\mathbb{e}^{-|p'-p|^2/\varepsilon}}{|\targets|\sqrt{\varepsilon\pi}}
     \quad
-    \omega_\theta(z|\alpha):= \mathbb{e}^{-\left|\frac{\partial F_{\theta}}{\partial u}\right|^2/\alpha}
+    \omega_\theta(z|\alpha):= \mathbb{e}^{-\alpha\left|\frac{\partial F_{\theta}}{\partial u}\right|^2}
 \end{align}
 where $\varepsilon$ and $\alpha$ are precision hyper-parameters. Figure \ref{fig:likelihood} shows how the likelihood $L_{\theta}(z|\targets)$ along the curve is indeed maximal when the bifurcations $\predictions(\theta)$ of the saddle-node model match the targets $\targets$.
+
+Alpha justified as being large by balance between numerical instability due to normalisation and desire to constrain the loss to regions where determinant is zero.
 
 \begin{figure}[H]
 \centering{}
@@ -223,11 +225,14 @@ Figures \ref{fig:saddle-node:results} and \ref{fig:pitchfork:results} show examp
 \begin{figure}[H]
 \centering{}
 \captionsetup{justification=centering}
-\includegraphics[width=5cm]{saddle-landscape.png}
-\includegraphics[width=5cm]{saddle-landscape.png}
+\includegraphics[width=6cm]{saddle-landscape.png}
+\includegraphics[width=6cm]{saddle-optima.png}
 \caption{Saddle-node model $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ optimised with respect to targets $\targets=\{-1,1\}$ in observation region $\Omega\in[-2,2]$. Left panel: trajectories in white approaching black line of global optima.}
 \label{fig:saddle-node:results}
 \end{figure}
+
+\subsection{Hyperparameters}
+Discuss $\alpha$, $\varepsilon$ and $\lambda$.
 
 \subsection{Applied Models}
 In progress...
