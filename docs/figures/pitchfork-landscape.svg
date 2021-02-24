@@ -14,7 +14,10 @@
    version="1.1"
    id="svg8"
    inkscape:version="1.0.2 (1.0.2+r75+1)"
-   sodipodi:docname="pitchfork-landscape.svg">
+   sodipodi:docname="pitchfork-landscape.svg"
+   inkscape:export-filename="/home/gszep/.julia/dev/FluxContinuation/docs/figures/pitchfork-landscape.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96">
   <defs
      id="defs2">
     <marker
@@ -118,15 +121,15 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.80169356"
-     inkscape:cx="415.21762"
-     inkscape:cy="331.31521"
+     inkscape:cx="227.90451"
+     inkscape:cy="319.01435"
      inkscape:document-units="mm"
      inkscape:current-layer="g20"
      inkscape:document-rotation="0"
      showgrid="false"
-     inkscape:window-width="927"
-     inkscape:window-height="1025"
-     inkscape:window-x="993"
+     inkscape:window-width="1439"
+     inkscape:window-height="1023"
+     inkscape:window-x="326"
      inkscape:window-y="27"
      inkscape:window-maximized="0" />
   <metadata
