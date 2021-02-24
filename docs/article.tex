@@ -169,7 +169,7 @@ In order for predicted bifurcations $\predictions(\theta)$ to match targets $\ta
 \end{align}
 where $\varepsilon$ and $\alpha$ are precision hyper-parameters. Figure \ref{fig:likelihood} shows how the likelihood $L_{\theta}(z|\targets)$ along the curve is indeed maximal when the bifurcations $\predictions(\theta)$ of the saddle-node model match the targets $\targets$.
 
-Alpha justified as being large by balance between numerical instability due to normalisation and desire to constrain the loss to regions where determinant is zero.
+% Alpha justified as being large by balance between numerical instability due to normalisation and desire to constrain the loss to regions where determinant is zero.
 
 \begin{figure}[H]
 \centering{}
@@ -182,6 +182,14 @@ Alpha justified as being large by balance between numerical instability due to n
 
 But what should the likelihood term \eqref{eq:likelihood} look like if there are no or fewer bifurcations than targets present in the observed region of $p\in\Omega$? This is where the curvature of the determinant $\partial_{\tangent}^2\Det$ can be extremised to encourage bifurcations. We can treat this curvature as an unsupervised correction of magnitude $\lambda$ to a supervised likelihood $L_{\theta}(z|\targets)$. We are now ready to write down the semi-supervised cost function for a bifurcation curve defined by $\rates(z)=0$ in an observed region $p\in\Omega$ as the negative log-likelihood
 \begin{align}
+    % \loss(\theta|\targets,\Omega) := \int_{\partial S,\,|\frac{\partial\rates}{\partial u}|=0}
+    % \!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\mathrm{d}u\mathrm{d}p\quad\,
+    % \frac{1}{|\targets|}\sum_{p'\in\targets}|p-p'|^2
+    % -\lambda\log\left(\int_{\partial S}
+    % \left(\nabla^2\left|
+    % \frac{\partial\rates}{\partial u}
+    % \right|\right)^2
+    % \,\mathrm{d}u\mathrm{d}p\right)\\
     \loss(\theta|\targets,\Omega) := -\log\left(\int_{\partial S}
     L_{\theta}(z|\targets) + \lambda\,K_{\theta}(z)^2\,
     \,\mathrm{d}z\right)\qquad
@@ -225,10 +233,19 @@ Figures \ref{fig:saddle-node:results} and \ref{fig:pitchfork:results} show examp
 \begin{figure}[H]
 \centering{}
 \captionsetup{justification=centering}
-\includegraphics[width=6cm]{saddle-landscape.png}
-\includegraphics[width=6cm]{saddle-optima.png}
-\caption{Saddle-node model $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ optimised with respect to targets $\targets=\{-1,1\}$ in observation region $\Omega\in[-2,2]$. Left panel: trajectories in white approaching black line of global optima.}
+\includegraphics[width=7cm]{saddle-landscape.png}
+\includegraphics[width=7cm]{saddle-optima.png}
+\caption{Saddle-node model $\rates(u,p) = p + \theta_{1}u+\theta_{2}u^3$ optimised with respect to targets $\targets=\{-1,1\}$ in observation region $\Omega\in[-2,2]$. The right panel shows bifurcations diagrams for the three optima marked by stars on the left panel. The optimisation trajectories in white follow the gradient of the cost, approaching the black line of global optima in the left panel}
 \label{fig:saddle-node:results}
+\end{figure}
+
+\begin{figure}[H]
+\centering{}
+\captionsetup{justification=centering}
+\includegraphics[width=7cm]{pitchfork-landscape.png}
+\includegraphics[width=7cm]{pitchfork-optima.png}
+\caption{Pitchfork model $\rates(u,p) = \theta_{1} + u p +\theta_{2}u^3$ optimised with respect to targets $\targets=\{0\}$ in observation region $\Omega\in[-5,5]$. The right panel shows bifurcations diagrams for the three optima marked by stars on the left panel. The optimisation trajectories in white follow the gradient of the cost, approaching the black line of global optima in the left panel}
+\label{fig:pitchfork:results}
 \end{figure}
 
 \subsection{Hyperparameters}
