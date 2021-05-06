@@ -14,5 +14,5 @@ function rates(u::AbstractVector,parameters::NamedTuple)
 end
 
 ######################################################### targets and initial guess
-targetData = StateSpace( 2, 0:0.005:8, [4,5] )
+targetData = StateSpace( 2, 0:0.001:8, [4,5] )
 θ = SizedVector{2}(1.75,0.1)

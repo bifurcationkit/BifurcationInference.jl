@@ -2,20 +2,21 @@
 function loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
 
 	pmin,pmax = extrema(targets.parameter)
-	if any( p -> pmin ≤ p ≤ pmax, [ s.z.p for branch ∈ branches for s ∈ branch if s.bif ])
+	N,M = length(targets.targets), reduce(+, [ pmin ≤ s.z.p ≤ pmax for branch ∈ branches for s ∈ branch if s.bif ]; init=0)
 
-		return -log(likelihood(F,branches,θ,targets;kwargs...)) + log(weight(F,branches,θ,targets;kwargs...))
-	else
-		return -log(curvature(F,branches,θ,targets;kwargs...))
-	end
+	ω = weight(F,branches,θ,targets;kwargs...) + eps()
+	L = sum( p -> exp( errors(F,branches,θ,targets;p=p,kwargs...)/ω ), targets.targets ) / N
+	K = curvature(F,branches,θ,targets;kwargs...)
+
+	return L + (2N-M)/(1+abs(K))
 end
 
 ################################################################################
 struct Integrand <: Function f::Function end
 (f::Integrand)(args...;kwargs...) = f.f(args...;kwargs...)
 
-likelihood = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs...)
-	return gaussian_mixture(targets,z; kwargs...) * weight(F,z,θ,targets; kwargs...)
+errors = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; p=0.0, kwargs...)
+	return log(abs(z.p-p)) * weight(F,z,θ,targets; kwargs...)
 end)
 
 weight = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; α::Real=1e3, kwargs... )
@@ -33,11 +34,6 @@ curvature = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVect
 
 	return (Tz'∂∂det*Tz + ∂det'Jz*Tz)^2
 end)
-
-################################################################################
-function gaussian_mixture( targets::StateSpace, z::BorderedArray; ϵ::Real=0.1, kwargs...)
-	return sum( p->exp( -(p-z.p)^2/ϵ ), targets.targets ) / length(targets.targets) / √(ϵ*π)
-end
 
 ################################################################################
 function (integrand::Integrand)( F::Function, branch::Branch, θ::AbstractVector, targets::StateSpace; kwargs...)

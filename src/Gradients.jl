@@ -2,19 +2,17 @@
 function ∇loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
 
 	pmin,pmax = extrema(targets.parameter)
-	if any( p -> pmin ≤ p ≤ pmax, [ s.z.p for branch ∈ branches for s ∈ branch if s.bif ])
+	N,M = length(targets.targets), reduce(+, [ pmin ≤ s.z.p ≤ pmax for branch ∈ branches for s ∈ branch if s.bif ]; init=0)
 
-		L,ω = likelihood(F,branches,θ,targets;kwargs...), weight(F,branches,θ,targets;kwargs...)
-		∇L,∇ω = ∇likelihood(F,branches,θ,targets;kwargs...), ∇weight(F,branches,θ,targets;kwargs...)
+	ω,∇ω = weight(F,branches,θ,targets;kwargs...) + eps(), ∇weight(F,branches,θ,targets;kwargs...)
 
-		return -log(L) + log(ω), -∇L/L + ∇ω/ω 
-	else
+	L =  sum( p -> exp( errors(F,branches,θ,targets;p=p,kwargs...)/ω )                                                                                                          , targets.targets ) / N
+	∇L = sum( p -> exp( errors(F,branches,θ,targets;p=p,kwargs...)/ω ) * ( ∇errors(F,branches,θ,targets;p=p,kwargs...)*ω - errors(F,branches,θ,targets;p=p,kwargs...)*∇ω ) / ω^2, targets.targets ) / N
 
-		K = curvature(F,branches,θ,targets;kwargs...)
-		∇K = ∇curvature(F,branches,θ,targets;kwargs...)
+	K = curvature(F,branches,θ,targets;kwargs...)
+	∇K = ∇curvature(F,branches,θ,targets;kwargs...)
 
-		return -log(K), -∇K/K
-	end
+	return L + (2N-M)/(1+abs(K)), ∇L - sign(K)*(2N-M)/(1+abs(K))^2 * ∇K
 end
 
 ################################################################################
@@ -24,10 +22,10 @@ struct Gradient <: Function
 end
 (f::Gradient)(args...;kwargs...) = f.f(args...;kwargs...)
 
-∇likelihood = Gradient( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs...)
-	∇likelihood = ForwardDiff.gradient(θ->likelihood(F,z,θ,targets; kwargs...),θ) + deformation(F,z,θ)'ForwardDiff.gradient(z->likelihood(F,z,θ,targets; kwargs...),z)
-	return ∇likelihood + likelihood(F,z,θ,targets; kwargs...)*∇region(F,z,θ)
-end, likelihood)
+∇errors = Gradient( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; p=0.0, kwargs...)
+	∇errors = ForwardDiff.gradient(θ->errors(F,z,θ,targets;p=p,kwargs...),θ) + deformation(F,z,θ)'ForwardDiff.gradient(z->errors(F,z,θ,targets;p=p,kwargs...),z)
+	return ∇errors + errors(F,z,θ,targets;p=p,kwargs...)*∇region(F,z,θ)
+end, errors)
 
 ∇weight = Gradient(function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs...)
 	∇weight = ForwardDiff.gradient(θ->weight(F,z,θ,targets; kwargs...),θ) + deformation(F,z,θ)'ForwardDiff.gradient(z->weight(F,z,θ,targets; kwargs...),z)
