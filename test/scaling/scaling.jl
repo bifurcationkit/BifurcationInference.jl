@@ -17,25 +17,19 @@ function rates(u::AbstractVector{T},parameters::NamedTuple,N::Int,M::Int) where 
 	return F
 end
 
-targetData = StateSpace(-π:0.01:π,Ref([0.0]))
-hyperparameters = getParameters(targetData)
 
 function benchmark(N::Int,M::Int)
+
 	F = (u,p) -> rates(u,p,N,M)
+	targetData = StateSpace(N,-π:0.01:π,[0.0])
+	θ = SVector{M}(ones(M))
 
-	parameters = ( θ=ones(M), p=-π )
-	u₀ = [ [ones(N)], [-ones(N)] ]
-
-	steady_states = deflationContinuation( F, u₀, parameters, hyperparameters )
-	θ = Ref(parameters.θ)
-	F = Ref(F)
-
-	@time ∇loss( F, steady_states, θ, targetData.targets )
-	return @elapsed ∇loss( F, steady_states, θ, targetData.targets )
+	println("N = $N M = $M")
+	@time ∇loss( F, θ, targetData )
+	return @elapsed  ∇loss( F, θ, targetData )
 end
 
-pyplot()
-heatmap( 1:2, 1:10:41, benchmark,
+heatmap( 1:5, 1:5, benchmark,
 	xlabel="States", ylabel="Parameters", size=(500,400),
 	colorbar_title="Iteration Execution / sec"
 )

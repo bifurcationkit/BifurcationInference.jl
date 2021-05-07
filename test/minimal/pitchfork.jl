@@ -5,7 +5,7 @@ function rates(u::AbstractVector,parameters::NamedTuple)
 	f = first(u)*first(p)*first(θ)
 	F = similar(u,typeof(f))
 
-	F[1] = θ[1] + p*u[1] + θ[1]*u[1]^3
+	F[1] = θ[1] + p*u[1] + θ[2]*u[1]^3
 	F[2] = u[1] - u[2] # dummy second dimension
 
 	return F
