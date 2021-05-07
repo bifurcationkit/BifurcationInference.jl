@@ -1,8 +1,8 @@
 ######################################################## unit test
 ∧(u::AbstractVector,v::AbstractVector) = u*v' - v*u'
 
-function random_test(rates::Function,targetData::StateSpace; nSamples::Int=10,
-	order::Int=5, condition::Int=100, geom::Bool=true, tolerance::Number=1e-2)
+function random_test(rates::Function,targetData::StateSpace; nSamples::Int=25,
+	order::Int=5, condition::Int=100, geom::Bool=true, tolerance::Number=2e-2)
 	hyperparameters = getParameters(targetData)
 
 	function finite_differences(θ::AbstractVector{<:Number})
