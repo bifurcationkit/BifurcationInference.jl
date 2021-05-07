@@ -20,7 +20,7 @@ errors = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector,
 end)
 
 weight = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; α::Real=1e3, kwargs... )
-	return exp( -α*det(∂Fu(F,z,θ))^2 )
+	return exp( -α*det(F,z,θ)^2 )
 end)
 
 curvature = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs... )

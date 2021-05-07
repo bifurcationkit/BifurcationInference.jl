@@ -75,7 +75,15 @@ end
 
 # augmented jacobian
 function ∂Fz(F::Function,z::BorderedArray,θ::AbstractVector)
-	return ForwardDiff.jacobian( z -> F( z[Not(end)], (θ=θ,p=z[end]) ), [z.u; z.p] )
+	return ForwardDiff.jacobian( z -> F( z.u, (θ=θ,p=z.p) ), z )
+end
+
+########################################################################### determinants
+import LinearAlgebra: det
+det(F::Function,z::BorderedArray,θ::AbstractVector) = det(∂Fu(F,z,θ))
+
+function ∂det(F::Function,z::BorderedArray,θ::AbstractVector)
+	return ForwardDiff.gradient(z->det(F,z,θ),z)
 end
 
 ############################################################# autodiff wrappers for BorderedArray
