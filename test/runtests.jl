@@ -17,10 +17,3 @@ include("utils.jl")
 		@test @time random_test(rates,targetData)
 	end
 end
-
-@testset "Applied Models" begin
-
-	@testset "Two State" begin include("applied/two-state.jl")
-		@test @time random_test(rates,targetData)
-	end
-end
