@@ -14,20 +14,13 @@ arch:
 cache:
   directories:
     - ~/.julia/artifacts
+script:
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - travis_wait 45 julia --project --color=yes --check-bounds=yes -e 'using Pkg; Pkg.instantiate(); Pkg.build(; verbose = true); Pkg.test( ; coverage=true)';
 jobs:
   fast_finish: true
   allow_failures:
     - julia: nightly
-after_success:
-  - |
-    julia -e '
-      using Pkg
-      Pkg.add("Coverage")
-      using Coverage
-      Codecov.submit(process_folder())'
-  - |
-    julia -e '
-      using Pkg
-      Pkg.add("Coverage")
-      using Coverage
-      Coveralls.submit(process_folder())'
+    - os: windows
+codecov: true
+coveralls: true

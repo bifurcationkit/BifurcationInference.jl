@@ -12,7 +12,7 @@ function ∇loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractV
 	K = curvature(F,branches,θ,targets;kwargs...)
 	∇K = ∇curvature(F,branches,θ,targets;kwargs...)
 
-	return L + (2N-M)/(1+abs(K)), ∇L - sign(K)*(2N-M)/(1+abs(K))^2 * ∇K
+	return L - (2N-M)*log(K), ∇L - (2N-M)*∇K/K
 end
 
 ################################################################################

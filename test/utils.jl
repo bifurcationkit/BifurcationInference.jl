@@ -17,7 +17,11 @@ function random_test(rates::Function,targetData::StateSpace; nSamples::Int=25,
 
 	samples,errors = [ convert(typeof(θ),randn(length(θ))) for _ ∈ 1:nSamples ], fill(NaN,nSamples)
 	Threads.@threads for i = 1:nSamples
-		errors[i] = norm( autodiff(samples[i]) ∧ finite_differences(samples[i]) ) / norm(finite_differences(samples[i]))
+		try 
+			errors[i] = norm( autodiff(samples[i]) ∧ finite_differences(samples[i]) ) / norm(finite_differences(samples[i]))
+		catch error
+			printstyled(color=:red,"$error\n")
+		end
 	end
 
 	println("Median Error $(round(median(errors[.~isnan.(errors)]),digits=2))% for $(length(errors[.~isnan.(errors)])) samples")

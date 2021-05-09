@@ -8,7 +8,7 @@ function loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVect
 	L = sum( p -> exp( errors(F,branches,θ,targets;p=p,kwargs...)/ω ), targets.targets ) / N
 	K = curvature(F,branches,θ,targets;kwargs...)
 
-	return L + (2N-M)/(1+abs(K))
+	return L - (2N-M)*log(K)
 end
 
 ################################################################################
@@ -24,15 +24,7 @@ weight = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector,
 end)
 
 curvature = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs... )
-
-	∂det = ForwardDiff.gradient(z->det(∂Fu(F,z,θ)),z)
-	∂∂det = ForwardDiff.hessian(z->det(∂Fu(F,z,θ)),z)
-
-	# tangent field basis
-	Jz = ForwardDiff.jacobian(z->tangent_field(F,z,θ),z)
-	Tz = tangent_field(F,z,θ)
-
-	return (Tz'∂∂det*Tz + ∂det'Jz*Tz)^2
+	return 1 / ( 1 + abs( det(F,z,θ) / ∂det(F,z,θ)'tangent_field(F,z,θ) ) )
 end)
 
 ################################################################################
