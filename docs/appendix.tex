@@ -1,5 +1,22 @@
+\section{Supplementary Figures}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=5cm]{implicit-surfaces}
+\caption{Two implicit surfaces $f_{\theta}(z)=0$ and $g_{\theta}(z)=0$ in $\mathbb{R}^3$ intersecting to form a space curve which is tangent to field $\tangent(z)$ and perpendicular to gradients $\partial_{z}f_{\theta}$ and $\partial_{z}g_{\theta}$}
+\label{fig:implicit-surfaces}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=5cm]{implicit-surfaces}
+\caption{Curvature of the determinant $\curvature$ diverging as saddle-node bifurcations emerge from a smooth steady state manifold}
+\label{fig:diverging-curvature}
+\end{figure}
+
 \section{Gradient of Space Curve}
 \label{appendix:space-curve}
+
 Suppose there exists a one dimensional space curve $\mathcal{C(\theta)}$ embedded in $z\in\Reals^{N+1}$ whos geometry changes depending on input parameters $\theta\in\Reals^M$. This curve could be open or closed and changes in $\theta$ could change the curve topology as well. Let the function $\gamma_{\theta}:\Reals\rightarrow\Reals^{N+1}$ be a parameterisation of the position vector along the curve within a fixed domain $s\in\mathcal{S}$. Note that the choice of parameterisation is arbitrary and our results should not depend on this choice. Furthermore, if we parametrise the curve $\mathcal{C}(\theta)$ with respect to a fixed domain $\mathcal{S}$ the dependence on $\theta$ is picked up by the parameterisation $\gamma_{\theta}(s)$. We can write a line integral of any scalar function $L_{\theta}:\Reals^{N+1}\rightarrow\Reals$ on the curve as
 \begin{align}
     L(\theta):=
@@ -103,3 +120,28 @@ To summarise we now have the gradient of our line integral only in terms of the 
     \frac{\partial F}{\partial\theta}
 \end{align}
 We have settled on choosing normal deformations which we will call $\varphi_\theta(z)$. The above result can be seen a the generalised Leibniz rule \cite{Flanders1973DifferentiationSign} for the case of line integration regions. The last integrand term can be seen as the divergence the vector field $\varphi_\theta(z)$ projected onto the one dimensional space curve.
+
+
+\section{Simplification of two-state model}
+
+Consider the general two-state model:
+\begin{equation}
+    \dfrac{dv_i}{dt} = \dfrac{a_i + b_i (K_i v_j)^2}{1 + (K_i v_j)^2} - \mu_i v_i
+\end{equation}
+
+Without loss of generality, we can rescale $v_i = U_i u_i$. Then,
+\begin{equation}
+    \dfrac{U_idu_i}{dt} = \dfrac{a_i + b_i (K_i U_j u_j)^2}{1 + (K_i U_j u_j)^2} - \mu_i U_i u_i
+\end{equation}
+
+Dividing through by $U_i$, we obtain
+\begin{equation}
+    \dfrac{du_i}{dt} = \dfrac{\frac{a_i}{U_i} + \frac{b_i}{U_i} (K_i U_j u_j)^2}{1 + (K_i U_j u_j)^2} - \mu_i u_i
+\end{equation}
+
+By choosing $U_i = b_i$, the model reduces to:
+\begin{equation}
+    \dfrac{du_1}{dt} = \dfrac{\hat{a}_1 + (p u_2)^2}{1 + (p u_2)^2} - \mu_1 u_1, \quad
+    \dfrac{du_2}{dt} = \dfrac{\hat{a}_2 + (k u_1)^2}{1 + (k u_1)^2} - \mu_2 u_2
+\end{equation}
+where $p = \frac{K_1}{\sqrt{b_1}}$ and $k = \frac{K_2}{\sqrt{b_2}}$.
