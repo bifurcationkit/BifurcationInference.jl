@@ -67,7 +67,7 @@ For a given set of parameters $\theta$ one could compute the set of predicted bi
 \end{align}
 The optimal $\theta^*$ is not expected to always be unique, but is in general a manifold representing the space of qualitatively equivalent models. The cost function $\loss$ must have some distance measure between the two sets $\predictions(\theta)$ and $\targets$ with a bias that encourages equivalent cardinality $|\predictions(\theta)|=|\targets|$. This is especially important in the case where there are no predictions $|\predictions(\theta)|=0$.
 
-For clarity, we guide the reader through the methods with the following minimal models that explore the space of saddle-nodes $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ and pitchforks $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$. These minimal models are shown with targets $\targets$ in Figure \ref{fig:saddle-node} and Figure \ref{fig:pitchfork} respectively. These figures show that the directional derivative of the determinant $\frac{d}{ds}\Det$ along the bifurcation curve $s$ increases in the vicinity of bifurcations and $\Det=0$ at the bifurcations. This gives us our first hint of what should be optimised to increase the number of predictions $|\predictions(\theta)|$.
+For clarity, we guide the reader through the methods with the following minimal models that explore the space of saddle-nodes $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ and pitchforks $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$. These minimal models are shown with targets $\targets$ in Figure \ref{fig:saddle-node} and Figure \ref{fig:pitchfork} respectively. These figures show that the directional derivative of the determinant $\frac{d}{ds}\Det$ along the bifurcation curve $s$ increases in the vicinity of bifurcations and that $\Det=0$ at the bifurcations. This gives us our first hint of what should be optimised to increase the number of predictions $|\predictions(\theta)|$.
 
 \begin{figure}
 \centering
@@ -102,12 +102,13 @@ We can see from Figures \ref{fig:saddle-node} and \ref{fig:pitchfork} that predi
 \end{align}
 The supervised term is equal to one when there are no predictions $|\predictions|=0$; the exponent is zero because the constraint $\Det=0$ along the curve $\rates(z)=0$ is never satisfied in the integration. It is equal to zero when $|\predictions|\geq|\targets|$ and all targets are matched by at least one prediction. Note that we dropped the explicit dependency on $\theta$ in counting the predictions $|\predictions|$. While the dependence still exists, gradients of this term with respect to $\theta$ are zero everywhere, and not defined when the number of predictions changes; the smooth dependency on $\theta$ is now picked up by the constraint $\Det=0$.
 
-We note that at bifurcation points the determinant go to zero $\Det=0$ while its derivative with respect to the curve is finite $\curvature$ with respect to the bifurcation curve Figure \ref{fig:bifurcation-probability}. The total curvature can be written as 
+We note that at bifurcation points the determinant go to zero $\Det=0$ while its derivative with respect to the bifurcation curve $s$ is finite $\frac{d}{ds}\Det\neq 0$. We can use these quantities to create a scale-invariant measure of the zero crossing density of the determinant. Figure \ref{fig:bifurcation-measure} shows an example of such a measure. Let us define the bifurcation density as
 \begin{align}
-    K(\theta):=
+    P(\theta):=\frac{1}{\int_{\rates(z)=0}\!\
+    \mathrm{d}u\mathrm{d}p\,}
     \int_{\rates(z)=0}\!\!\!\!\!\!\!\!\!\!\!\!
     \mathrm{d}u\mathrm{d}p\,
-    \left(\curvature\right)^2
+    \left(1+\left|\frac{\Det}{\frac{d}{ds}\Det}\right|\right)^{-1}
     \label{eq:curvature}
 \end{align}
 This curvature can be maximised to encourage bifurcations and should be used in the unsupervised term to allow an optimiser to follow non-zero gradients in parameter regimes $\theta$ far away from a bifurcating regime $|\predictions|=0$. The number of bifurcations must be reduced however, in cases where $|\predictions|>|\targets|$. A term of the following form emerges
