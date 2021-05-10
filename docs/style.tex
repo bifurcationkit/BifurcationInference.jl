@@ -1,42 +1,31 @@
-\documentclass{article}[12pt]
-\renewcommand{\baselinestretch}{1.5}
-\setlength{\parskip}{1em}
+\documentclass{article}
+\PassOptionsToPackage{numbers,compress}{natbib}
+\usepackage{lipsum}
 
-\usepackage[parfill]{parskip}
-\usepackage[affil-it]{authblk}
-\usepackage[space]{grffile}
+% \usepackage{neurips_2021}
+\usepackage[preprint]{neurips_2021}
+% \usepackage[final]{neurips_2021}
 
-\usepackage[a4paper]{geometry}
+\usepackage[T1]{fontenc}
 \usepackage[latin1]{inputenc}
-\usepackage[english]{babel}
+\usepackage{url}
 
-\geometry{verbose}
-\usepackage{float}
-\usepackage{graphicx}
-\usepackage{setspace}
-\usepackage{caption}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=blue,
+    citecolor=blue,      
+    urlcolor=cyan,
+}
 
-\usepackage{latexsym,textcomp,longtable,tabulary}
-\usepackage{booktabs,array,multirow,braket}
-\usepackage{amsfonts,amsmath,amssymb,mathbbol,calc,cancel}
-\usepackage{subfigure,color,blindtext,enumitem,siunitx}
-\usepackage[ruled,vlined]{algorithm2e}
-\usepackage[colorinlistoftodos]{todonotes}
-
-\usepackage{appendix}
-\usepackage{mathtools}
-\usepackage{url,hyperref,etoolbox}
-\numberwithin{equation}{section}
-\hypersetup{colorlinks=false,pdfborder={0 0 0}}
-
-%+figure layout options
-\restylefloat{figure}
-\setlist{leftmargin=*,before=\setlength{\rightmargin}{\leftmargin}}
+\usepackage{graphicx,float}
 \graphicspath{{./figures/}{docs/figures/}}
 
-\providecommand\citet{\cite}
-\providecommand\citep{\cite}
-\providecommand\citealt{\cite}
+\usepackage{booktabs,amsmath,amsfonts}
+\usepackage{nicefrac,microtype}
+\usepackage{xcolor}
 
-\makeatletter
-\makeatother
+\usepackage[ruled,vlined]{algorithm2e}
+\numberwithin{equation}{section}
+\numberwithin{figure}{section}
