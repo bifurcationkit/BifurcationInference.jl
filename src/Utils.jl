@@ -92,7 +92,7 @@ function plot(steady_states::Vector{<:Branch}; padding=0.2, displayPlot=true)
 	pMin,pMax = ( pMin+(pMin+pMax)*padding )/(1+2padding),( pMax+(pMin+pMax)*padding )/(1+2padding)
 	unpadded_parameter = pMin:pMax
 
-	plot(xlabel=L"\mathrm{parameter,}p", grid=false, right_margin=20mm, size=(500,400) )
+	plot(xlabel=L"\mathrm{parameter,}p", grid=false, right_margin=20mm, size=(500,450) )
 	right_axis = twinx()
 
     for branch ∈ steady_states
@@ -104,14 +104,14 @@ function plot(steady_states::Vector{<:Branch}; padding=0.2, displayPlot=true)
 		for idx ∈ 1:dim(branch)
 
 			plot!( parameter, map(s->s.z.u[idx],branch), linewidth=2, label="",
-				ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(u,p)=0",
+				ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(u,p)=0", grid=false,
 				alpha=map( s->window_function(unpadded_parameter,s.z), branch ),
 				color=map( stable -> stable ? :darkblue : :lightblue, stability )
 			)
 		end
 
-		plot!(right_axis, parameter, determinants, linewidth=2, label="",
-        	ylabel=L"\mathrm{determinant}\,\,\Delta_{\theta}(u,p)",
+		plot!(right_axis, parameter, -determinants, linewidth=2, label="", grid=false,
+        	ylabel=L"\mathrm{determinant}\,\quad\left|\!\!\!\!\frac{\partial F_{\theta}}{\partial u}\right|",
 			alpha=map( s->window_function(unpadded_parameter,s.z), branch ),
             color=map( stable -> stable ? :red : :pink, stability )
 		)
