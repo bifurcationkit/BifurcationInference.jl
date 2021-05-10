@@ -101,7 +101,12 @@ We can see from Figures \ref{fig:saddle-node} and \ref{fig:pitchfork} that predi
     \label{eq:supervised-term}
 \end{align}
 The supervised term is equal to one when there are no predictions $|\predictions|=0$; the exponent is zero because the constraint $\Det=0$ along the curve $\rates(z)=0$ is never satisfied in the integration. It is equal to zero when $|\predictions|\geq|\targets|$ and all targets are matched by at least one prediction. Note that we dropped the explicit dependency on $\theta$ in counting the predictions $|\predictions|$. While the dependence still exists, gradients of this term with respect to $\theta$ are zero everywhere, and not defined when the number of predictions changes; the smooth dependency on $\theta$ is now picked up by the constraint $\Det=0$.
-
+\begin{figure}
+    \centering
+    \includegraphics[width=10cm]{bifurcation-measure}
+    \caption{Measure $\measure(z)\rightarrow 1$ as bifurcations form where $\Det=0$}
+    \label{fig:bifurcation-measure}
+\end{figure}
 We note that at bifurcation points the determinant go to zero $\Det=0$ while its derivative with respect to the bifurcation curve $s$ is finite $\frac{d}{ds}\Det\neq 0$. We can use these quantities to create a scale-invariant measure of the zero crossing density of the determinant. Figure \ref{fig:bifurcation-measure} shows an example of such a measure. Let us define the bifurcation density as
 \begin{align}
     P(\theta):=\frac{1}{\int_{\rates(z)=0}\!\
