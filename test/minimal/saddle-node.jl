@@ -13,4 +13,5 @@ end
 
 ######################################################### targets and initial guess
 targetData = StateSpace( 2, -2:0.01:2, [1,-1] )
+hyperparameters = getParameters(targetData)
 θ = SizedVector{2}(5.0,-0.93)
