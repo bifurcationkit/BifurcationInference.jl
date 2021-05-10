@@ -67,7 +67,7 @@ For a given set of parameters $\theta$ one could compute the set of predicted bi
 \end{align}
 The optimal $\theta^*$ is not expected to always be unique, but is in general a manifold representing the space of qualitatively equivalent models. The cost function $\loss$ must have some distance measure between the two sets $\predictions(\theta)$ and $\targets$ with a bias that encourages equivalent cardinality $|\predictions(\theta)|=|\targets|$. This is especially important in the case where there are no predictions $|\predictions(\theta)|=0$.
 
-For clarity, we guide the reader through the methods with the following minimal models that explore the space of saddle-nodes $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ and pitchforks $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$. These minimal models are shown with targets $\targets$ in Figure \ref{fig:saddle-node} and Figure \ref{fig:pitchfork} respectively. These figures show that the directional derivative of the determinant $\frac{d}{ds}\Det$ along the bifurcation curve $s$ increases in the vicinity of bifurcations and that $\Det=0$ at the bifurcations. This gives us our first hint of what should be optimised to increase the number of predictions $|\predictions(\theta)|$.
+For clarity, we guide the reader through the methods with the following minimal models that explore the space of saddle-nodes $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ and pitchforks $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$. These minimal models are shown with targets $\targets$ in Figure \ref{fig:saddle-node} and Figure \ref{fig:pitchfork} respectively. These figures show that the determinant $\Det=0$ at the bifurcations and that its directional derivative along the bifurcation curve $\frac{d}{ds}\Det$ is finite and non-zero, at least in the non-degenerate case. This gives us our first hint of what should be optimised to increase the number of predictions $|\predictions(\theta)|$.
 
 \begin{figure}
 \centering
@@ -121,7 +121,7 @@ This curvature can be maximised to encourage bifurcations and should be used in 
     \big(|\targets|-|\predictions|\big)f \circ K(\theta)
     \quad\mathrm{where}\quad f(x)> 0 \quad f(-x)=f(x)\quad\lim_{x\rightarrow\infty}f(x)=0
 \end{align}
-In makes sense compose the curvature $K$ with a positive definite symmetric function $f$ that goes to zero as the curvature diverges. The pre-factor ensures that the gradients are always pushing optimisers towards a state where $|\targets|=|\predictions|$. The remaining questions are: what should $f(0)$ be? How fast do we want the function to decay? These are implementation details that are discussed in section \ref{section:implementation}. In order to compute the curvature $\curvature$ a differentiable representation of the bifurcation curve is needed. The following sections \ref{section:tangent-fields} and \ref{section:curvature} outline how this can be done.
+In makes sense compose the curvature $K$ with a positive definite symmetric function $f$ that goes to zero as the curvature diverges. The pre-factor ensures that the gradients are always pushing optimisers towards a state where $|\targets|=|\predictions|$. The remaining questions are: what should $f(0)$ be? How fast do we want the function to decay? These are implementation details that are discussed in section \ref{section:implementation}. In order to compute the curvature a differentiable representation of the bifurcation curve is needed. The following sections \ref{section:tangent-fields} and \ref{section:curvature} outline how this can be done.
 
 % While the unsupervised integrand has an smooth analytic expression, such as those evaluated in \eqref{eq:curvature-examples}, the constraint $\Det=0$ in the first integral makes differentiation with respect to $\theta$ more tricky. Here it becomes convenient to re-express the constraint as a delta function $\delta(z)$ and applying Lebesgue's dominated convergence theorem yielding
 % \begin{align}
@@ -199,9 +199,9 @@ Bifurcation points are defined as values of $z$ along the bifurcation curve wher
 \end{align}
 crossing zero can be used as a readout of whether a bifurcation has occurred. Figure \ref{fig:determinant-curvature} reveals this is indeed also true for any value $z$ --- not just along $\rates(z)=0$ --- for the saddle-node and pitchfork. The tangent field $\tangent(z)$ only folds when $\Det=0$. Plotting the value of the determinant along $\rates(z)=0$ from Figure \ref{fig:determinant-curvature} would give rise to Figures \ref{fig:saddle-node} and \ref{fig:pitchfork}.
 
-Consequently the curvature of the determinant $\curvature$ along the tangent field $\tangent(z)$ in the vicinity of bifurcations tends to increase. Fortunately this curvature can always be obtained in closed analytical form. The second directional derivative with respect to tangent field $\tangent(z)$
+Consequently the curvature of the determinant along the tangent field $\tangent(z)$ in the vicinity of bifurcations tends to increase. Fortunately this curvature can always be obtained in closed analytical form. The second directional derivative with respect to tangent field $\tangent(z)$
 \begin{align}
-    \curvature &:=
+    K &:=
     \bigg(
         \partial_z\left(
             \partial_z\Det \cdot \hat{\tangent}
@@ -225,7 +225,7 @@ Consequently the curvature of the determinant $\curvature$ along the tangent fie
 The first term in the expression above is the usual result involving the Hessian matrix $\partial_z^2\Det$ when taking second order directional derivatives. The second term involving the gradient $\partial_z\Det$ appears because $\hat{\tangent}(z)$ is a function of $z$ giving rise to a non-zero Jacobian matrix $\partial_z \hat{\tangent}$. Using expressions for tangent fields \eqref{eq:tangent-field-examples} the determinant curvatures for our models become
 \begin{align}
     \underset{\qquad\qquad\mathrm{saddle-node\,\,model}}{
-    \curvature\quad=
+    \quad=
     -\frac{6 \theta_2 \left(\theta _1^2-9 \theta _2^2 u^4+1\right)}
     {\left(\left(\theta _1+3 \theta _2 u^2\right){}^2+1\right){}^2}}
     \quad
