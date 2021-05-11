@@ -4,3 +4,11 @@
 *.jl.mem
 
 .vscode
+docs/article.aux
+docs/article.bbl
+docs/article.blg
+docs/article.fdb_latexmk
+docs/article.fls
+docs/article.log
+docs/article.out
+docs/article.synctex.gz
