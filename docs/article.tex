@@ -255,12 +255,10 @@ Optimisation trajectories for the two minimal models appear mostly circumferenti
 \end{figure}
 
 \subsection{Genetic Toggle Switch}
-In this section we optimise a more complicated model, popular in the synthetic biology community
+In this section we optimise a model where the states share a Hill function relationship; these models often emerge from mass action kinetics and are used to model species concentrations. By not restricting the sign of the coefficients $a_1,a_2$ we can recover both activator and inhibitor relationships.
 \begin{equation}
-    %\dfrac{du_1}{dt} = \dfrac{a_1} { 1 + (p u_2)^2 } - \mu_1 u_1, \quad
-    %\dfrac{du_2}{dt} = \dfrac{a_2} { 1 + (k u_1)^2 } - \mu_2 u_2
-    \dfrac{du_1}{dt} = \dfrac{a_1 + (p u_2)^2} { 1 + (p u_2)^2 } - \mu_1 u_1, \quad
-    \dfrac{du_2}{dt} = \dfrac{a_2 + (k u_1)^2} { 1 + (k u_1)^2 } - \mu_2 u_2
+    \partial_t u_1 = \frac{\varepsilon_1 + a_1 u_2^2} { p^2 + u_2^2 } - \mu_1 u_1 \quad
+    \partial_t u_2 = \frac{\varepsilon_2 + a_2 u_1^2} { k^2 + u_1^2 } - \mu_2 u_2
 \end{equation}
 
 
