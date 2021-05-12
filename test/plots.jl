@@ -1,8 +1,11 @@
-using Plots
+using Plots,FiniteDifferences
+using LinearAlgebra: norm
+using StatsBase: median
+
 function grid_test(name; xlim=(-5,5),ylim=(-5,5),ϵ=-1e-1,order=5,threshold=0.05)
 
 	hyperparameters = getParameters(targetData)
-	parameters = zero(θ)
+	parameters = copy(θ)
 
 	function ∇cost(x::Number,y::Number)
 		parameters[1:2] .= x,y
@@ -19,7 +22,7 @@ function grid_test(name; xlim=(-5,5),ylim=(-5,5),ϵ=-1e-1,order=5,threshold=0.05
 		return L
 	end
 
-	figure = plot(size=(600,600), xlim=xlim, ylim=ylim, xlabel="parameters, θ")
+	plot(size=(600,600), xlim=xlim, ylim=ylim, xlabel="parameters, θ")
 	x,y = range(xlim...,length=50), range(ylim...,length=50)
 	contour!( x, y, cost, alpha=0.5 )
 
@@ -37,10 +40,10 @@ function grid_test(name; xlim=(-5,5),ylim=(-5,5),ϵ=-1e-1,order=5,threshold=0.05
 	quiver!( xGrid, yGrid, quiver=(ϵ*step(x)*first.(gradients),ϵ*step(y)*last.(gradients)),
 		color=:gold, lw=2 )
 
-	errors = norm.(differences .∧ gradients) ./ norm.(differences)
+	errors = norm.(differences .- gradients) ./ norm.(differences)
 	errors = errors[.~isnan.(errors)]
 
-	plot!([],[],color=:gold, lw=3, label="ForwardDiff", title="Median Error $(round(median(errors),digits=2))%")
+	plot!([],[],color=:gold, lw=3, label="ForwardDiff", title="Median Error $(100*round(median(errors),digits=2))%")
 	plot!([],[],color=:darkblue, lw=3, label="Central Differences")
 	savefig(name)
 end
