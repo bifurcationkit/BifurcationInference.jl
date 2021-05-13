@@ -97,7 +97,7 @@ In order for predicted bifurcations $p\in\predictions(\theta)$ to match targets 
 \begin{align}
     \frac{1}{|\targets|}\sum_{p'\in\targets}
     \left(\prod_{p\in\predictions(\theta)}|p-p'|\right)
-    ^{\frac{1}{|\predictions|+1}}
+    ^{\frac{1}{|\predictions|}}
 \end{align}
 We can see from Figures \ref{fig:saddle-node} and \ref{fig:pitchfork} that predictions $\predictions(\theta)$ can be identified by looking for points $p$ along the curve where the determinant $\Det=0$. Meanwhile the directional derivative along the bifurcation curve is finite $\frac{d}{ds}\Det\neq 0$ in the non-degenerate case. Using these quantities we can define a positive semi-definite measure $\measure(z)$ of zero crossings in the determinant along the bifurcation curve; as shown in Figure \ref{fig:bifurcation-measure} this can be used as a proxy for the probability of a bifurcation at location $p$ for a given set of parameters $\theta$. The total bifurcation measure $\Psi(\theta)$ is written
 \begin{align}
@@ -117,7 +117,7 @@ Here we denote $\int_{\rates(z)=0}\mathrm{d}z$ as the sum of the line integrals 
 \begin{align}
     \frac{1}{|\targets|}\sum_{p'\in\targets}
     \exp\left[
-        \frac{1}{|\predictions|+1}
+        \frac{1}{\int_{\rates(z)=0}\!\measure(z)\,\mathrm{d}z}
             \int_{\rates(z)=0}\!\!\!\!\!\!\!\!\!\!\!\!\!\quad\measure(z)\,\,\log|p-p'|
         \,\mathrm{d}z
     \right]
