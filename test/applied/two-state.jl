@@ -2,17 +2,18 @@
 function rates(u::AbstractVector,parameters::NamedTuple)
 
 	@unpack θ,p = parameters
-	μ₁,μ₂, a₁,a₂, k₁,k₂, ϵ₁ = θ
+	μ₁,μ₂, a₁,a₂, k = θ
 
 	f = first(u)*first(p)*first(θ)
 	F = similar(u,typeof(f))
 
-	F[1] = ( ϵ₁ + a₁*u[2]^2 ) / ( k₁^2 + u[2]^2 ) - μ₁*u[1]
-	F[2] = ( p  + a₂*u[1]^2 ) / ( k₂^2 + u[1]^2 ) - μ₂*u[2]
+	F[1] = ( 10^a₁ + (p*u[2])^2 ) / ( 1 + (p*u[2])^2 ) - u[1]*10^μ₁
+	F[2] = ( 10^a₂ + (k*u[1])^2 ) / ( 1 + (k*u[1])^2 ) - u[2]*10^μ₂
 
 	return F
 end
 
 ######################################################### targets and initial guess
-targetData = StateSpace( 2, 0:0.01:8, [4,5] )
-θ = SizedVector{7}(4.0,4.0, 0.0,0.0, 1.0,1.0, 5.0)
+targetData = StateSpace( 2, 0:0.01:10, [4,5] )
+hyperparameters = getParameters(targetData)
+θ = SizedVector{5}(1.0,1.0, 1.0,1.0, 1.0)
