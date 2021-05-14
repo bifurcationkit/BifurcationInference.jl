@@ -89,15 +89,16 @@ For clarity, we guide the reader through the methods with the following minimal 
 \begin{figure}
     \centering
     \includegraphics[width=10cm]{bifurcation-measure}
-    \caption{Measure $\measure(z)\rightarrow 1$ as bifurcations form where $\Det\rightarrow0$ for two different $\theta$}
+    \caption{Bifurcation measure $\measure(z)$ shown as a gold thickness envelope. The thicker the envelope the larger the value of the measure at that location in the curve. Three curves are shown for three different values $\theta$, demonstrating how maximising $\measure(z)$ along the curve encourages new bifurcations}
     \label{fig:bifurcation-measure}
 \end{figure}
 
-In order for predicted bifurcations $p\in\predictions(\theta)$ to match targets $p'\in\targets$ we need to evaluate some form of error term $|p-p'|$ on the bifurcation curve defined by $\rates(z)=0$. We expect the supervised term to be some mean over the targets $\targets$ and predictions $\predictions(\theta)$. We choose a geometric mean over the predictions and an arithmetic mean over targets to account for cases where $|\predictions|\neq|\targets|$ and discourage multiple predictions matching the same target in cases where $|\predictions|>|\targets|$
+In order for predicted bifurcations $p\in\predictions(\theta)$ to match targets $p'\in\targets$ we need to evaluate some form of error term $|p-p'|$ on the bifurcation curve defined by $\rates(z)=0$. We expect the supervised term to be some mean over the targets $\targets$ and predictions $\predictions(\theta)$. We choose a geometric mean over the predictions and an arithmetic mean over targets to account for cases where $|\predictions|\neq|\targets|$ and discourage multiple predictions matching the same target in cases where $|\predictions|\geq|\targets|$. This term is equal to zero when all targets are matched by at least one prediction
 \begin{align}
     \frac{1}{|\targets|}\sum_{p'\in\targets}
     \left(\prod_{p\in\predictions(\theta)}|p-p'|\right)
     ^{\frac{1}{|\predictions|}}
+    \label{eq:supervised-term}
 \end{align}
 We can see from Figures \ref{fig:saddle-node} and \ref{fig:pitchfork} that predictions $\predictions(\theta)$ can be identified by looking for points $p$ along the curve where the determinant $\Det=0$. Meanwhile the directional derivative along the bifurcation curve is finite $\frac{d}{ds}\Det\neq 0$ in the non-degenerate case. Using these quantities we can define a positive semi-definite measure $\measure(z)$ of zero crossings in the determinant along the bifurcation curve; as shown in Figure \ref{fig:bifurcation-measure} this can be used as a proxy for the probability of a bifurcation at location $p$ for a given set of parameters $\theta$. The total bifurcation measure $\Psi(\theta)$ is written
 \begin{align}
@@ -113,24 +114,29 @@ We can see from Figures \ref{fig:saddle-node} and \ref{fig:pitchfork} that predi
     \left(1+\left|\frac{\Det}{\frac{d}{ds}\Det}\right|\right)^{-1}
     \label{eq:measure}
 \end{align}
-Here we denote $\int_{\rates(z)=0}\mathrm{d}z$ as the sum of the line integrals in $z\in\Reals^{N+1}$ defined by the steady states $\rates(z)=0$. The measure $\measure(z)=1$ at bifurcation points and goes to zero an odd number of times between bifurcations. This is because $\Det$ must eventually turn around in order to return back to zero, resulting in $\frac{d}{ds}\Det\rightarrow0$ and hence $\measure(z)\rightarrow0$ for each turning point. As $\Det$ diverges we approach regimes far away from any closest bifurcation and hence $\measure(z)\rightarrow0$. We would still like to have non-zero gradients with respect to $\theta$ in this regime, and therefore $\measure(z)$ was designed to go to zero slowly. The total measure $\Psi(\theta)$ is normalised such that $\Psi(\theta)\rightarrow1$ in the regimes where the observed parameter region $p$ is densely packed with bifurcations. In section \ref{section:measure} we will see that $\measure(z)$ is also invariant under certain classes of transformations on $\rates(z)$ which do not change bifurcation locations. With this measure in hand, the supervised term can be re-written as an explicit integration over the bifurcation curve
+Here we denote $\int_{\rates(z)=0}\mathrm{d}z$ as the sum of the line integrals in $z\in\Reals^{N+1}$ defined by the steady states $\rates(z)=0$. The measure $\measure(z)=1$ at bifurcation points and goes to zero an odd number of times between bifurcations. This is because $\Det$ must eventually turn around in order to return back to zero, resulting in $\frac{d}{ds}\Det\rightarrow0$ and hence $\measure(z)\rightarrow0$ for each turning point. As $\Det$ diverges we approach regimes far away from any closest bifurcation and hence $\measure(z)\rightarrow0$. We would still like to have non-zero gradients with respect to $\theta$ in this regime, and therefore $\measure(z)$ was designed to go to zero slowly. The total measure $\Psi(\theta)$ is normalised such that $\Psi(\theta)\rightarrow1$ in the regimes where the observed parameter region $p$ is densely packed with bifurcations. In Appendix \ref{appendix:measure} we see that $\measure(z)$ is also invariant under certain classes of transformations on $\rates(z)$ which do not change bifurcation locations. The measure is added to the supervised term as if it were a likelihood; this defines the semi-supervised cost function as
+\begin{align}
+    \loss(\theta|\targets):=\frac{1}{|\targets|}\sum_{p'\in\targets}
+    \left(\prod_{p\in\predictions(\theta)}|p-p'|\right)
+    ^{\frac{1}{|\predictions|}}\!\!\!
+    -\big(|\targets|-|\predictions|\big)\,\,\lambda \log\Psi(\theta)
+    \label{eq:cost}
+\end{align}
+The pre-factor $|\targets|-|\predictions|$ in the unsupervised term ensures that the gradients are always pushing optimisers towards a state where $|\targets|=|\predictions|$. This can be seen as a step-wise annealing of the unsupervised term until the desired state is reached. Note that in principle while $\predictions(\theta)$ depends smoothly on $\theta$ the number of predictions $|\predictions|$ does not. The gradient $\partial_{\theta}|\predictions|=0$ everywhere and is an infinite impulse at locations where the number of predictions changes. In practice optimisers are unlikely to reach those locations and we can safely drop the dependency on $\theta$. The supervised term must be re-written in such a way so that we may explicitly differentiate the cost with respect to $\theta$. This can be done in the following way
 \begin{align}
     \frac{1}{|\targets|}\sum_{p'\in\targets}
+    \left(\prod_{p\in\predictions(\theta)}|p-p'|\right)
+    ^{\frac{1}{|\predictions|}}\!\!=\,\,
+    \frac{1}{|\targets|}\sum_{p'\in\targets}
     \exp\left[
-        \frac{1}{\int_{\rates(z)=0}\!\measure(z)\,\mathrm{d}z}
-            \int_{\rates(z)=0}\!\!\!\!\!\!\!\!\!\!\!\!\!\quad\measure(z)\,\,\log|p-p'|
-        \,\mathrm{d}z
+    \frac{1}{|\predictions|}\int_{\rates(z)=0\,\Det=0}
+    \!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!
+    \mathrm{d}z\quad
+    \log|p-p'|
     \right]
-    \label{eq:supervised-term}
+    \label{eq:supervised-rewrite}
 \end{align}
-The supervised term is equal to one when there are no predictions $|\predictions|=0$; the exponent is zero because the constraint $\Det=0$ along the curve $\rates(z)=0$ is never satisfied in the integration. It is equal to zero when $|\predictions|\geq|\targets|$ and all targets are matched by at least one prediction. Note that we dropped the explicit dependency on $\theta$ in counting the predictions $|\predictions|$. While the dependence still exists, gradients of this term with respect to $\theta$ are zero everywhere, and not defined when the number of predictions changes; the smooth dependency on $\theta$ is now picked up by the constraint $\Det=0$.
-
-This curvature can be maximised to encourage bifurcations and should be used in the unsupervised term to allow an optimiser to follow non-zero gradients in parameter regimes $\theta$ far away from a bifurcating regime $|\predictions|=0$. The number of bifurcations must be reduced however, in cases where $|\predictions|>|\targets|$. A term of the following form emerges
-\begin{align}
-    \big(|\targets|-|\predictions|\big)f \circ K(\theta)
-    \quad\mathrm{where}\quad f(x)> 0 \quad f(-x)=f(x)\quad\lim_{x\rightarrow\infty}f(x)=0
-\end{align}
-In makes sense compose the curvature $K$ with a positive definite symmetric function $f$ that goes to zero as the curvature diverges. The pre-factor ensures that the gradients are always pushing optimisers towards a state where $|\targets|=|\predictions|$. The remaining questions are: what should $f(0)$ be? How fast do we want the function to decay? These are implementation details that are discussed in section \ref{section:implementation}. In order to compute the curvature a differentiable representation of the bifurcation curve is needed. The following sections \ref{section:tangent-fields} and \ref{section:measure} outline how this can be done.
+In effect we have replaced the set representation $\predictions(\theta)$ with a line integral over the bifurcation curve $\rates(z)=0$ subject to constraint $\Det=0$. In Figure \ref{fig:determinant-field} we can indeed see that bifurcations $\predictions(\theta)$ are picked out by intersections between the two level sets. Now that the cost function is written in terms of line integrals $\int_{\rates(z)=0}\mathrm{d}z$ we need to know how to differentiate them with respect to $\theta$, differentiate along them as in equation \eqref{eq:measure} and know how to deal with constraint $\Det=0$. The following section shows how this can be done with a vector field representation of the bifurcation curve.
 
 \subsection{Bifurcation Curves as Tangent Fields}
 \label{section:tangent-fields}
@@ -169,7 +175,6 @@ since the determinant of any matrix with two identical rows or columns is zero. 
 \caption{Left/Right : Determinant $\Det$ and tangent field $\tangent(z)$ for the saddle-node/pitchfork models for some set values of $\theta$ revealing that $\Det=0$ defines bifurcations}
 \label{fig:determinant-field}
 \end{figure}
-
 Figure \ref{fig:determinant-field} shows how the bifurcation curve defined by $\rates(z)=0$ picks out one of many level sets or traces in tangent field $\tangent(z)$ for the saddle and pitchfork. The tangent field $\tangent(z)$ can always be analytically evaluated by taking the determinant in \eqref{eq:tangent-field}. We will proceed with calculations on $\tangent(z)$ in the whole space $z$ and pick out a single trace by solving $\rates(z)=0$ later. For our two models
 \begin{align}
     \underset{\mathrm{saddle-node\,\,model}}{
@@ -179,17 +184,11 @@ Figure \ref{fig:determinant-field} shows how the bifurcation curve defined by $\
     \tangent(z)=u\hat{u}-(\,3\theta_2 u^2+p\,)\,\hat{p}}
     \label{eq:tangent-field-examples}
 \end{align}
-
-\subsection{Evaluating the Measure}
-\label{section:measure}
-
-Figure \ref{fig:determinant-field} reveals that $\Det=0$ is also a level set and that the intersection with level set $\rates(z)=0$ defines the bifurcations at specific parameter $\theta$. In this particular setting we can see that the tangent field $\tangent(z)$ only folds when $\Det=0$. Plotting the value of the determinant along $\rates(z)=0$ from Figure \ref{fig:determinant-field} would give rise to Figures \ref{fig:saddle-node} and \ref{fig:pitchfork}.
-
-The directional derivative of the determinant $\Det$ along the tangent field $\tangent(z)$ is defined as
+Figure \ref{fig:determinant-field} reveals that $\Det=0$ is also a level set and that the intersection with level set $\rates(z)=0$ defines the bifurcations at specific parameter $\theta$. In this particular setting we can see that the tangent field $\tangent(z)$ only folds when $\Det=0$. Plotting the value of the determinant along $\rates(z)=0$ from Figure \ref{fig:determinant-field} would give rise to Figures \ref{fig:saddle-node} and \ref{fig:pitchfork}. The directional derivative of the determinant $\Det$ along the tangent field $\tangent(z)$ is defined as
 \begin{align}
     \frac{d}{ds}\Det := \hat{\tangent}(z) \cdot \frac{\partial}{\partial z}\Det 
 \end{align}
-where $\hat{\tangent}(z)$ is the unit tangent field
+where $\hat{\tangent}(z)$ is the unit tangent field. Finally, by applying the generalised Leibniz integral rule, it is also possible to use $\tangent(z)$ to evaluate gradients of line integrals  $\int_{\rates(z)=0}\mathrm{d}z$. In a similar vein to back-propagation through neural differential equations \cite{Chen2018NeuralEquations} we would like to be able to differentiate the cost $\loss(\theta|\targets)$ without having to differentiate through the operations of the solver that finds $\rates(z)=0$. Fortunately this is all possible if we apply a similar strategy to that used by implicit layers \cite{Look2020DifferentiableLayers}; see Appendix \ref{appendix:space-curve} and \ref{appendix:deformation} for derivations.
 
 
 % While the unsupervised integrand has an smooth analytic expression, such as those evaluated in \eqref{eq:curvature-examples}, the constraint $\Det=0$ in the first integral makes differentiation with respect to $\theta$ more tricky. Here it becomes convenient to re-express the constraint as a delta function $\delta(z)$ and applying Lebesgue's dominated convergence theorem yielding
@@ -200,7 +199,7 @@ where $\hat{\tangent}(z)$ is the unit tangent field
 % \end{align}
 % where $\delta_{n}(z)$ can be any basis function whos limit as $n\rightarrow\infty$ is a delta function $\delta(z)$. In practice one could choose the normal distribution function with sufficiently small variance.
 
-% The cost function is thus evaluated over the implicitly specified region $\steadystates$ --- in most cases the region will require a numerical procedure to find the roots $\rates(z)=0$ in the region $p\in\Omega$. In a similar vein to back-propagation through neural differential equations \cite{Chen2018NeuralEquations} we would like to be able to differentiate the cost $\loss(\theta|\targets,\Omega)$ without having to differentiate through the operations of the solver that finds $\rates(z)=0$. Fortunately this is all possible if we apply a similar strategy to that used by implicit layers \cite{Look2020DifferentiableLayers}; see Appendix \ref{appendix:space-curve} and \ref{appendix:deformation} for derivations.
+% The cost function is thus evaluated over the implicitly specified region $\steadystates$ --- in most cases the region will require a numerical procedure to find the roots $\rates(z)=0$ in the region $p\in\Omega$. 
 
 \subsection{Implementation}
 \label{section:implementation}
@@ -254,62 +253,20 @@ Optimisation trajectories for the two minimal models appear mostly circumferenti
 \label{fig:pitchfork:results}
 \end{figure}
 
-\subsection{Genetic Toggle Switch}
+\subsection{Genetic Toggle Switch | \textit{in progress}}
 In this section we optimise a model where the states share a Hill function relationship; these models often emerge from mass action kinetics and are used to model species concentrations. By not restricting the sign of the coefficients $a_1,a_2$ we can recover both activator and inhibitor relationships.
 \begin{equation}
-    \partial_t u_1 = \frac{\varepsilon_1 + a_1 u_2^2} { p^2 + u_2^2 } - \mu_1 u_1 \quad
-    \partial_t u_2 = \frac{\varepsilon_2 + a_2 u_1^2} { k^2 + u_1^2 } - \mu_2 u_2
+    \partial_t u_1 = \frac{\varepsilon_1 + a_1 u_2^2} { k_1^2 + u_2^2 } - \mu_1 u_1 \quad
+    \partial_t u_2 = \frac{p + a_2 u_1^2} { k_2^2 + u_1^2 } - \mu_2 u_2
 \end{equation}
-
-
-\subsection{Hyperparameters}
-
-
-% \subsubsection{Genetic toggle switch}
-% \subsubsection{FitzHugh-Nagumo}
-
-
-
-% Without loss of generality, we can rescale $u_1$ by $a_1$ and $u_2$ by $a_2$:
-% \begin{equation*}
-%     \dfrac{du_1}{dt} = \dfrac{1} { 1 + (\hat{p} u_2)^2 } - \mu_1 u_1, \quad
-%     \dfrac{du_2}{dt} = \dfrac{1} { 1 + (\hat{k} u_1)^2 } - \mu_2 u_2
-% \end{equation*}
-% where $\hat{p} = p a_2$ and $\hat{k} = k a_1$. The equilibria for this system are defined by
-% \begin{equation}
-%     \mu_1u_1^*(1+\hat{p}u_2^*)^2 = 1, \quad \mu_2u_2^*(1+\hat{k}u_1^*)^2 = 1
-% \end{equation}
-% Obtaining closed form expressions for $u_1^*$ and $u_2^*$ requires solving a quintic polynomial. We won't do that here.
-
-% What is the determinant for this system?
-% \begin{equation*}
-%     \left|\dfrac{\partial F}{\partial u}\right| = 
-%     \begin{vmatrix} -\mu_1 & -\frac{2 p^2 u_2^*}{(1 + (p u_2^*)^2)^2} \\
-%         -\frac{2k^2u_1^*}{(1+(k u_1^*)^2)^2} & -\mu_2
-%     \end{vmatrix}
-%     = \mu_1\mu_2 - \frac{4p^2k^2u_1^*u_2^*}{(1+(p u_2^*)^2)^2(1+(k u_1^*)^2)^2}
-% \end{equation*}
-
-% \subsubsection{Two-state (generalised)}
-% \begin{equation}
-%     \dfrac{du_1}{dt} = \dfrac{a_1 + b_1(p u_2)^2} { 1 + (p u_2)^2 } - \mu_1 u_1, \quad
-%     \dfrac{du_2}{dt} = \dfrac{a_2 + b_2(k u_1)^2} { 1 + (k u_1)^2 } - \mu_2 u_2
-% \end{equation}
-
-% Applying the same rescaling as above, we can simplify as
-% \begin{equation}
-%     \dfrac{du_1}{dt} = \dfrac{1 + \rho_1(p u_2)^2} { 1 + (p u_2)^2 } - \mu_1 u_1, \quad
-%     \dfrac{du_2}{dt} = \dfrac{1 + \rho_2(k u_1)^2} { 1 + (k u_1)^2 } - \mu_2 u_2
-% \end{equation}
-% where $\rho_i = \frac{b_i}{a_i}$, with other parameters rescaled as above (but dropping hats).
-
-\subsection{Computational Complexity}
-
-\lipsum[1]
-
-\section{Conclusion \& Broader Impact}
-
-\lipsum[1]
+Figure \ref{fig:two-state-optima} shows a reduced dimensionality plot of the optimal parameter basins, represented as point clouds. $N$ distinct clusters are observed, each corresponding to a kinetically different model regions that are qualitatively equivalent.
+ 
+\section{Conclusion \& Broader Impact | \textit{in progress}}
+\begin{itemize}
+    \item Taking steps towards an efficient and single method for searching and matching bifurcations
+    \item A demonstrating of the powerful combination of differential geometry and implicit layers
+    \item Future directions include extending this routine for Hopf bifurcations and PDEs
+\end{itemize}
 
 % \section*{Checklist}
 % \input{checklist}
