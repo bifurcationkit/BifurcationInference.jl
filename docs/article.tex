@@ -258,8 +258,16 @@ In this section we optimise a model where the states share a Hill function relat
 \begin{equation}
     \partial_t u_1 = \frac{\varepsilon_1 + a_1 u_2^2} { k_1^2 + u_2^2 } - \mu_1 u_1 \quad
     \partial_t u_2 = \frac{p + a_2 u_1^2} { k_2^2 + u_1^2 } - \mu_2 u_2
+    \label{eq:two-state}
 \end{equation}
-Figure \ref{fig:two-state-optima} shows a reduced dimensionality plot of the optimal parameter basins, represented as point clouds. $N$ distinct clusters are observed, each corresponding to a kinetically different model regions that are qualitatively equivalent.
+Figure \ref{fig:two-state-optima} shows a reduced dimensionality plot of the optimal parameter basins, represented as point clouds. 14 distinct clusters are observed, each corresponding to a kinetically different model regions that are qualitatively equivalent.
+ 
+\begin{figure}
+\centering
+\includegraphics[width=11cm]{two-state-optima}
+\caption{Reduced dimensionality plot of optimal $\theta^*$ for the two state model \eqref{eq:two-state} for $\targets=\{4,5\}$}
+\label{fig:two-state-optima}
+\end{figure}
  
 \section{Conclusion \& Broader Impact | \textit{in progress}}
 \begin{itemize}
