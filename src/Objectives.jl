@@ -1,29 +1,20 @@
 ################################################################################
 function loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
-
 	pmin,pmax = extrema(targets.parameter)
-	N,M = length(targets.targets), reduce(+, [ pmin ≤ s.z.p ≤ pmax for branch ∈ branches for s ∈ branch if s.bif ]; init=0)
 
-	ω = weight(F,branches,θ,targets;kwargs...) + eps()
-	L = sum( p -> exp( errors(F,branches,θ,targets;p=p,kwargs...)/ω ), targets.targets ) / N
-	K = curvature(F,branches,θ,targets;kwargs...)
-
-	return L - (2N-M)*log(K)
+	predictions = sum([ s.bif/2 for branch ∈ branches for s ∈ branch if (pmin ≤ s.z.p ≤ pmax) ])
+	return errors(branches,targets) - (length(targets.targets)-predictions)*log(measure(F,branches,θ,targets))
 end
 
 ################################################################################
-struct Integrand <: Function f::Function end
-(f::Integrand)(args...;kwargs...) = f.f(args...;kwargs...)
+function errors( branches::AbstractVector{<:Branch}, targets::StateSpace)
+	pmin,pmax = extrema(targets.parameter)
 
-errors = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; p=0.0, kwargs...)
-	return log(abs(z.p-p)) * weight(F,z,θ,targets; kwargs...)
-end)
+	predictions = [ s.z for branch ∈ branches for s ∈ branch if s.bif & (pmin ≤ s.z.p ≤ pmax) ]
+	return mean( p′-> mean( z->(z.p-p′)^2, predictions; type=:geometric ), targets.targets; type=:arithmetic )
+end
 
-weight = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; α::Real=1e3, kwargs... )
-	return exp( -α*det(F,z,θ)^2 )
-end)
-
-curvature = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs... )
+measure = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs... )
 	return 1 / ( 1 + abs( det(F,z,θ) / ∂det(F,z,θ)'tangent_field(F,z,θ) ) )
 end)
 
@@ -35,6 +26,16 @@ end
 function (integrand::Integrand)( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
 	return sum( branch -> integrand( F, branch, θ, targets; kwargs...), branches )
 end
+
+########################################################################### determinant
+import LinearAlgebra: det
+det(F::Function,z::BorderedArray,θ::AbstractVector) = det(∂Fu(F,z,θ))
+∂det(F::Function,z::BorderedArray,θ::AbstractVector) = gradient(z->det(F,z,θ),z)
+
+########################################################## bifurcation distance and velocity
+distance(F::Function,z::BorderedArray,θ::AbstractVector) = [ F(z,θ); det(F,z,θ) ]
+velocity( F::Function, z::BorderedArray, θ::AbstractVector ) = - jacobian(z->distance(F,z,θ),z) \ jacobian(θ->distance(F,z,θ),θ)
+∂p( F::Function, z::BorderedArray, θ::AbstractVector ) = velocity(F,z,θ)[end,:]
 
 ################################################################################
 function tangent_field( F::Function, z::BorderedArray, θ::AbstractVector )

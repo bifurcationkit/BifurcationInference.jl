@@ -1,5 +1,6 @@
 ######################################################## model
-function rates(u::AbstractVector,parameters::NamedTuple)
+F(z::BorderedArray,θ::AbstractVector) = F(z.u,(θ=θ,p=z.p))
+function F(u::AbstractVector,parameters::NamedTuple)
 
 	@unpack θ,p = parameters
 	μ₁,μ₂, a₁,a₂, k = θ
@@ -14,6 +15,5 @@ function rates(u::AbstractVector,parameters::NamedTuple)
 end
 
 ######################################################### targets and initial guess
-targetData = StateSpace( 2, 0:0.01:10, [4,5] )
-hyperparameters = getParameters(targetData)
+X = StateSpace( 2, 0:0.01:10, [4,5] )
 θ = SizedVector{5}(1.0,1.0, 1.0,1.0, 1.0)

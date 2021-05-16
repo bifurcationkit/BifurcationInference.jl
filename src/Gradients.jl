@@ -1,41 +1,24 @@
-################################################################################# loss gradient
+################################################################################
 function ∇loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
-
 	pmin,pmax = extrema(targets.parameter)
-	N,M = length(targets.targets), reduce(+, [ pmin ≤ s.z.p ≤ pmax for branch ∈ branches for s ∈ branch if s.bif ]; init=0)
+	predictions = sum([ s.bif/2 for branch ∈ branches for s ∈ branch if (pmin ≤ s.z.p ≤ pmax) ])
 
-	ω,∇ω = weight(F,branches,θ,targets;kwargs...) + eps(), ∇weight(F,branches,θ,targets;kwargs...)
-
-	L =  sum( p -> exp( errors(F,branches,θ,targets;p=p,kwargs...)/ω )                                                                                                          , targets.targets ) / N
-	∇L = sum( p -> exp( errors(F,branches,θ,targets;p=p,kwargs...)/ω ) * ( ∇errors(F,branches,θ,targets;p=p,kwargs...)*ω - errors(F,branches,θ,targets;p=p,kwargs...)*∇ω ) / ω^2, targets.targets ) / N
-
-	K = curvature(F,branches,θ,targets;kwargs...)
-	∇K = ∇curvature(F,branches,θ,targets;kwargs...)
-
-	return L - (2N-M)*log(K), ∇L - (2N-M)*∇K/K
+	Φ,∇Φ = measure(F,branches,θ,targets), ∇measure(F,branches,θ,targets)
+	return errors(branches,targets) - (length(targets.targets)-predictions)*log(Φ), ∇errors(F,branches,θ,targets) - (length(targets.targets)-predictions)*∇Φ/Φ
 end
 
 ################################################################################
-struct Gradient <: Function
-	f::Function
-	integrand::Integrand
+function ∇errors( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace)
+	pmin,pmax = extrema(targets.parameter)
+
+	predictions = [ s.z for branch ∈ branches for s ∈ branch if s.bif & (pmin ≤ s.z.p ≤ pmax) ]
+	return mean( p′-> mean( z->(z.p-p′)^2, predictions; type=:geometric )*mean( z-> 2∂p(F,z,θ)/(z.p-p′), predictions; type=:arithmetic ), targets.targets; type=:arithmetic )
 end
-(f::Gradient)(args...;kwargs...) = f.f(args...;kwargs...)
 
-∇errors = Gradient( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; p=0.0, kwargs...)
-	∇errors = ForwardDiff.gradient(θ->errors(F,z,θ,targets;p=p,kwargs...),θ) + deformation(F,z,θ)'ForwardDiff.gradient(z->errors(F,z,θ,targets;p=p,kwargs...),z)
-	return ∇errors + errors(F,z,θ,targets;p=p,kwargs...)*∇region(F,z,θ)
-end, errors)
-
-∇weight = Gradient(function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs...)
-	∇weight = ForwardDiff.gradient(θ->weight(F,z,θ,targets; kwargs...),θ) + deformation(F,z,θ)'ForwardDiff.gradient(z->weight(F,z,θ,targets; kwargs...),z)
-	return ∇weight + weight(F,z,θ,targets; kwargs...)*∇region(F,z,θ)
-end, weight)
-
-∇curvature = Gradient(function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs...)
-	∇curvature = ForwardDiff.gradient(θ->curvature(F,z,θ,targets; kwargs...),θ) + deformation(F,z,θ)'ForwardDiff.gradient(z->curvature(F,z,θ,targets; kwargs...),z)
-	return ∇curvature + curvature(F,z,θ,targets; kwargs...)*∇region(F,z,θ)
-end, curvature)
+∇measure = Gradient( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; p=0.0, kwargs...)
+	∇measure = gradient(θ->measure(F,z,θ,targets;p=p,kwargs...),θ) + deformation(F,z,θ)'gradient(z->measure(F,z,θ,targets;p=p,kwargs...),z)
+	return ∇measure + measure(F,z,θ,targets;p=p,kwargs...)*∇region(F,z,θ)
+end, measure)
 
 ###########################################################################
 function (gradient::Gradient)( F::Function, branch::Branch, θ::AbstractVector, targets::StateSpace; kwargs...)
@@ -50,7 +33,8 @@ end
 ############################################## gradient term due to changing integration region dz
 deformation( F::Function, z::BorderedArray, θ::AbstractVector ) = -∂Fz(F,z,θ)\∂Fθ(F,z,θ)
 function ∇region( F::Function, z::BorderedArray, θ::AbstractVector )
-	∇deformation = reshape( ForwardDiff.jacobian(z->deformation(F,z,θ),z), length(z),length(θ),length(z) )
+
+	∇deformation = reshape( jacobian(z->deformation(F,z,θ),z), length(z),length(θ),length(z) )
 	tangent = tangent_field(F,z,θ)
 
 	∇region = similar(θ)
@@ -64,39 +48,21 @@ end
 ########################################################################### jacobians
 
 # statespace jacobian
-function ∂Fu(F::Function,z::BorderedArray,θ::AbstractVector)
-	return ForwardDiff.jacobian( u -> F(   u, (θ=θ,p=z.p) ), z.u )
-end
+∂Fu(F::Function,z::BorderedArray,θ::AbstractVector) = ∂Fz(F,z,θ)[:,Not(end)]
 
 # parameter jacobian
-function ∂Fθ(F::Function,z::BorderedArray,θ::AbstractVector)
-	return ForwardDiff.jacobian( θ -> F( z.u, (θ=θ,p=z.p) ), θ )
-end
+∂Fθ(F::Function,z::BorderedArray,θ::AbstractVector) = jacobian( θ -> F(z,θ), θ )
 
 # augmented jacobian
-function ∂Fz(F::Function,z::BorderedArray,θ::AbstractVector)
-	return ForwardDiff.jacobian( z -> F( z.u, (θ=θ,p=z.p) ), z )
-end
-
-########################################################################### determinants
-import LinearAlgebra: det
-det(F::Function,z::BorderedArray,θ::AbstractVector) = det(∂Fu(F,z,θ))
-
-function ∂det(F::Function,z::BorderedArray,θ::AbstractVector)
-	return ForwardDiff.gradient(z->det(F,z,θ),z)
-end
+∂Fz(F::Function,z::BorderedArray,θ::AbstractVector) = jacobian( z -> F(z,θ), z )
 
 ############################################################# autodiff wrappers for BorderedArray
-import ForwardDiff
+import ForwardDiff: gradient,jacobian
 
-function ForwardDiff.gradient( f, z::BorderedArray )
-	return ForwardDiff.gradient( z -> f( BorderedArray(z[Not(end)],z[end]) ), [z.u; z.p] )
+function gradient( f, z::BorderedArray )
+	return gradient( z -> f( BorderedArray(z[Not(end)],z[end]) ), [z.u; z.p] )
 end
 
-function ForwardDiff.jacobian( f, z::BorderedArray )
-	return ForwardDiff.jacobian( z -> f( BorderedArray(z[Not(end)],z[end]) ), [z.u; z.p] )
-end
-
-function ForwardDiff.hessian( f, z::BorderedArray )
-	return ForwardDiff.hessian( z -> f( BorderedArray(z[Not(end)],z[end]) ), [z.u; z.p] )
+function jacobian( f, z::BorderedArray )
+	return jacobian( z -> f( BorderedArray(z[Not(end)],z[end]) ), [z.u; z.p] )
 end

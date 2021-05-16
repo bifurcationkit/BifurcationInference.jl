@@ -20,8 +20,8 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 julia = "1"
 
 [extras]
-FiniteDifferences = "26cc04aa-876d-5657-8c51-4c34ba976000"
+FiniteDiff = "6a86dc24-6348-571c-b903-95158fe2bd41"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["FiniteDifferences", "Test"]
+test = ["FiniteDiff", "Test"]

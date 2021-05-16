@@ -4,7 +4,7 @@ module FluxContinuation
 	using BifurcationKit: BorderedArray, AbstractLinearSolver, AbstractEigenSolver, BorderingBLS
 	using BifurcationKit: ContState, solution, computeEigenvalues!, detectBifucation
 
-	using ForwardDiff
+	using ForwardDiff: gradient,jacobian
 	using Flux: Momentum,update!
 
 	using Setfield: @lens,@set,setproperties
@@ -13,19 +13,16 @@ module FluxContinuation
 	using InvertedIndices: Not
 	using LinearAlgebra, StaticArrays
 
-	using Plots.PlotMeasures
-	using LaTeXStrings
-	using Plots
-
 	include("Structures.jl")
 	include("Utils.jl")
 
 	include("Objectives.jl")
 	include("Gradients.jl")
+	include("Plots.jl")
 
+	export plot,@unpack,BorderedArray,SizedVector
 	export StateSpace,deflationContinuation,train!
-	export getParameters,loss,∇loss
-	export plot,@unpack
+	export getParameters,loss,∇loss,norm
 
 	""" root finding with newton deflation method"""
 	function findRoots!( f::Function, J::Function, roots::AbstractVector{<:AbstractVector},
@@ -84,7 +81,7 @@ module FluxContinuation
 		) where {T<:Number, V<:AbstractVector{T}, S<:AbstractLinearSolver, E<:AbstractEigenSolver}
 
 		maxIterContinuation,ds = hyperparameters.newtonOptions.maxIter,hyperparameters.ds
-		J(u,p) = ForwardDiff.jacobian(x->f(x,p),u)
+		J(u,p) = jacobian(x->f(x,p),u)
 
 		findRoots!( f, J, roots, parameters, hyperparameters; maxRoots=maxRoots, maxIter=maxIter, verbosity=verbosity)
 		pRange = range(hyperparameters.pMin,hyperparameters.pMax,length=length(roots))
