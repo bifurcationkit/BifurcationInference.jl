@@ -1,25 +1,22 @@
-using Plots,FiniteDifferences
-using LinearAlgebra: norm
-using StatsBase: median
+using Plots
+function grid_test(name; xlim=(-5,5),ylim=(-5,5), dims=[1,2], ϵ=-1e-1,order=5,geom=true,condition=100)
 
-function grid_test(name; xlim=(-5,5),ylim=(-5,5),ϵ=-1e-1,order=5,threshold=0.05)
-
-	hyperparameters = getParameters(targetData)
+	hyperparameters = getParameters(X)
 	parameters = copy(θ)
 
 	function ∇cost(x::Number,y::Number)
-		parameters[1:2] .= x,y
-
-		L,∇L = ∇loss(rates,parameters,targetData,hyperparameters)
-		return ∇L[1:2]
+		parameters[dims] .= x,y
+		return ∇loss(F,parameters,X,hyperparameters)[2]
 	end
 
-	cost(x::Vector{<:Number}) = cost(x[1],x[2])
 	function cost(x::Number,y::Number)
-		parameters[1:2] .= x,y
+		parameters[dims] .= x,y
+		return loss(F,parameters,X,hyperparameters)
+	end
 
-		L = loss(rates,parameters,targetData,hyperparameters)
-		return L
+	function finite_differences(x,y)
+		parameters[dims] .= x,y
+		return finite_difference_gradient(θ->loss(F,θ,X),parameters)
 	end
 
 	plot(size=(600,600), xlim=xlim, ylim=ylim, xlabel="parameters, θ")
@@ -32,18 +29,16 @@ function grid_test(name; xlim=(-5,5),ylim=(-5,5),ϵ=-1e-1,order=5,threshold=0.05
 	xGrid = vcat(map(x->x[1], grid)...)
 	yGrid = vcat(map(x->x[2], grid)...)
 
-	differences = map( (x,y)->first(grad(central_fdm(order,1,geom=true,condition=100), cost, [x,y] )), xGrid, yGrid )
-	quiver!( xGrid, yGrid, quiver=(ϵ*step(x)*first.(differences),ϵ*step(y)*last.(differences)),
+	differences = map( finite_differences, xGrid, yGrid )
+	quiver!( xGrid, yGrid, quiver=(ϵ*step(x)*getindex.(differences,dims[1]),ϵ*step(y)*getindex.(differences,dims[2])),
 		color=:darkblue, lw=3 )
 
 	gradients = map( ∇cost, xGrid, yGrid )
-	quiver!( xGrid, yGrid, quiver=(ϵ*step(x)*first.(gradients),ϵ*step(y)*last.(gradients)),
+	quiver!( xGrid, yGrid, quiver=(ϵ*step(x)*getindex.(gradients,dims[1]),ϵ*step(y)*getindex.(gradients,dims[2])),
 		color=:gold, lw=2 )
 
-	errors = norm.(differences .- gradients) ./ norm.(differences)
-	errors = errors[.~isnan.(errors)]
-
-	plot!([],[],color=:gold, lw=3, label="ForwardDiff", title="Median Error $(100*round(median(errors),digits=2))%")
+	errors = filter(x->~isnan(x), map( (x,y) -> acos(x'y/(norm(x)*norm(y)))/π, differences, gradients ))
+	plot!([],[],color=:gold, lw=3, label="ForwardDiff", title="Mean Error $(100*round(sum(errors)/length(errors),digits=2))%")
 	plot!([],[],color=:darkblue, lw=3, label="Central Differences")
 	savefig(name)
 end

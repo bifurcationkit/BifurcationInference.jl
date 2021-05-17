@@ -1,5 +1,5 @@
 ######################################################## model
-function rates(u::AbstractVector{T},parameters::NamedTuple,N::Int,M::Int) where T<:Number
+function F(u::AbstractVector{T},parameters::NamedTuple,N::Int,M::Int) where T<:Number
 
 	@unpack θ,p = parameters
 	f = first(u)*first(p)*first(θ)
@@ -17,21 +17,13 @@ function rates(u::AbstractVector{T},parameters::NamedTuple,N::Int,M::Int) where 
 	return F
 end
 
+function scaling(N::Int,M::Int)
+	F(u,p) = F(u,p,N,M)
 
-function benchmark(N::Int,M::Int)
-
-	F = (u,p) -> rates(u,p,N,M)
-	targetData = StateSpace(N,-π:0.01:π,[0.0])
+	X = StateSpace(N,-π:0.01:π,[0.0])
 	θ = SVector{M}(ones(M))
 
 	println("N = $N M = $M")
-	@time ∇loss( F, θ, targetData )
-	return @elapsed  ∇loss( F, θ, targetData )
+	@time ∇loss(F,θ,X)
+	return @elapsed ∇loss(F,θ,X)
 end
-
-heatmap( 1:5, 1:5, benchmark,
-	xlabel="States", ylabel="Parameters", size=(500,400),
-	colorbar_title="Iteration Execution / sec"
-)
-
-savefig(joinpath(@__DIR__,"scaling.pdf"))

@@ -3,14 +3,18 @@ using LaTeXStrings
 using Plots
 
 import Plots: plot
-function plot(steady_states::Vector{<:Branch}; padding=0.2, displayPlot=true)
+function plot(steady_states::Vector{<:Branch},data::StateSpace)
 
-	pMin,pMax = extrema(vcat([ map(s->s.z.p,branch) for branch ∈ steady_states ]...))
-	pMin,pMax = ( pMin+(pMin+pMax)*padding )/(1+2padding),( pMax+(pMin+pMax)*padding )/(1+2padding)
-	unpadded_parameter = pMin:pMax
+	layout = @layout [a;b{1.0w,0.5h}]
+	default(); default(grid=false,label="",margin=1mm,linewidth=2)
+	figure = plot(layout = layout, link = :x, size=(300,500) )
 
-	plot(xlabel=L"\mathrm{parameter,}p", grid=false, right_margin=20mm, size=(500,450) )
-	right_axis = twinx()
+	hline!([0],subplot=1,linewidth=0,color=:black, ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(z)=0")
+	hline!([0],subplot=2,linewidth=1,color=:black, xlabel=L"\mathrm{parameter,}p", xmirror=true, topmargin=-5mm,
+		ylabel=L"\mathrm{determinant}\,\quad\left|\!\!\!\!\frac{\partial F_{\theta}}{\partial u}\right|")
+	
+	vline!(data.targets,subplot=1,linewidth=1,color=:gold)
+	vline!(data.targets,subplot=2,linewidth=1,color=:gold)
 
     for branch ∈ steady_states
 
@@ -20,28 +24,17 @@ function plot(steady_states::Vector{<:Branch}; padding=0.2, displayPlot=true)
 
 		for idx ∈ 1:dim(branch)
 
-			plot!( parameter, map(s->s.z.u[idx],branch), linewidth=2, label="",
-				ylabel=L"\mathrm{steady\,states}\quad F_{\theta}(u,p)=0", grid=false,
-				alpha=map( s->window_function(unpadded_parameter,s.z), branch ),
-				color=map( stable -> stable ? :darkblue : :lightblue, stability )
-			)
+			plot!( parameter, map(s->s.z.u[idx],branch), subplot=1,
+				color=map( stable -> stable ? :darkblue : :lightblue, stability ) )
 		end
 
-		plot!(right_axis, parameter, -determinants, linewidth=2, label="", grid=false,
-        	ylabel=L"\mathrm{determinant}\,\quad\left|\!\!\!\!\frac{\partial F_{\theta}}{\partial u}\right|",
-			alpha=map( s->window_function(unpadded_parameter,s.z), branch ),
+		plot!( parameter, determinants, subplot=2,
             color=map( stable -> stable ? :red : :pink, stability )
 		)
     end
 
-	if displayPlot plot!() |> display
-	else return right_axis end
-end
-
-function plot(steady_states::Vector{<:Branch}, data::StateSpace)
-	right_axis = plot(steady_states; displayPlot=false)
-	vline!( data.targets, label="", color=:gold)
-	plot!( right_axis,[],[], color=:gold, legend=:bottomleft, alpha=1.0, label="") |> display
+	xticks!([NaN],subplot=1)
+	return figure
 end
 
 function plot(F::Function, θ::AbstractVector, data::StateSpace; kwargs...)
@@ -51,5 +44,6 @@ function plot(F::Function, θ::AbstractVector, data::StateSpace; kwargs...)
 
 	steady_states = deflationContinuation(F,data.roots,parameters,hyperparameters;kwargs...)
 	println(steady_states)
-	plot(steady_states,data)
+
+	return plot(steady_states,data)
 end

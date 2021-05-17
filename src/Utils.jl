@@ -78,10 +78,15 @@ function loss(F::Function, θ::AbstractVector, data::StateSpace; kwargs...)
 end
 
 function ∇loss(F::Function, θ::AbstractVector, data::StateSpace, hyperparameters::ContinuationPar; kwargs...)
-	parameters = (θ=θ,p=minimum(data.parameter))
+	try
+		parameters = (θ=θ,p=minimum(data.parameter))
+		steady_states = deflationContinuation(F,data.roots,parameters,hyperparameters;kwargs...)
+		return ∇loss(F,steady_states,θ,data;kwargs...)
 
-	steady_states = deflationContinuation(F,data.roots,parameters,hyperparameters;kwargs...)
-	return ∇loss(F,steady_states,θ,data;kwargs...)
+	catch error
+		printstyled(color=:red,"$error\n")
+		return NaN,fill(NaN,length(θ))
+	end
 end
 
 function ∇loss(F::Function, θ::AbstractVector, data::StateSpace; kwargs...)

@@ -7,11 +7,9 @@ function F(u::AbstractVector,parameters::NamedTuple)
 	F = similar(u,typeof(f))
 
 	F[1] = p + θ[1]*u[1] + θ[2]*u[1]^3
-	F[2] = u[1] - u[2] # dummy second dimension
-
 	return F
 end
 
 ######################################################### targets and initial guess
-X = StateSpace( 2, -2:0.01:2, [1,-1] )
+X = StateSpace( 1, -2:0.01:2, [1,-1] )
 θ = SizedVector{2}(5.0,-0.93)
