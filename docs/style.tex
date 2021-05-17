@@ -19,12 +19,14 @@
     urlcolor=cyan,
 }
 
-\usepackage{graphicx,float}
+\usepackage{graphicx,xcolor,float}
 \graphicspath{{./figures/}{docs/figures/}}
 
 \usepackage{booktabs,amsmath,amsfonts}
 \usepackage{nicefrac,microtype}
-\usepackage{xcolor}
+
+\usepackage{caption,subcaption}
+\renewcommand\thesubfigure{\Alph{subfigure}}
 
 \usepackage[ruled,vlined]{algorithm2e}
 \numberwithin{equation}{section}

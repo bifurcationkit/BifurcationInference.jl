@@ -70,13 +70,28 @@ For a given set of parameters $\theta$ one could compute the set of predicted bi
 \end{align}
 The optimal $\theta^*$ is not expected to always be unique, but is in general a manifold representing the space of qualitatively equivalent models. The cost function $\loss$ must have some distance measure between the two sets $\predictions(\theta)$ and $\targets$ with a bias that encourages equivalent cardinality $|\predictions(\theta)|=|\targets|$. This is especially important in the case where there are no predictions $|\predictions(\theta)|=0$.
 
-For clarity, we guide the reader through the methods with the following minimal models that explore the space of saddle-nodes $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ and pitchforks $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$. These minimal models are shown with targets $\targets$ in Figure \ref{fig:saddle-node} and Figure \ref{fig:pitchfork} respectively. These figures show that the determinant $\Det=0$ at the bifurcations and that its directional derivative along the bifurcation curve $\frac{d}{ds}\Det$ is finite and non-zero, at least in the non-degenerate case. This gives us our first hint of what should be optimised to increase the number of predictions $|\predictions(\theta)|$.
+For clarity, we guide the reader through the methods with the following minimal models that explore the space of saddle-nodes $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ and pitchforks $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$. These minimal models are shown with targets $\targets$ in Figure \ref{fig:minimal-models}. These figures show that the determinant $\Det=0$ at the bifurcations and that its directional derivative along the bifurcation curve $\frac{d}{ds}\Det$ is finite and non-zero, at least in the non-degenerate case. This gives us our first hint of what should be optimised to increase the number of predictions $|\predictions(\theta)|$.
+
+%   \centering
+%   \setlength\unitlength{1cm}
+%   {\phantomsubcaption\label{fig:1a}}
+%   {\phantomsubcaption\label{fig:1b}}
+
+% \textcolor{gray}{\rule{5cm}{3cm}}%
+% \begin{picture}(0,0)
+% \put(-4.8,2.6){\subref{fig:1a}}
+% \end{picture}
+% \textcolor{gray}{\rule{5cm}{3cm}}%
+% \begin{picture}(0,0)
+% \put(-4.8,2.6){\subref{fig:1b}}
+% \end{picture}
+
 
 \begin{figure}
 \centering
 \includegraphics[width=6cm]{saddle-node}
 \includegraphics[width=6cm]{pitchfork}
-\caption{Saddle-node model $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ and pitchfork model $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$ with $\theta=(5/2,-1),(1/2,-1)$ and targets $\targets=\{-1,1\},\{0\}$ respectively. Determinant in red. Lighter shades indicate the determinant crossing zero for unstable solutions}
+\caption{Saddle-node model (left column) $\rates(z) = p + \theta_{1}u+\theta_{2}u^3$ and pitchfork model (right column) $\rates(z) = \theta_{1} + p u+\theta_{2}u^3$ with $\theta=(5/2,-1),(1/2,-1)$ and targets $\targets=\{-1,1\},\{0\}$ respectively. Determinant in red. Lighter shades indicate the determinant crossing zero for unstable solutions}
 \label{fig:minimal-models}
 \end{figure}
 
@@ -97,7 +112,7 @@ In order for predicted bifurcations $p(\theta)\in\predictions$ to match targets 
     ^{\frac{1}{|\predictions|}}
     \label{eq:supervised-term}
 \end{align}
-We can see from Figures \ref{fig:saddle-node} and \ref{fig:pitchfork} that predictions $p(\theta)$ can be identified by looking for points along the curve where the determinant $\Det=0$. Meanwhile the directional derivative along the bifurcation curve is finite $\frac{d}{ds}\Det\neq 0$ in the non-degenerate case. Using these quantities we can define a positive semi-definite measure $\measure(z)$ of zero crossings in the determinant along the bifurcation curve; as shown in Figure \ref{fig:bifurcation-measure} this can be used as a proxy for the probability of a bifurcation at location $p(\theta)$. The total bifurcation measure $\Psi(\theta)$ is written
+We can see from Figures \ref{fig:minimal-models} that predictions $p(\theta)$ can be identified by looking for points along the curve where the determinant $\Det=0$. Meanwhile the directional derivative along the bifurcation curve is finite $\frac{d}{ds}\Det\neq 0$ in the non-degenerate case. Using these quantities we can define a positive semi-definite measure $\measure(z)$ of zero crossings in the determinant along the bifurcation curve; as shown in Figure \ref{fig:bifurcation-measure} this can be used as a proxy for the probability of a bifurcation at location $p(\theta)$. The total bifurcation measure $\Psi(\theta)$ is written
 \begin{align}
     \Psi(\theta):=\frac{
         \int_{\rates(z)=0}\!
