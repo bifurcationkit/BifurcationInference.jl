@@ -260,7 +260,7 @@ In this section we optimise a model where the states share a Hill function relat
     \partial_t u_2 = \frac{p + a_2 u_1^2} { k_2^2 + u_1^2 } - \mu_2 u_2
     \label{eq:two-state}
 \end{equation}
-Figure \ref{fig:two-state-optima} shows a reduced dimensionality plot of the optimal parameter basins, represented as point clouds. 14 distinct clusters are observed, each corresponding to a kinetically different model regions that are qualitatively equivalent.
+Figure \ref{fig:two-state-optima} shows a UMAP embedding of the optimal parameter basins, represented as point clouds. 16 distinct clusters are obtained using DBSCAN. Each cluster corresponds to a kinetically different model regions that are qualitatively equivalent. See Appendix \ref{appendix:clusters} for models that represent the centroid of each cluster.
  
 \begin{figure}
 \centering
@@ -274,6 +274,7 @@ Figure \ref{fig:two-state-optima} shows a reduced dimensionality plot of the opt
     \item Taking steps towards an efficient and single method for searching and matching bifurcations
     \item A demonstrating of the powerful combination of differential geometry and implicit layers
     \item Future directions include extending this routine for Hopf bifurcations and PDEs
+    \item Computational limitations
 \end{itemize}
 
 % \section*{Checklist}
