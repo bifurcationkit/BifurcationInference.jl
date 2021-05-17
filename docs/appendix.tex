@@ -114,6 +114,60 @@ To summarise we now have the gradient of our line integral only in terms of the 
 \end{align}
 We have settled on choosing normal deformations which we will call $\varphi_\theta(z)$. The above result can be seen a the generalised Leibniz rule \cite{Flanders1973DifferentiationSign} for the case of line integration regions. The last integrand term can be seen as the divergence the vector field $\varphi_\theta(z)$ projected onto the one dimensional space curve.
 
+
+\subsection{Bifurcation Curves as Tangent Fields}
+\label{appendix:tangent-fields}
+
+Let each component of the vector function $\rates$ in the model \eqref{eq:model} implicitly define a surface embedded in $\Reals^{N+1}$. Let's assume that the intersection of these $N$ surfaces exists and is not null or degenerate, then the steady states of \eqref{eq:model} must be a set of one dimensional space curves in $z\in\Reals^{N+1}$ defined by
+\begin{align}
+    \rates(z) = 0
+\end{align}
+An expression for the field $\tangent(z)$ tangent to the set of curves would allow us to take derivatives and integrals along the bifurcation curve. This is exactly what we need to do to evaluate our cost function \ref{eq:cost}. Fortunately the tangent field can be constructed by ensuring it is perpendicular to the gradient $\partial_z$ of each component of $\rates$ as illustrated by an example two component system in Figure \ref{fig:implicit-surfaces}. The tangent field $\tangent(z)$ can be constructed perpendicular to all gradient vectors using the properties of the determinant \cite{Goldman2005CurvatureSurfaces}
+\begin{align}
+    \tangent(z):=
+    \label{eq:tangent-field}
+    \left|\begin{matrix}
+        \hat{z} \\
+        \,\partial_{z}\rates\,
+    \end{matrix}\right|
+    \qquad\tangent : \Reals^{N+1}\rightarrow\Reals^{N+1}\\
+    =\sum_{i=1}^{N+1}\hat{z}_{i}(-1)^{i+1} \left|\frac{\partial \rates}{\partial(z\setminus z_{i}) }\right|
+\end{align}
+where $\hat{z}$ is a collection of unit basis vectors in the $\Reals^{N+1}$ space and $\partial_{z}\rates$ is an $N\times(N+1)$ rectangular Jacobian matrix of partial derivatives and $z\setminus z_{i}$ denotes the $N$ dimensional vector $z$ with component $z_{i}$ removed. This construction ensures perpendicularity to any gradients of $\rates$
+\begin{align}
+    \tangent(z)\cdot\partial_z f_{\theta} =
+    \left|\begin{matrix}
+        \partial_z f_{\theta} \\
+        \,\partial_{z}\rates\,
+    \end{matrix}\right|
+    \quad =0 \quad\forall f_{\theta}\in \rates
+\end{align}
+since the determinant of any matrix with two identical rows or columns is zero. Note that the tangent field $\tangent(z)$ is actually defined for all values of $z$ where adjacent field lines trace out other level sets where $\rates(z)\neq0$. Furthermore deformations with respect to $\theta$ are always orthogonal to the tangent
+\begin{align} % \todo{numerically true. analytic proof?}
+    \tangent(z)\cdot\frac{d\tangent}{d\theta}=0
+\end{align}
+\begin{figure}
+\centering
+\includegraphics[width=13cm]{determinant-field}
+\caption{Left/Right : Determinant $\Det$ and tangent field $\tangent(z)$ for the saddle-node/pitchfork models for some set values of $\theta$ revealing that $\Det=0$ defines bifurcations}
+\label{fig:determinant-field}
+\end{figure}
+Figure \ref{fig:determinant-field} shows how the bifurcation curve defined by $\rates(z)=0$ picks out one of many level sets or traces in tangent field $\tangent(z)$ for the saddle and pitchfork. The tangent field $\tangent(z)$ can always be analytically evaluated by taking the determinant in \eqref{eq:tangent-field}. We will proceed with calculations on $\tangent(z)$ in the whole space $z$ and pick out a single trace by solving $\rates(z)=0$ later. For our two models
+\begin{align}
+    \underset{\mathrm{saddle-node\,\,model}}{
+    \tangent(z)=\hat{u}-(\,3\theta_2 u^2+\theta_1\,)\,\hat{p}}
+    \qquad\qquad
+    \underset{\mathrm{pitchfork\,\,model}}{
+    \tangent(z)=u\hat{u}-(\,3\theta_2 u^2+p\,)\,\hat{p}}
+    \label{eq:tangent-field-examples}
+\end{align}
+Figure \ref{fig:determinant-field} reveals that $\Det=0$ is also a level set and that the intersection with level set $\rates(z)=0$ defines the bifurcations at specific parameter $\theta$. In this particular setting we can see that the tangent field $\tangent(z)$ only folds when $\Det=0$. Plotting the value of the determinant along $\rates(z)=0$ from Figure \ref{fig:determinant-field} would give rise to Figures \ref{fig:saddle-node} and \ref{fig:pitchfork}. The directional derivative of the determinant $\Det$ along the tangent field $\tangent(z)$ is defined as
+\begin{align}
+    \frac{d}{ds}\Det := \hat{\tangent}(z) \cdot \frac{\partial}{\partial z}\Det 
+\end{align}
+where $\hat{\tangent}(z)$ is the unit tangent field. 
+
+
 \section{Bifurcation Measure}
 \label{appendix:measure}
 

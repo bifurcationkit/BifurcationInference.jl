@@ -2,8 +2,11 @@
 
 \title{Inference of Bifurcations\\with Differentiable Continuation}
 \author{
-        Gregory Szep,\quad Attila Csik\'asz-Nagy\\King's College London\\London, WC2R 2LS\\
+        Gregory Szep\\King's College London\\London, WC2R 2LS\\
         \texttt{gregory.szep@kcl.ac.uk}
+    \And
+        Attila Csik\'asz-Nagy\\King's College London\\London, WC2R 2LS\\
+        \texttt{attila.csikasz-nagy@kcl.ac.uk}
     \And
         Neil Dalchau\\Microsoft Research Cambridge\\Cambridge, CB1 2FB\\
         \texttt{ndalchau@microsoft.com}
@@ -14,7 +17,7 @@
 \maketitle
 
 \begin{abstract}
-    In this work we propose a gradient-based semi-supervised approach for matching target bifurcations with parameterised differential equation models. The cost function contains a supervised term that is minimal when predicted bifurcations match the targets and an unsupervised bias that encourages bifurcations by maximising zero crossings in the determinant of the Jacobian. The calculation of gradients with respect to parameters shares the same computational complexity as deflated pseudo-arclength continuation used to calculate the bifurcation diagram. We demonstrate model synthesis with minimal models which explore the space of saddle-node and pitchfork diagrams, a genetic toggle switch from synthetic biology and the FitzHugh-Nagumo model. Furthermore, the cost landscape allows us to  organise models in terms of topological and geometric equivalence.
+    In this work we propose a gradient-based semi-supervised approach for matching target bifurcations with parameterised differential equation models. The cost function contains a supervised error term that is minimal when predicted bifurcations match the targets and an unsupervised bifurcation measure which acts as a proxy for the probability of a bifurcation, yielding non-zero gradients in non-bifurcating parameter regimes. The calculation of gradients with respect to parameters shares the same computational complexity as deflated pseudo-arclength continuation used to calculate the bifurcation diagram. Our implementation leverages automatic differentiation methods in Julia and we demonstrate model synthesis with minimal models which explore the space of saddle-node and pitchfork diagrams and the genetic toggle switch from synthetic biology. Furthermore, the cost landscape allows us to  organise models in terms of topological and geometric equivalence.
 \end{abstract}
 
 \section{Introduction}
@@ -93,14 +96,14 @@ For clarity, we guide the reader through the methods with the following minimal 
     \label{fig:bifurcation-measure}
 \end{figure}
 
-In order for predicted bifurcations $p\in\predictions(\theta)$ to match targets $p'\in\targets$ we need to evaluate some form of error term $|p-p'|$ on the bifurcation curve defined by $\rates(z)=0$. We expect the supervised term to be some mean over the targets $\targets$ and predictions $\predictions(\theta)$. We choose a geometric mean over the predictions and an arithmetic mean over targets to account for cases where $|\predictions|\neq|\targets|$ and discourage multiple predictions matching the same target in cases where $|\predictions|\geq|\targets|$. This term is equal to zero when all targets are matched by at least one prediction
+In order for predicted bifurcations $p(\theta)\in\predictions$ to match targets $p'\in\targets$ we need to evaluate an error term $|p(\theta)-p'|$. We expect this term to be some mean over the targets $\targets$ and predictions $\predictions(\theta)$. We choose a geometric mean over the predictions and an arithmetic mean over targets to account for cases where $|\predictions|\neq|\targets|$ and discourage multiple predictions matching the same target in cases where $|\predictions|\geq|\targets|$. This term only zero when each target is matched by at least one prediction
 \begin{align}
     \frac{1}{|\targets|}\sum_{p'\in\targets}
-    \left(\prod_{p\in\predictions(\theta)}|p-p'|\right)
+    \prod_{p(\theta)\in\predictions}|p(\theta)-p'|
     ^{\frac{1}{|\predictions|}}
     \label{eq:supervised-term}
 \end{align}
-We can see from Figures \ref{fig:saddle-node} and \ref{fig:pitchfork} that predictions $\predictions(\theta)$ can be identified by looking for points $p$ along the curve where the determinant $\Det=0$. Meanwhile the directional derivative along the bifurcation curve is finite $\frac{d}{ds}\Det\neq 0$ in the non-degenerate case. Using these quantities we can define a positive semi-definite measure $\measure(z)$ of zero crossings in the determinant along the bifurcation curve; as shown in Figure \ref{fig:bifurcation-measure} this can be used as a proxy for the probability of a bifurcation at location $p$ for a given set of parameters $\theta$. The total bifurcation measure $\Psi(\theta)$ is written
+We can see from Figures \ref{fig:saddle-node} and \ref{fig:pitchfork} that predictions $p(\theta)$ can be identified by looking for points along the curve where the determinant $\Det=0$. Meanwhile the directional derivative along the bifurcation curve is finite $\frac{d}{ds}\Det\neq 0$ in the non-degenerate case. Using these quantities we can define a positive semi-definite measure $\measure(z)$ of zero crossings in the determinant along the bifurcation curve; as shown in Figure \ref{fig:bifurcation-measure} this can be used as a proxy for the probability of a bifurcation at location $p(\theta)$. The total bifurcation measure $\Psi(\theta)$ is written
 \begin{align}
     \Psi(\theta):=\frac{
         \int_{\rates(z)=0}\!
@@ -114,92 +117,39 @@ We can see from Figures \ref{fig:saddle-node} and \ref{fig:pitchfork} that predi
     \left(1+\left|\frac{\Det}{\frac{d}{ds}\Det}\right|\right)^{-1}
     \label{eq:measure}
 \end{align}
-Here we denote $\int_{\rates(z)=0}\mathrm{d}z$ as the sum of the line integrals in $z\in\Reals^{N+1}$ defined by the steady states $\rates(z)=0$. The measure $\measure(z)=1$ at bifurcation points and goes to zero an odd number of times between bifurcations. This is because $\Det$ must eventually turn around in order to return back to zero, resulting in $\frac{d}{ds}\Det\rightarrow0$ and hence $\measure(z)\rightarrow0$ for each turning point. As $\Det$ diverges we approach regimes far away from any closest bifurcation and hence $\measure(z)\rightarrow0$. We would still like to have non-zero gradients with respect to $\theta$ in this regime, and therefore $\measure(z)$ was designed to go to zero slowly. The total measure $\Psi(\theta)$ is normalised such that $\Psi(\theta)\rightarrow1$ in the regimes where the observed parameter region $p$ is densely packed with bifurcations. In Appendix \ref{appendix:measure} we see that $\measure(z)$ is also invariant under certain classes of transformations on $\rates(z)$ which do not change bifurcation locations. The measure is added to the supervised term as if it were a likelihood; this defines the semi-supervised cost function as
+Here we denote $\int_{\rates(z)=0}\mathrm{d}z$ as the sum of the line integrals in $z\in\Reals^{N+1}$ defined by the steady states $\rates(z)=0$. The measure $\measure(z)=1$ at bifurcation points and goes to zero an odd number of times between bifurcations. This is because $\Det$ must eventually turn around in order to return back to zero, resulting in $\frac{d}{ds}\Det\rightarrow0$ and hence $\measure(z)\rightarrow0$ for each turning point. As $\Det$ diverges we approach regimes far away from any closest bifurcation and hence $\measure(z)\rightarrow0$. We would still like to have non-zero gradients with respect to $\theta$ in this regime, and therefore $\measure(z)$ was designed to go to zero slowly. The total measure $\Psi(\theta)$ is normalised such that $\Psi(\theta)\rightarrow1$ in the regimes where the observed parameter region $p$ is densely packed with bifurcations. The $\measure(z)$ is also invariant under certain classes of transformations on $\rates(z)$ which do not change bifurcation locations, proofs of which are provided in Appendix \ref{appendix:measure}. The measure is added to the supervised term as if it were a likelihood; this defines the semi-supervised cost function as
 \begin{align}
-    \loss(\theta|\targets):=\frac{1}{|\targets|}\sum_{p'\in\targets}
-    \left(\prod_{p\in\predictions(\theta)}|p-p'|\right)
-    ^{\frac{1}{|\predictions|}}\!\!\!
-    -\big(|\targets|-|\predictions|\big)\,\,\lambda \log\Psi(\theta)
+    \loss(\theta|\targets):=
+    \big(|\predictions|-|\targets|\big)\,\,\lambda \log\Psi(\theta)+
+    \frac{1}{|\targets|}\sum_{p'\in\targets}
+    \prod_{p(\theta)\in\predictions}|p(\theta)-p'|
+    ^{\frac{1}{|\predictions|}}
     \label{eq:cost}
 \end{align}
-The pre-factor $|\targets|-|\predictions|$ in the unsupervised term ensures that the gradients are always pushing optimisers towards a state where $|\targets|=|\predictions|$. This can be seen as a step-wise annealing of the unsupervised term until the desired state is reached. Note that in principle while $\predictions(\theta)$ depends smoothly on $\theta$ the number of predictions $|\predictions|$ does not. The gradient $\partial_{\theta}|\predictions|=0$ everywhere and is an infinite impulse at locations where the number of predictions changes. In practice optimisers are unlikely to reach those locations and we can safely drop the dependency on $\theta$. The supervised term must be re-written in such a way so that we may explicitly differentiate the cost with respect to $\theta$. This can be done in the following way
-\begin{align}
-    \frac{1}{|\targets|}\sum_{p'\in\targets}
-    \left(\prod_{p\in\predictions(\theta)}|p-p'|\right)
-    ^{\frac{1}{|\predictions|}}\!\!=\,\,
-    \frac{1}{|\targets|}\sum_{p'\in\targets}
-    \exp\left[
-    \frac{1}{|\predictions|}\int_{\rates(z)=0\,\Det=0}
-    \!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!
-    \mathrm{d}z\quad
-    \log|p-p'|
-    \right]
-    \label{eq:supervised-rewrite}
-\end{align}
-In effect we have replaced the set representation $\predictions(\theta)$ with a line integral over the bifurcation curve $\rates(z)=0$ subject to constraint $\Det=0$. In Figure \ref{fig:determinant-field} we can indeed see that bifurcations $\predictions(\theta)$ are picked out by intersections between the two level sets. Now that the cost function is written in terms of line integrals $\int_{\rates(z)=0}\mathrm{d}z$ we need to know how to differentiate them with respect to $\theta$, differentiate along them as in equation \eqref{eq:measure} and know how to deal with constraint $\Det=0$. The following section shows how this can be done with a vector field representation of the bifurcation curve.
+The pre-factor $|\targets|-|\predictions|$ in the unsupervised term ensures that the gradients are always pushing optimisers towards a state where $|\targets|=|\predictions|$. This can be seen as a step-wise annealing of the unsupervised term until the desired state is reached. Note that in principle while individual bifurcations $p(\theta)$ depend smoothly on $\theta$ the total number of predictions $|\predictions|$ does not. The gradient $\partial_{\theta}|\predictions|=0$ everywhere and is an infinite impulse at the exact locations where the number of predictions changes.
 
-\subsection{Bifurcation Curves as Tangent Fields}
-\label{section:tangent-fields}
+In practice optimisers are unlikely to hit those values of $\theta$ and we can safely drop the dependency. We may now proceed in taking gradients with respect to $\theta$ knowing that the only dependencies we need to track are for individual bifurcations $p(\theta)$ and total measure $\Psi(\theta)$
+\begin{align}
+    \frac{\partial\loss}{\partial\theta}=
+    \big(|\predictions|-|\targets|\big)\,\lambda\,
+    \frac{\partial \Psi}{\partial\theta}\Psi(\theta)^{-1}+
+    \frac{1}{|\targets||\predictions|}\sum_{p'}
+    \prod_{p(\theta)}|p(\theta)-p'|^{\frac{1}{|\predictions|}}
+    \sum_{p(\theta)}\frac{\partial p}{\partial\theta}\left(p(\theta)-p'\right)^{-1}
+    \label{eq:gradient}
+\end{align}
+In a similar vein to back-propagation through neural differential equations \cite{Chen2018NeuralEquations} we would like to be able to calculate the gradient $\frac{\partial\loss}{\partial\theta}$ without having to differentiate through the operations of the solver that finds the bifurcation curve $\rates(z)=0$ and the bifurcation locations $p(\theta)$. To calculate the gradient of the measure $\frac{\partial \Psi}{\partial\theta}$ we need to differentiate line integrals that depend on $\theta$. Fortunately this can be done by the application of the generalised Leibniz integral rule, details of which can be found in Appendix \ref{appendix:space-curve}.
 
-Let each component of the vector function $\rates$ in the model \eqref{eq:model} implicitly define a surface embedded in $\Reals^{N+1}$. Let's assume that the intersection of these $N$ surfaces exists and is not null or degenerate, then the steady states of \eqref{eq:model} must be a set of one dimensional space curves in $z\in\Reals^{N+1}$ defined by
+The gradient of the bifurcation points $\frac{\partial p}{\partial\theta}$ is found by application of the implicit function theorem to a vector function $G_{\theta}:\Reals^{N+1}\rightarrow\Reals^{N+1}$ whos components represent the two constraints $\rates(z)=0$ and $\Det=0$. By following a similar strategy to that used by implicit layers \cite{Look2020DifferentiableLayers} we yield an $(N+1)\times M$ Jacobian representing a deformation field \cite{Jos2011OnSurface} for each $\theta$ direction. The gradient we are looking for becomes
 \begin{align}
-    \rates(z) = 0
+    \frac{\partial p}{\partial\theta} = -\hat{p}\cdot\left.\frac{\partial G_{\theta}}{\partial z}^{-1}
+    \frac{\partial  G_{\theta}}{\partial\theta}\right|_{G_{\theta}(z)=0}
+    \quad\mathrm{where}\quad
+    G_{\theta}(z):=\begin{bmatrix}\rates(z)\\\Det\end{bmatrix}
 \end{align}
-An expression for the field $\tangent(z)$ tangent to the set of curves would allow us to take derivatives and integrals along the bifurcation curve. This is exactly what we need to do to evaluate our cost function \ref{eq:cost}. Fortunately the tangent field can be constructed by ensuring it is perpendicular to the gradient $\partial_z$ of each component of $\rates$ as illustrated by an example two component system in Figure \ref{fig:implicit-surfaces}. The tangent field $\tangent(z)$ can be constructed perpendicular to all gradient vectors using the properties of the determinant \cite{Goldman2005CurvatureSurfaces}
-\begin{align}
-    \tangent(z):=
-    \label{eq:tangent-field}
-    \left|\begin{matrix}
-        \hat{z} \\
-        \,\partial_{z}\rates\,
-    \end{matrix}\right|
-    \qquad\tangent : \Reals^{N+1}\rightarrow\Reals^{N+1}\\
-    =\sum_{i=1}^{N+1}\hat{z}_{i}(-1)^{i+1} \left|\frac{\partial \rates}{\partial(z\setminus z_{i}) }\right|
-\end{align}
-where $\hat{z}$ is a collection of unit basis vectors in the $\Reals^{N+1}$ space and $\partial_{z}\rates$ is an $N\times(N+1)$ rectangular Jacobian matrix of partial derivatives and $z\setminus z_{i}$ denotes the $N$ dimensional vector $z$ with component $z_{i}$ removed. This construction ensures perpendicularity to any gradients of $\rates$
-\begin{align}
-    \tangent(z)\cdot\partial_z f_{\theta} =
-    \left|\begin{matrix}
-        \partial_z f_{\theta} \\
-        \,\partial_{z}\rates\,
-    \end{matrix}\right|
-    \quad =0 \quad\forall f_{\theta}\in \rates
-\end{align}
-since the determinant of any matrix with two identical rows or columns is zero. Note that the tangent field $\tangent(z)$ is actually defined for all values of $z$ where adjacent field lines trace out other level sets where $\rates(z)\neq0$. Furthermore deformations with respect to $\theta$ are always orthogonal to the tangent
-\begin{align} % \todo{numerically true. analytic proof?}
-    \tangent(z)\cdot\frac{d\tangent}{d\theta}=0
-\end{align}
-\begin{figure}
-\centering
-\includegraphics[width=13cm]{determinant-field}
-\caption{Left/Right : Determinant $\Det$ and tangent field $\tangent(z)$ for the saddle-node/pitchfork models for some set values of $\theta$ revealing that $\Det=0$ defines bifurcations}
-\label{fig:determinant-field}
-\end{figure}
-Figure \ref{fig:determinant-field} shows how the bifurcation curve defined by $\rates(z)=0$ picks out one of many level sets or traces in tangent field $\tangent(z)$ for the saddle and pitchfork. The tangent field $\tangent(z)$ can always be analytically evaluated by taking the determinant in \eqref{eq:tangent-field}. We will proceed with calculations on $\tangent(z)$ in the whole space $z$ and pick out a single trace by solving $\rates(z)=0$ later. For our two models
-\begin{align}
-    \underset{\mathrm{saddle-node\,\,model}}{
-    \tangent(z)=\hat{u}-(\,3\theta_2 u^2+\theta_1\,)\,\hat{p}}
-    \qquad\qquad
-    \underset{\mathrm{pitchfork\,\,model}}{
-    \tangent(z)=u\hat{u}-(\,3\theta_2 u^2+p\,)\,\hat{p}}
-    \label{eq:tangent-field-examples}
-\end{align}
-Figure \ref{fig:determinant-field} reveals that $\Det=0$ is also a level set and that the intersection with level set $\rates(z)=0$ defines the bifurcations at specific parameter $\theta$. In this particular setting we can see that the tangent field $\tangent(z)$ only folds when $\Det=0$. Plotting the value of the determinant along $\rates(z)=0$ from Figure \ref{fig:determinant-field} would give rise to Figures \ref{fig:saddle-node} and \ref{fig:pitchfork}. The directional derivative of the determinant $\Det$ along the tangent field $\tangent(z)$ is defined as
-\begin{align}
-    \frac{d}{ds}\Det := \hat{\tangent}(z) \cdot \frac{\partial}{\partial z}\Det 
-\end{align}
-where $\hat{\tangent}(z)$ is the unit tangent field. Finally, by applying the generalised Leibniz integral rule, it is also possible to use $\tangent(z)$ to evaluate gradients of line integrals  $\int_{\rates(z)=0}\mathrm{d}z$. In a similar vein to back-propagation through neural differential equations \cite{Chen2018NeuralEquations} we would like to be able to differentiate the cost $\loss(\theta|\targets)$ without having to differentiate through the operations of the solver that finds $\rates(z)=0$. Fortunately this is all possible if we apply a similar strategy to that used by implicit layers \cite{Look2020DifferentiableLayers}; see Appendix \ref{appendix:space-curve} and \ref{appendix:deformation} for derivations.
+Here $\hat{p}$ is a unit vector in $z\in\Reals^{N+1}$ that picks out the deformations along the $p$-direction. We can see this calculation involves inverting an $(N+1)\times(N+1)$ Jacobian $\frac{\partial G_{\theta}}{\partial z}$. The determinant of this Jacobian goes to zero when $\frac{d}{ds}\Det=0$. This further justifies our choice for measure $\measure(z)$ which discourages such cases.
 
-
-% While the unsupervised integrand has an smooth analytic expression, such as those evaluated in \eqref{eq:curvature-examples}, the constraint $\Det=0$ in the first integral makes differentiation with respect to $\theta$ more tricky. Here it becomes convenient to re-express the constraint as a delta function $\delta(z)$ and applying Lebesgue's dominated convergence theorem yielding
-% \begin{align}
-%     \lim_{n\rightarrow\infty}\int_{\steadystates}
-%     \delta_{n}\left(\Det\right)
-%     \frac{1}{|\targets|}\sum_{p'\in\targets} |p-p'|^2\, \mathrm{d}u\mathrm{d}p
-% \end{align}
-% where $\delta_{n}(z)$ can be any basis function whos limit as $n\rightarrow\infty$ is a delta function $\delta(z)$. In practice one could choose the normal distribution function with sufficiently small variance.
-
-% The cost function is thus evaluated over the implicitly specified region $\steadystates$ --- in most cases the region will require a numerical procedure to find the roots $\rates(z)=0$ in the region $p\in\Omega$. 
+The cost function is piece-wise smooth and differentiable with undefined gradients only in parameter regions where the number of predictions $|\predictions|$ changes. Given a set of solutions to $\rates(z)=0$ and locations $p(\theta)$ which additionally satisfy $\Det=0$, the gradient $\frac{\partial\loss}{\partial\theta}$ can evaluated using automatic differentiation methods.
 
 \subsection{Implementation}
 \label{section:implementation}
