@@ -1,4 +1,5 @@
 ######################################################## model
+F(z::BorderedArray,θ::AbstractVector,N::Int,M::Int) = F(z.u,(θ=θ,p=z.p),N::Int,M::Int)
 function F(u::AbstractVector{T},parameters::NamedTuple,N::Int,M::Int) where T<:Number
 
 	@unpack θ,p = parameters
@@ -18,12 +19,12 @@ function F(u::AbstractVector{T},parameters::NamedTuple,N::Int,M::Int) where T<:N
 end
 
 function scaling(N::Int,M::Int)
-	F(u,p) = F(u,p,N,M)
+	f(u,p) = F(u,p,N,M)
 
 	X = StateSpace(N,-π:0.01:π,[0.0])
-	θ = SVector{M}(ones(M))
+	θ = SizedVector{M}(ones(M))
 
 	println("N = $N M = $M")
-	@time ∇loss(F,θ,X)
-	return @elapsed ∇loss(F,θ,X)
+	@time ∇loss(f,θ,X)
+	return @elapsed ∇loss(f,θ,X)
 end
