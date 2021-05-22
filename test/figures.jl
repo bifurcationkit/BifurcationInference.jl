@@ -104,25 +104,25 @@ M,N = size(optima)
 clusters = dbscan(optima,0.3,min_cluster_size=500)
 
 layout = @layout [ a{0.7w} [b{0.5h}; b{0.5h} ] ]
-default(); default(msc=:auto,label="",xlim=(-3,3),ylim=(-1,3),size=(600,450),grid=false)
+default(); default(msc=:auto,label="",xlim=(-3,3),ylim=(-1/2,1),size=(600,450),grid=false)
 
 fig = scatter([0],[0],markersize=0,title=L"\mathrm{Parameter\,\ Estimates}\,\,\theta^{*}", layout=layout, subplot=1,
-	ylabel=L"\mathrm{Half\,\,\,Saturation}\quad\log_{10}k",xlabel=L"\mathrm{Activation}\quad \log_{10}a_1")
+	ylabel=L"\mathrm{Half\,\,\,Saturation}\quad -\log_{10}k",xlabel=L"\mathrm{Activation}\quad -\log_{10}a_1")
 
 color = [:blue,:pink,:lightblue]
 name = ["1","2","1′"]
 clustered_names = ["1,1′","2"]
 for (j,cluster) ∈ enumerate(clusters)
-	x,y = getindex(optima,3,cluster.core_indices), getindex(optima,5,cluster.core_indices)
+	x,y = -getindex(optima,3,cluster.core_indices), -log10.(getindex(optima,5,cluster.core_indices))
 
 	scatter!(x,y,color=color[j],subplot=1)
 	annotate!(median(x),median(y),name[j],subplot=1)
 	
 	parameters = getindex(optima,:,cluster.core_indices)
-	i = rand(1:length(cluster.core_indices))
 	if j == 1 X = StateSpace( 2, 0:0.002:10, [4,5] ) else X = StateSpace( 2, 0:0.01:10, [4,5] ) end
 	if j ∈ [1,2]
-		plot!(F,parameters[:,i],X,determinant=false,xlim=(0,10),ylim=(0.01,100),yscale=:log10,
+		plot!(F,parameters[:,rand(1:length(cluster.core_indices))],X,
+			determinant=false,xlim=(0,10),ylim=(0.01,100),yscale=:log10,
 			subplot=j+1, framestyle = :box)
 		annotate!(8,30,clustered_names[j],subplot=j+1)
 	end
