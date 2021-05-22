@@ -174,8 +174,8 @@ Optimisation trajectories for the two minimal models appear mostly circumferenti
 \subsection{Genetic Toggle Switch | \textit{in progress}}
 In this section we optimise a model where the states share a Hill function relationship; these models often emerge from mass action kinetics and are used to model species concentrations. By not restricting the sign of the coefficients $a_1,a_2$ we can recover both activator and inhibitor relationships.
 \begin{equation}
-    \partial_t u_1 = \frac{\varepsilon_1 + a_1 u_2^2} { k_1^2 + u_2^2 } - \mu_1 u_1 \quad
-    \partial_t u_2 = \frac{p + a_2 u_1^2} { k_2^2 + u_1^2 } - \mu_2 u_2
+    \partial_t u_1 = \frac{ a_1 + (pu_2)^2} { 1 + (pu_2)^2 } - \mu_1 u_1 \quad
+    \partial_t u_2 = \frac{ a_2 + (ku_1)^2} { 1 + (ku_1)^2 } - \mu_2 u_2
     \label{eq:two-state}
 \end{equation}
 Figure \ref{fig:two-state-optima} shows a UMAP embedding of the optimal parameter basins, represented as point clouds. 16 distinct clusters are obtained using DBSCAN. Each cluster corresponds to a kinetically different model regions that are qualitatively equivalent. See Appendix \ref{appendix:clusters} for models that represent the centroid of each cluster.
@@ -183,7 +183,7 @@ Figure \ref{fig:two-state-optima} shows a UMAP embedding of the optimal paramete
 \begin{figure}
 \centering
 \includegraphics[width=11cm]{two-state-optima}
-\caption{Reduced dimensionality plot of optimal $\theta^*$ for the two state model \eqref{eq:two-state} for $\targets=\{4,5\}$}
+\caption{Optimal parameter estimates $\theta^*$ for the two state model \eqref{eq:two-state} for the targets $\targets=\{4,5\}$ reveal two clusters of qualitatively different regimes: mutual activation and mutual inhibition. }
 \label{fig:two-state-optima}
 \end{figure}
  
