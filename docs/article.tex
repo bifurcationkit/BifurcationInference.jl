@@ -34,7 +34,7 @@ We find that the cost function landscape contains basins that not only allow us 
 
 \begin{itemize}
     \item An end-to-end differentiable method for searching for bifurcations and then matching them to user-specified target locations
-    \item Implementation of the method in Julia package leveraging automatic differentiation tooling
+    \item Implementation of the method as a Julia package \cite{Szep2021BifurcationFit.jlDiagrams}
     \item Leveraging the cost landscape for a novel way of organising differential equation models in terms of geometric and topological equivalence
 \end{itemize}
 
@@ -172,16 +172,29 @@ In this section we optimise a model where the states share a Hill function relat
     \partial_t u_2 = \frac{ a_2 + (k u_1)^2}{ 1 + (k u_1)^2 } - \mu_2 u_2
     \label{eq:two-state}
 \end{equation}
-where $a_k$ is the baseline production rate for species $k$ in the absence of the other species. Each species has a finite degradation rate $\mu_k$. Finally we have two half-saturation constants $p$ and $k$, one of which is chosen as our control condition. A baseline production rate $a_k>1$ recovers an inhibitor type hill function for species $k$ and is an activator otherwise. The half-saturation are proportional to the slope of the hill activations.
-
-%  the  we can recover both activator and inhibitor relationships.
-% Figure \ref{fig:two-state-optima} shows a UMAP embedding of the optimal parameter basins, represented as point clouds. 16 distinct clusters are obtained using DBSCAN. Each cluster corresponds to a kinetically different model regions that are qualitatively equivalent.
-
+where $a_k$ is the baseline production rate for species $k$ in the absence of the other species. Each species has a finite degradation rate $\mu_k$. Finally we have two half-saturation constants $p$ and $k$, one of which is chosen as our control condition. A baseline production rate $a_k>1$ recovers an inhibitor type hill function for species $k$ and is an activator otherwise. The half-saturation are proportional to the slope of the hill activations. Solving for the steady states and substituting the equation for $u_1$ into $u_2$ gives rise to
+\begin{equation}
+    \mu_2 u_2 = \frac{ a_2 + (\frac{k}{\mu_1}
+    \frac{ a_1 + (p u_2)^2}{ 1 + (p u_2)^2 })^2}{ 1 + (\frac{k}{\mu_1} 
+    \frac{ a_1 + (p u_2)^2}{ 1 + (p u_2)^2 }
+    )^2 }
+    \label{eq:steady-states}
+\end{equation}
+which reveals that only the ratio between half-saturation and degradation $\frac{k}{\mu_1}$ affects the solutions to this equation, and hence the locations of the bifurcations. Figure \ref{fig:minimal-models:results} reveals the results for 800 optimisation runs with 200 ADAM iterations. 98\% of runs converged onto one of the two clusters: mutual activation and mutual inhibition regimes, examples of which are shown as insets.
 \begin{figure}
 \centering
 \includegraphics[width=11cm]{two-state-optima}
 \caption{Optimal parameter estimates $\theta^*$ for the two state model \eqref{eq:two-state} for the targets $\targets=\{4,5\}$ reveal two clusters of qualitatively different regimes: mutual activation and mutual inhibition. }
 \label{fig:two-state-optima}
+\end{figure}
+\subsection{Complexity}
+
+
+\begin{figure}
+\centering
+\includegraphics[width=11cm]{scaling}
+\caption{Complexity scaling of calculating the gradient of the cost function}
+\label{fig:scaling}
 \end{figure}
  
 \section{Conclusion \& Broader Impact | \textit{in progress}}
