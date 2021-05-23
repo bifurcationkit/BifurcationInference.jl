@@ -63,43 +63,75 @@ savefig("docs/figures/bifurcation-measure.pdf")
 ####################################################################################################
 ############################################################################################ scaling
 include("scaling/scaling.jl")
-heatmap( 1:5, 1:5, scaling,
+
+Ns,Ms = 1:10,1:5:50
+complexity = scaling.(Ns,Ms')
+
+contourf( Ns,Ms, complexity,
 	xlabel="States", ylabel="Parameters", size=(500,400),
 	colorbar_title="Iteration Execution / sec"
 )
+
+cticks!
 savefig("test/scaling/scaling.pdf")
 
 ####################################################################################################
 ####################################################################################################
 ################################################################################ two-state-optima
-using JLD,Plots
-using UMAP,Clustering
-using StatsBase: median
+using FluxContinuation,Plots,StaticArrays
+using UMAP,Clustering,JLD
+using StatsBase: median,mean
 
-trajectories = Vector{Float64}[]
+trajectories, losses, bifurcations, K = Vector{Float64}[], Float64[], Float64[], 0
 for file ∈ readdir(join=true,"trajectories")
 	data = load(file)
 
-	optima = map( (x,y)->(y<0.1)&(x>1),data["bifurcations"],data["losses"])
-	append!(trajectories,data["trajectory"][optima])
+	mask = @. (data["bifurcations"]==2)&(data["losses"]<0.1)
+	if ~any(x->any(isnan.(x)),data["trajectory"])
+
+		append!(trajectories,data["trajectory"][mask])
+		append!(bifurcations,data["bifurcations"][mask])
+		append!(losses,data["losses"][mask])
+		K += 1
+	end
 end
+
+K/length(readdir("trajectories"))
 optima = hcat(trajectories...)
 
+@. optima[end,:] = abs(optima[end,:])
+M,N = size(optima)
+clusters = dbscan(optima,0.3,min_cluster_size=500)
 
-embedding = umap(optima; n_neighbors=3, min_dist=2)
-# clusters = dbscan(optima,0.1,min_neighbors = 1, min_cluster_size = 1)
+layout = @layout [ a{0.7w} [b{0.5h}; b{0.5h} ] ]
+default(); default(msc=:auto,label="",xlim=(-3,3),ylim=(-1/2,1),size=(600,450),grid=false)
 
+fig = scatter([0],[0],markersize=0,title=L"\mathrm{Parameter\,\ Estimates}\,\,\theta^{*}", layout=layout, subplot=1,
+	ylabel=L"\mathrm{Half\,\,\,Saturation}\quad -\log_{10}k",xlabel=L"\mathrm{Activation}\quad -\log_{10}a_1")
 
-scatter([0],[0],label="",markersize=0,size=(500,500),title="Reduced Parameter Space")
+color = [:blue,:pink,:lightblue]
+name = ["1","2","1′"]
+clustered_names = ["1,1′","2"]
+for (j,cluster) ∈ enumerate(clusters)
+	x,y = -getindex(optima,3,cluster.core_indices), -log10.(getindex(optima,5,cluster.core_indices))
 
-# for cluster ∈ clusters
-	scatter!(getindex(optima,3,:),
-		getindex(optima,4,:),msc=:auto,label="")
-# end
-scatter!([0],[0],label="",markersize=0)|>display
-
-include("applied/two-state.jl")
-for cluster ∈ clusters
-	centroid = median(getindex(optima,:,cluster.core_indices),dims=2)[:,1]
-	plot(rates,centroid,targetData)|>display
+	scatter!(x,y,color=color[j],subplot=1)
+	annotate!(median(x),median(y),name[j],subplot=1)
+	
+	parameters = getindex(optima,:,cluster.core_indices)
+	if j == 1 X = StateSpace( 2, 0:0.002:10, [4,5] ) else X = StateSpace( 2, 0:0.01:10, [4,5] ) end
+	if j ∈ [1,2]
+		plot!(F,parameters[:,rand(1:length(cluster.core_indices))],X,
+			determinant=false,xlim=(0,10),ylim=(0.01,100),yscale=:log10,
+			subplot=j+1, framestyle = :box)
+		annotate!(8,30,clustered_names[j],subplot=j+1)
+	end
 end
+
+xlabel!("",subplot=2)
+ylabel!("",subplot=2)
+ylabel!("",subplot=3)
+yticks!([NaN],subplot=2)
+yticks!([NaN],subplot=3)
+
+savefig("docs/figures/two-state-optima.pdf")
