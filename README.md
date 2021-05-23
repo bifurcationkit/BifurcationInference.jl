@@ -1,4 +1,4 @@
-# BifurcationFit.jl : Parameter Inference with Bifurcation Diagrams
+# BifurcationFit.jl : Inference with Bifurcation Diagrams
 
 This library implements the method described in **Szep, G. Dalchau, N. and Csikasz-Nagy, A. 2021. [Parameter Inference with Bifurcation Diagrams](https://github.com/gszep/BifurcationFit.jl/blob/master/docs/article.pdf)** using parameter continuation library [`BifurcationKit.jl`](https://github.com/rveltz/BifurcationKit.jl) and auto-differentiation [`ForwardDiff.jl`](https://github.com/JuliaDiff/ForwardDiff.jl). This implementation enables continuation methods can be used as layers in machine learning proceedures, and inference can be run end-to-end directly on the geometry of state space.
 
