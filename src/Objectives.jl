@@ -1,30 +1,33 @@
 ################################################################################
 function loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
-	pmin,pmax = extrema(targets.parameter)
 
-	predictions = sum([ s.bif/2 for branch ∈ branches for s ∈ branch if (pmin ≤ s.z.p ≤ pmax) ])
-	return errors(branches,targets) - (length(targets.targets)-predictions)*log(measure(F,branches,θ,targets))
+	predictions = unique([ s.z for branch ∈ branches for s ∈ branch if s.bif ], atol=3*step(targets.parameter) )
+	λ = length(targets.targets)-length(predictions)
+
+	if λ≠0 
+		Φ = measure(F,branches,θ)
+		return errors(predictions,targets) - λ*log(Φ)
+	else
+		return errors(predictions,targets)
+	end
 end
 
 ################################################################################
-function errors( branches::AbstractVector{<:Branch}, targets::StateSpace)
-	pmin,pmax = extrema(targets.parameter)
-
-	predictions = [ s.z for branch ∈ branches for s ∈ branch if s.bif & (pmin ≤ s.z.p ≤ pmax) ]
+function errors( predictions::AbstractVector{<:BorderedArray}, targets::StateSpace)
 	return mean( p′-> mean( z->(z.p-p′)^2, predictions; type=:geometric ), targets.targets; type=:arithmetic )
 end
 
-measure = Integrand( function( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; kwargs... )
+function measure( F::Function, z::BorderedArray, θ::AbstractVector )
 	return 1 / ( 1 + abs( det(F,z,θ) / ∂det(F,z,θ)'tangent_field(F,z,θ) ) )
-end)
-
-################################################################################
-function (integrand::Integrand)( F::Function, branch::Branch, θ::AbstractVector, targets::StateSpace; kwargs...)
-	return sum( s -> window_function( targets.parameter, s.z; kwargs... )*integrand( F, s.z, θ, targets; kwargs...)s.ds, branch )
 end
 
-function (integrand::Integrand)( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
-	return sum( branch -> integrand( F, branch, θ, targets; kwargs...), branches )
+################################################################################
+function measure( F::Function, branch::Branch, θ::AbstractVector )
+	return sum( s -> measure(F,s.z,θ)*s.ds, branch )
+end
+
+function measure( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector )
+	return sum( branch -> measure(F,branch,θ), branches )
 end
 
 ########################################################################### determinant

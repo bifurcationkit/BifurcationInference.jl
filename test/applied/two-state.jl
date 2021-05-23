@@ -15,5 +15,5 @@ function F(u::AbstractVector,parameters::NamedTuple)
 end
 
 ######################################################### targets and initial guess
-X = StateSpace( 2, 0:0.01:10, [4,5] )
+X = StateSpace( 2, 0.01:0.01:10, [4,5] )
 θ = SizedVector{5}(0.5,0.5,0.5470,2.0,7.5)

@@ -51,20 +51,21 @@ function push!(branch::Branch,state::ContState)
     push!(branch, ( z=z, λ=state.eigvals, ds=norm(∂z)*abs(state.ds), bif=detectBifucation(state) ))
 end
 
-import Base: zero ################################## initialiser for BorderedArray
+import Base: zero,isapprox,unique ################################## methods for BorderedArray
 zero(::Type{BorderedArray{T,U}}; ϵ::Bool=true) where {T<:Union{Number,StaticArray},U<:Union{Number,StaticArray}} = BorderedArray(zero(T).+ϵ*eps(),zero(U).+ϵ*eps())
+isapprox( x::BorderedArray, y::BorderedArray; kwargs... ) = isapprox( [x.u;x.p], [y.u;y.p] ; kwargs...)
+function unique(X::AbstractVector{T}; kwargs...) where T<:BorderedArray
+    z = T[]
+    for x ∈ X 
+        if all( zi -> ~isapprox( x, zi; kwargs... ), z )
+            push!(z,x)
+        end
+    end
+    return z
+end
 
 #################################################### display methods
 show(io::IO, branches::Vector{Branch{V,T}}) where {V,T} = print(io,
-    "Vector{Branch}[dim=$(dim(first(branches))) bifurcations=$(sum(branch->sum(s->s.bif,branch),branches)) branches=$(length(branches)), states=$(sum(branch->length(branch),branches))]")
+    "Vector{Branch}[dim=$(dim(first(branches))) bifurcations=$(length(unique([ s.z for branch ∈ branches for s ∈ branch if s.bif ], atol=0.03 ))) branches=$(length(branches)/2), states=$(sum(branch->length(branch),branches)/2)]")
 show(io::IO, M::MIME"text/plain", branches::Vector{Branch{V,T}}) where {V,T} = show(io,branches)
 show(io::IO, states::StateSpace{N,T}) where {N,T} = print(io,"StateSpace{$N,$T}(parameters=$(states.parameter),targets=$(states.targets))")
-
-################################################################################
-########################################################### line integrand terms
-
-struct Integrand <: Function f::Function end
-(f::Integrand)(args...;kwargs...) = f.f(args...;kwargs...)
-
-struct Gradient <: Function f::Function; integrand::Integrand end
-(f::Gradient)(args...;kwargs...) = f.f(args...;kwargs...)
