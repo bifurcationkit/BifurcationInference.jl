@@ -6,7 +6,7 @@ This library implements the method described in **Szep, G. Dalchau, N. and Csika
 [![Coverage](https://codecov.io/gh/gszep/FluxContinuation.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/gszep/FluxContinuation.jl)
 
 ## Basic Usage
-
+The model definition requires a distpatched method on `F(z::BorderedArray,θ::AbstractVector)` where `BorderedArray` is a type that contains the state vector `u` and control condition `p` used by the library [`BifurcationKit.jl`](https://github.com/rveltz/BifurcationKit.jl). `θ` is a vector of parameters to be optimised.
 ```julia
 using BifurcationFit
 
@@ -25,11 +25,13 @@ function F(u::AbstractVector,parameters::NamedTuple)
 
 	return F
 end
-
-######################################################### targets and initial guess
+```
+The targets are specified with `StateSpace( dimension::Integer, condition::AbstractRange, targets::AbstractVector )`. It contains the dimension of the state space, which must match that of the defined model, the control condition range that we would like to perform the continuation method in, and a vector of target conditions we would like to match.
+```julia
 X = StateSpace( 2, 0:0.01:10, [4,5] )
-θ = SizedVector{5}(0.5,0.5,0.5470,2.0,7.5)
-
-######################################################### optimise parameters
-train!( F, (θ=θ,p=minimum(X.parameter)), X;  iter=200, optimiser=ADAM(0.01) )
+```
+The optimisation needs to be initialised using a `NamedTuple` containing the initial guess for `θ` and the initial value `p` from which to begin the continuation.
+```julia
+parameters = ( θ=SizedVector{5}(0.5,0.5,0.5470,2.0,7.5), p=minimum(X.parameter) )
+train!( F, parameters, X;  iter=200, optimiser=ADAM(0.01) )
 ```
