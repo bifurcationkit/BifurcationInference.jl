@@ -171,13 +171,15 @@ Optimisation trajectories for the two minimal models appear mostly circumferenti
 \label{fig:pitchfork:results}
 \end{figure}
 
-\subsection{Genetic Toggle Switch | \textit{in progress}}
-In this section we optimise a model where the states share a Hill function relationship; these models often emerge from mass action kinetics and are used to model species concentrations. By not restricting the sign of the coefficients $a_1,a_2$ we can recover both activator and inhibitor relationships.
+\subsection{Genetic Toggle Switch}
+In this section we optimise a model where the states share a Hill function relationship with cooperatively $n=2$; these models often emerge from mass action kinetics and are used to model species concentrations. After re-scaling the equations governing the dynamics of concentrations, the simplified equations for state $u_$ and $u_2$ become 
 \begin{equation}
-    \partial_t u_1 = \frac{ a_1 + (pu_2)^2} { 1 + (pu_2)^2 } - \mu_1 u_1 \quad
-    \partial_t u_2 = \frac{ a_2 + (ku_1)^2} { 1 + (ku_1)^2 } - \mu_2 u_2
+    \partial_t u_1 = \frac{ a_1 + (p u_2)^2}{ 1 + (p u_2)^2 } - \mu_1 u_1 \quad
+    \partial_t u_2 = \frac{ a_2 + (k u_1)^2}{ 1 + (k u_1)^2 } - \mu_2 u_2
     \label{eq:two-state}
 \end{equation}
+where $a_k$ are 
+ the  we can recover both activator and inhibitor relationships.
 Figure \ref{fig:two-state-optima} shows a UMAP embedding of the optimal parameter basins, represented as point clouds. 16 distinct clusters are obtained using DBSCAN. Each cluster corresponds to a kinetically different model regions that are qualitatively equivalent. See Appendix \ref{appendix:clusters} for models that represent the centroid of each cluster.
  
 \begin{figure}
