@@ -8,9 +8,8 @@ This library implements the method described in **Szep, G. Dalchau, N. and Csika
 ## Basic Usage
 The model definition requires a distpatched method on `F(z::BorderedArray,θ::AbstractVector)` where `BorderedArray` is a type that contains the state vector `u` and control condition `p` used by the library [`BifurcationKit.jl`](https://github.com/rveltz/BifurcationKit.jl). `θ` is a vector of parameters to be optimised.
 ```julia
-using BifurcationFit
+using FluxContinuation, StaticArrays
 
-######################################################## define the model
 F(z::BorderedArray,θ::AbstractVector) = F(z.u,(θ=θ,p=z.p))
 function F(u::AbstractVector,parameters::NamedTuple)
 
@@ -32,6 +31,7 @@ X = StateSpace( 2, 0:0.01:10, [4,5] )
 ```
 The optimisation needs to be initialised using a `NamedTuple` containing the initial guess for `θ` and the initial value `p` from which to begin the continuation.
 ```julia
+using Flux: Optimise
 parameters = ( θ=SizedVector{5}(0.5,0.5,0.5470,2.0,7.5), p=minimum(X.parameter) )
-train!( F, parameters, X;  iter=200, optimiser=ADAM(0.01) )
+train!( F, parameters, X;  iter=200, optimiser=Optimise.ADAM(0.01) )
 ```
