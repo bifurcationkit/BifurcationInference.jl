@@ -27,26 +27,26 @@ layout = @layout [a;b{1.0w,0.5h}]
 default(); default(grid=false,label="",margin=0mm)
 plot(layout = layout, link = :x, size=(400,500) )
 
-hline!([0],subplot=2,linewidth=1,ylim=(-5,5),color=:black, xlabel=L"\mathrm{parameter,}p", xmirror=true, topmargin=-5mm,
+hline!([0],subplot=2,linewidth=1,ylim=(-5,5),color=:black, xlabel=L"\mathrm{arclength,}s", xmirror=true, topmargin=-5mm,
 	ylabel=L"\mathrm{determinant}\,\quad\left|\!\!\!\!\frac{\partial F_{\theta}}{\partial u}\right|")
 
-plot!([-1.52,-1.52],[0,1],subplot=1,linewidth=2,color=:gold)
-plot!([-1.52,-1.52],[0,5],subplot=2,linewidth=2,color=:gold)
+plot!([-1.52,-1.52],[0,1],subplot=1,linewidth=2,color=:gray)
+plot!([-1.52,-1.52],[0,5],subplot=2,linewidth=2,color=:gray)
 
-plot!([1.33,1.33],[0,1],subplot=1,linewidth=2,color=:gold)
-plot!([1.33,1.33],[0,5],subplot=2,linewidth=2,color=:gold)
+plot!([1.33,1.33],[0,1],subplot=1,linewidth=2,color=:gray)
+plot!([1.33,1.33],[0,5],subplot=2,linewidth=2,color=:gray)
 
-plot!([1.67,1.67],[0,1],subplot=1,linewidth=2,color=:gold)
-plot!([1.67,1.67],[0,5],subplot=2,linewidth=2,color=:gold)
+plot!([1.67,1.67],[0,1],subplot=1,linewidth=2,color=:gray)
+plot!([1.67,1.67],[0,5],subplot=2,linewidth=2,color=:gray)
 
 p = -2:0.01:2
-f(p) = - 2 - p^3 + p
-plot!( p, measure, subplot=1, color=:gold, fill=true, alpha=0.2, ylabel=L"\mathrm{Measure}\,\,\varphi_{\theta}(z)", ylim=(0,1) )
-plot!( p, f, subplot=2, linewidth=2, color=map( x -> f(x)<0 ? :red : :pink, p ) )
-
 f(p) = - 2 - (p-1/2)^3 + 3.1(p-1/2)
-plot!( p, measure, subplot=1, color=:gold, fill=true, alpha=0.2, ylim=(0,1) )
-plot!( p, f, subplot=2, linewidth=2, color=map( x -> f(x)<0 ? :red : :pink, p ) )
+plot!( p, measure, subplot=1, linewidth=2, color=:red, ylim=(0,1) )
+plot!( p, f, subplot=2, linewidth=2, color=:red )
+
+f(p) = - 2 - p^3 + p
+plot!( p, measure, subplot=1, linewidth=2, color=:gold, ylabel=L"\mathrm{Measure}\,\,\varphi_{\theta}(s)", ylim=(0,1) )
+plot!( p, f, subplot=2, linewidth=2, color=:gold )
 
 yticks!([0,1],subplot=1)
 yticks!([-2,0,2],subplot=2)
@@ -73,14 +73,14 @@ contourf( Ns,Ms, complexity,
 )
 
 cticks!
-savefig("test/scaling/scaling.pdf")
+savefig("docs/figures/scaling.pdf")
 
 ####################################################################################################
 ####################################################################################################
 ################################################################################ two-state-optima
 using FluxContinuation,Plots,StaticArrays
-using UMAP,Clustering,JLD
-using StatsBase: median,mean
+using Clustering,JLD
+using StatsBase: median
 
 trajectories, losses, bifurcations, K = Vector{Float64}[], Float64[], Float64[], 0
 for file ∈ readdir(join=true,"trajectories")
@@ -104,16 +104,18 @@ M,N = size(optima)
 clusters = dbscan(optima,0.3,min_cluster_size=500)
 
 layout = @layout [ a{0.7w} [b{0.5h}; b{0.5h} ] ]
-default(); default(msc=:auto,label="",xlim=(-3,3),ylim=(-1/2,1),size=(600,450),grid=false)
+default(); default(msc=:auto,label="",xlim=(-3,3),ylim=(-1,2),size=(600,450),grid=false)
 
 fig = scatter([0],[0],markersize=0,title=L"\mathrm{Parameter\,\ Estimates}\,\,\theta^{*}", layout=layout, subplot=1,
-	ylabel=L"\mathrm{Half\,\,\,Saturation}\quad -\log_{10}k",xlabel=L"\mathrm{Activation}\quad -\log_{10}a_1")
+	ylabel=L"\mathrm{Saturation/Degredation\,\,Ratio}\quad \log_{10}k - \log_{10}\mu_1",xlabel=L"\mathrm{Activation}\quad -\log_{10}a_1")
 
 color = [:blue,:pink,:lightblue]
-name = ["1","2","1′"]
-clustered_names = ["1,1′","2"]
-for (j,cluster) ∈ enumerate(clusters)
-	x,y = -getindex(optima,3,cluster.core_indices), -log10.(getindex(optima,5,cluster.core_indices))
+name = ["1","2"]
+clustered_names = ["1","2"]
+
+include("applied/two-state.jl")
+for (j,cluster) ∈ enumerate(clusters[1:2])
+	x,y = -getindex(optima,3,cluster.core_indices),  log10.(getindex(optima,5,cluster.core_indices)) - getindex(optima,1,cluster.core_indices)
 
 	scatter!(x,y,color=color[j],subplot=1)
 	annotate!(median(x),median(y),name[j],subplot=1)

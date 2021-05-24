@@ -1,7 +1,7 @@
 using FiniteDiff: finite_difference_gradient
 using FluxContinuation, Test
 
-error_tolerance = 0.05
+error_tolerance = 0.06
 @testset "Gradients" begin
 
 	@testset "Saddle Node" begin
