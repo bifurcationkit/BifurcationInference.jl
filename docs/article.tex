@@ -28,12 +28,12 @@ Inferring the parameters of a model directly from a bifurcation diagram is diffi
 
 Back-propagation through differential equation solvers has been a breakthrough over the past couple of years \cite{Chen2018NeuralEquations,Rackauckas2019DiffEqFlux.jl-AEquations} that enabled scalable parameter inference for differential equations from trajectory data. Although one could use trajectory data to create the aforementioned qualitative constraints \cite{Ranciati2017BayesianParameters,Khadivar2021LearningBifurcations} this would entail over-constraining information originating from the kinetics and dynamical transients of the model. Furthermore, such data usually does not contain sufficient information about dynamical transients in order to identify kinetic parameters. Techniques for back-propagating through implicit equation solvers have also been developed \cite{Look2020DifferentiableLayers,Bai2019DeepModels} although to the best of the authors' knowledge have not been applied to bifurcation diagrams at the time of writing this paper.
 
-In this work, we propose a gradient-based semi-supervised approach for inferring the parameters of differential equations that produce a user-specified bifurcation diagram. The bifurcation diagram encodes high-level qualitative information defined by state space structures, rather than kinetics. Drawing inspiration from implicit layers \cite{Look2020DifferentiableLayers,Bai2019DeepModels} to calculate gradients we find that their computation shares the same  complexity as the algorithm used to calculate the bifurcation diagram. The compute the diagram we use a predictor-corrector method called deflated pseudo-arclength continuation \cite{Farrell2016TheDiagrams,Veltz2019PseudoArcLengthContinuation.jl} developed for partial differential equations. In the case of partial differential equations the computational complexity of calculating a single bifurcation diagram is not bounded since superpositions of localised solutions may give rise to uncountably many branches \cite{Avitabile2010ToEquation}. The complexity of computing a single branch, however, is bounded by the complexities of the chosen eigenvalue solver and corrector, and further decreased by adaptive stepping procedures \cite{Aruliah2016AlgorithmContinuation}.
+In this work, we propose a gradient-based semi-supervised approach for inferring the parameters of differential equations that produce a user-specified bifurcation diagram. The bifurcation diagram encodes high-level qualitative information defined by state space structures, rather than kinetics. Drawing inspiration from implicit layers \cite{Look2020DifferentiableLayers,Bai2019DeepModels} to calculate gradients. The compute the diagram we use a predictor-corrector method called deflated pseudo-arclength continuation \cite{Farrell2016TheDiagrams,Veltz2019PseudoArcLengthContinuation.jl} developed for partial differential equations. In the case of partial differential equations, the computational complexity of calculating even a single bifurcation diagram can be unbounded since superpositions of localised solutions may give rise to uncountably many branches \cite{Avitabile2010ToEquation}. The complexity of computing a single branch, however, is bounded by the complexities of the chosen eigenvalue solver and corrector, and further decreased by adaptive stepping procedures \cite{Aruliah2016AlgorithmContinuation}.
 
 We find that the cost function landscape contains basins that not only allow us to synthesise models with a desired bifurcation diagram but also allow us to organise models in terms of topological and geometric equivalence. We discuss the relevance of this in model selection. In summary, our paper has the following main contributions:
 
 \begin{itemize}
-    \item An end-to-end differentiable method for searching for bifurcations and then matching them to user-specified target locations
+    \item An end-to-end differentiable method for locating bifurcations in parameter space and then matching their dependency on a control condition to user-specified locations
     \item Implementation of the method as a Julia package \cite{Szep2021BifurcationFit.jlDiagrams}
     \item Leveraging the cost landscape for a novel way of organising differential equation models in terms of geometric and topological equivalence
 \end{itemize}
@@ -50,7 +50,7 @@ For the purposes of introducing this work, we will consider the simplest class o
 	\label{eq:model}
 \end{align}
 
-In the context of the differential equations, a co-dimension one bifurcation can be defined by a set of conditions on the determinant of the Jacobian $\Det$. The determinant of the Jacobian quantifies the rate at which trajectories in a local patch of state-space $u\in\Reals^N$ converge or diverge. The determinant approaching zero means that the dynamics of the system is slowing down, which is an important indicator for the onset of a transition between qualitative behaviours. Furthermore, the slowing down must necessarily be followed by breakdown of stability; for this to be true it is sufficient to require that the determinant cross zero with a finite slope, meaning that its directional derivative along the diagram $\frac{d}{ds}\Det$ is not zero. The set of predicted values for the control condition $\predictions(\theta)\subset\Reals$ at which bifurcations occur are defined as
+In the context of the differential equations, a co-dimension one bifurcation can be defined by a set of conditions on the determinant of the Jacobian $\Det$. The determinant of the Jacobian quantifies the rate at which trajectories in a local patch of state-space $u\in\Reals^N$ converge or diverge. The determinant approaching zero means that the dynamics of the system are slowing down, which is an important indicator for the onset of a transition between qualitative behaviours. Furthermore, the slowing down must necessarily be followed by breakdown of stability; for this to be true it is sufficient to require that the determinant cross zero with a finite slope, meaning that its directional derivative along the diagram $\frac{d}{ds}\Det$ is not zero. The set of predicted values for the control condition $\predictions(\theta)\subset\Reals$ at which bifurcations occur are defined as
 \begin{align}
 	\predictions(\theta):=\left\{\,
 	p\,\,\exists\,\,u:\,\,\rates(u,p)=0,\,\,\Det=0,
@@ -58,16 +58,10 @@ In the context of the differential equations, a co-dimension one bifurcation can
 	\,\right\}
 	\label{eq:predictions}
 \end{align}
- Figure \ref{fig:minimal-models} shows minimal models that explore the space of saddle-nodes $\rates(u,p) = p + \theta_{1}u+\theta_{2}u^3$ and pitchforks $\rates(u,p) = \theta_{1} + p u+\theta_{2}u^3$. Indeed the predictions $\predictions(\theta)$ are defined by zero crossings in the determinant with a finite slope. The location of these crossings in general may not match the targets $\targets$.
 
-For a given set of parameters $\theta$ one could compute the set of predicted bifurcations $\predictions(\theta)$ using parameter continuation methods \cite{Veltz2019PseudoArcLengthContinuation.jl,Farrell2016TheDiagrams}. Our goal is to find optimal parameters $\theta^*$ that match predictions $\predictions(\theta^*)$ to specified targets $\targets$. We must design a suitable cost function $\loss$ so that
-\begin{align}
-    \theta^* := \mathrm{argmin}_{\theta} \loss(\theta|\targets)
-    \label{eq:optimal-theta}
-\end{align}
-The optimal $\theta^*$ is not expected to always be unique, but is in general a manifold representing the space of qualitatively equivalent models. The cost function $\loss$ must have some distance measure between the two sets $\predictions(\theta)$ and $\targets$ with a bias that encourages equivalent set sizes $|\predictions(\theta)|=|\targets|$. This is especially important in the case where there are no predictions $|\predictions(\theta)|=0$.
+To illustrate how the shapes of bifurcation diagrams compare with the determinant of the Jacobian, we show minimal models for saddle-node (Figure \ref{fig:minimal-models}A) and pitchfork bifurcations (Figure \ref{fig:minimal-models}B). Indeed the predictions $\predictions(\theta)$ are defined by zero crossings in the determinant with a finite slope. The location of these crossings in general may not match the targets $\targets$.
 
-\begin{figure}
+\begin{figure}[ht]
 \centering
 \setlength\unitlength{1cm}
 {\phantomsubcaption\label{fig:saddle-node}}
@@ -80,8 +74,21 @@ The optimal $\theta^*$ is not expected to always be unique, but is in general a 
 \label{fig:minimal-models}
 \end{figure}
 
+For a given set of parameters $\theta$ one could compute the set of predicted bifurcations $\predictions(\theta)$ using parameter continuation methods \cite{Veltz2019PseudoArcLengthContinuation.jl,Farrell2016TheDiagrams}. Our goal is to find optimal parameters $\theta^*$ that match predictions $\predictions(\theta^*)$ to specified targets $\targets$. We must design a suitable cost function $\loss$ so that
+\begin{align}
+    \theta^* := \mathrm{argmin}_{\theta} \loss(\theta|\targets)
+    \label{eq:optimal-theta}
+\end{align}
+The optimal $\theta^*$ is not expected to always be unique, but is in general a manifold representing the space of qualitatively equivalent models. Ideally, the cost function $\loss$ should reward $\theta$ for which the number of predicted bifurcations is equal to the number of targets, $|\predictions(\theta)|=|\targets|$. This is especially important in the case where there are no predictions $|\predictions(\theta)|=0$.
+
+
+\clearpage
 \section{Proposed Method}
 \subsection{Semi-supervised Cost Function}
+
+To identify parameter sets that give rise to bifurcation diagrams with specified turning points, we propose a semi-supervised cost function that comprises two terms. The role of the supervised term is simply to reward predicted bifurcations to coincide with the specified target locations. This of course relies on such bifurcations existing. Therefore, the role of the unsupervised term is to encourage an optimiser to move towards parameter regimes that do exhibit bifurcations.
+
+\subsubsection{Supervised term: matched bifurcations to target locations}
 
 \begin{figure}
     \centering
@@ -90,15 +97,26 @@ The optimal $\theta^*$ is not expected to always be unique, but is in general a 
     \label{fig:measure}
 \end{figure}
 
-In order for predicted bifurcations $p(\theta)\in\predictions(\theta)$ to match targets $p'\in\targets$ we need to evaluate an error term $|p(\theta)-p'|$. We expect this term to be some mean over the targets $\targets$ and predictions $\predictions(\theta)$. We choose a geometric mean over the predictions and an arithmetic mean over targets to account for cases where $|\predictions|\neq|\targets|$ and discourage multiple predictions matching the same target in cases where $|\predictions|\geq|\targets|$. This term only zero when each target is matched by at least one prediction
+In order for predicted bifurcations $p(\theta)\in\predictions(\theta)$ to match targets $p'\in\targets$ we need to evaluate an error term $|p(\theta)-p'|$. A naive approach might take an average over the norms for each prediction-target pair. However, this can result in multiple predictions matching the same target. Therefore, we choose a geometric mean over the predictions and an arithmetic mean over targets to account for cases where $|\predictions|\neq|\targets|$ and discourage multiple predictions matching the same target (in cases where $|\predictions|\geq|\targets|$). Such an error term is only zero when each target is matched by at least one prediction
 \begin{align}
     \frac{1}{|\targets|}\sum_{p'\in\targets}
     \prod_{p(\theta)\in\predictions(\theta)}|p(\theta)-p'|
     ^{\frac{1}{|\predictions|}}
     \label{eq:error}
 \end{align}
-We can see from Figures \ref{fig:minimal-models} and definitions \eqref{eq:predictions} that predictions $p(\theta)$ can be identified by looking for points along the curve where the determinant $\Det=0$. Meanwhile the directional derivative along the bifurcation curve is finite $\frac{d}{ds}\Det\neq 0$. Using these quantities we can define a positive semi-definite measure $\measure(s)$ of zero crossings in the determinant along the bifurcation curve. Figure \ref{fig:measure} demonstrates this measure is maximal at bifurcation at locations and has finite gradients in non-bifurcating regimes. The total bifurcation measure $\Psi(\theta)$ over a diagram is defined as
-\begin{align}
+
+\subsubsection{Unsupervised term: encouraging bifurcations}
+
+We can see from Figures \ref{fig:minimal-models} and definitions \eqref{eq:predictions} that predictions $p(\theta)$ can be identified by looking for points along the curve where the determinant $\Det=0$. Meanwhile the directional derivative along the bifurcation curve is finite $\frac{d}{ds}\Det\neq 0$. Using these quantities we can define a positive semi-definite measure $\measure(s)$ of zero crossings in the determinant along the bifurcation curve, which we define as 
+\begin{equation}
+    \measure(s):=
+    \left(1+\left|\frac{\Det}{\frac{d}{ds}\Det}\right|\right)^{-1}
+    \label{eq:measure}
+\end{equation}
+This measure is maximal at bifurcations and has finite gradients in non-bifurcating regimes (Figure \ref{fig:measure}). More specifically, the measure $\measure(s)$ is one at bifurcation points and goes to zero an odd number of times between bifurcations. This is because $\Det$ must eventually turn around in order to return back to zero, resulting in the directional derivative $\frac{d}{ds}\Det$ going to zero and hence the measure $\measure(s)$ going to zero for each turning point. 
+
+To quantify the overall propensity for bifurcations over a diagram, we define the total bifurcation measure $\Psi(\theta)$ as
+\begin{equation}
     \Psi(\theta):=\frac{
         \int_{\rates(u,p)=0}\!
         \measure(s)\,\mathrm{d}s
@@ -106,12 +124,10 @@ We can see from Figures \ref{fig:minimal-models} and definitions \eqref{eq:predi
         \int_{\rates(u,p)=0}\!\
         \mathrm{d}s
     }
-    \quad\mathrm{where}\quad
-    \measure(s):=
-    \left(1+\left|\frac{\Det}{\frac{d}{ds}\Det}\right|\right)^{-1}
-    \label{eq:measure}
-\end{align}
-Here we denote $\int_{\rates(u,p)=0}\mathrm{d}s$ as the sum of the line integrals in $(u,p)\in\Reals^{N+1}$ defined by the level set $\rates(u,p)=0$ with $s$ being an arbitrary parametrisation of the curves. The measure $\measure(s)$ is one at bifurcation points and goes to zero an odd number of times between bifurcations. This is because $\Det$ must eventually turn around in order to return back to zero, resulting in the directional derivative $\frac{d}{ds}\Det$ going to zero and hence the measure $\measure(s)$ going to zero for each turning point. While the calculation of the determinant is straightforward, its directional derivative is not. Fortunately, a tangent field representation of the bifurcation curve allows us to compute this derivative implicitly; see Appendix \ref{appendix:tangent-fields} for details.
+\end{equation}
+Here we denote $\int_{\rates(u,p)=0}\mathrm{d}s$ as the sum of the line integrals in $(u,p)\in\Reals^{N+1}$ defined by the level set $\rates(u,p)=0$ with $s$ being an arbitrary parametrisation of the curves.
+
+While the calculation of the determinant is straightforward, its directional derivative is not. Fortunately, a tangent field representation of the bifurcation curve allows us to compute this derivative implicitly; see Appendix \ref{appendix:tangent-fields} for details.
 
 As the determinant $\Det$ diverges we approach regimes far away from any closest bifurcation and hence $\measure(s)\rightarrow0$. We would still like to have non-zero gradients with respect to $\theta$ in this regime, and therefore $\measure(s)$ was designed to go to zero slowly. The total measure $\Psi(\theta)$ is normalised such that $\Psi(\theta)\rightarrow1$ in the regimes where the controlled condition region $p$ is densely packed with bifurcations. The measure $\measure(s)$ is also invariant under certain classes of transformations on $\rates(u,p)$ which do not change bifurcation locations, proofs of which are provided in Appendix \ref{appendix:measure}. The total measure $\Psi(\theta)$ is added to the supervised term as if it were a likelihood; this defines the semi-supervised cost function as
 \begin{align}
@@ -122,7 +138,10 @@ As the determinant $\Det$ diverges we approach regimes far away from any closest
     ^{\frac{1}{|\predictions|}}
     \label{eq:loss}
 \end{align}
-The pre-factor $|\targets|-|\predictions|$ in the unsupervised term ensures that the gradients are always pushing optimisers towards a state where $|\targets|=|\predictions|$. This can be seen as a step-wise annealing of the unsupervised term until the desired state is reached. Note that in while individual bifurcations $p(\theta)$ depend smoothly on $\theta$, the total number of predictions $|\predictions|$ does not have gradient contributions with respect to $\theta$. We can safely drop the dependency in the prediction counter and now proceed in taking gradients with respect to $\theta$ knowing that the only dependencies we need to track are for individual bifurcations $p(\theta)$ and total measure $\Psi(\theta)$
+
+\subsection{Differentiating the semi-supervised cost function}
+
+The pre-factor $|\targets|-|\predictions|$ in the unsupervised term ensures that the gradients are always pushing optimisers towards a state where $|\targets|=|\predictions|$. This can be seen as a step-wise annealing of the unsupervised term until the desired state is reached. Note that while individual bifurcations $p(\theta)$ depend smoothly on $\theta$, the total number of predictions $|\predictions|$ does not have gradient contributions with respect to $\theta$. We can safely drop the dependency in the prediction counter and now proceed in taking gradients with respect to $\theta$ knowing that the only dependencies we need to track are for individual bifurcations $p(\theta)$ and total measure $\Psi(\theta)$
 \begin{align}
     \frac{\partial\loss}{\partial\theta}=
     \big(|\predictions|-|\targets|\big)\,\lambda\,
@@ -134,7 +153,7 @@ The pre-factor $|\targets|-|\predictions|$ in the unsupervised term ensures that
 \end{align}
 In a similar vein to back-propagation through neural differential equations \cite{Chen2018NeuralEquations} we would like to be able to calculate the gradient $\frac{\partial\loss}{\partial\theta}$ without having to differentiate through the operations of the solver that finds the bifurcation diagram $\rates(u,p)=0$ and the bifurcation locations $p(\theta)$. To calculate the gradient of the measure $\frac{\partial \Psi}{\partial\theta}$ we need to differentiate line integrals that depend on $\theta$. Fortunately this can be done by the application of the generalised Leibniz integral rule, details of which can be found in Appendix \ref{appendix:leibniz-rule}.
 
-The gradient of the bifurcation points $\frac{\partial p}{\partial\theta}$ is found by application of the implicit function theorem to a vector function $G_{\theta}:\Reals^{N+1}\rightarrow\Reals^{N+1}$ whos components represent the two constraints $\rates(u,p)=0$ and $\Det=0$. By following a similar strategy to that used by implicit layers \cite{Look2020DifferentiableLayers} we yield an $(N+1)\times M$ Jacobian representing a deformation field \cite{Jos2011OnSurface} for each $\theta$ direction. The gradient we are looking for becomes
+The gradient of the bifurcation points $\frac{\partial p}{\partial\theta}$ is found by application of the implicit function theorem to a vector function $G_{\theta}:\Reals^{N+1}\rightarrow\Reals^{N+1}$ whose components represent the two constraints $\rates(u,p)=0$ and $\Det=0$. By following a similar strategy to that used by implicit layers \cite{Look2020DifferentiableLayers} we yield an $(N+1)\times M$ Jacobian representing a deformation field \cite{Jos2011OnSurface} for each $\theta$ direction. The gradient we are looking for becomes
 \begin{align}
     \frac{\partial p}{\partial\theta} = -\hat{p}\cdot\left.\frac{\partial G_{\theta}}{\partial (u,p)}^{-1}
     \frac{\partial  G_{\theta}}{\partial\theta}\right|_{G_{\theta}(u,p)=0}
@@ -142,11 +161,14 @@ The gradient of the bifurcation points $\frac{\partial p}{\partial\theta}$ is fo
     G_{\theta}(u,p):=\begin{bmatrix}\rates(u,p)\\\Det\end{bmatrix}
     \label{eq:gradient-bifurcation}
 \end{align}
-Here $\hat{p}$ is a unit vector in $(u,p)\in\Reals^{N+1}$ that picks out the deformations along the $p$-direction. If we wanted to place the bifurcation at target steady state $u'$ as well as target control condition $p'$ we would use the full $(N+1)\times M$ deformation matrix. Calculation of this matrix involves inverting an $(N+1)\times(N+1)$ Jacobian $\frac{\partial G_{\theta}}{\partial(u,p)}$. The determinant of this Jacobian goes to zero in the degenerate case where $\frac{d}{ds}\Det=0$. This further justifies our choice for measure $\Psi(\theta)$ which discourages the degenerate case.
+Here $\hat{p}$ is a unit vector in $(u,p)\in\Reals^{N+1}$ that picks out the deformations along the $p$-direction. If we wanted to place the bifurcation at target steady state $u'$ as well as target control condition $p'$ we would use the full $(N+1)\times M$ deformation matrix. Calculation of this matrix involves inverting an $(N+1)\times(N+1)$ Jacobian $\frac{\partial G_{\theta}}{\partial(u,p)}$. The determinant of this Jacobian goes to zero in the degenerate case where $\frac{d}{ds}\Det=0$, further justifying our choice of measure $\Psi(\theta)$ which discourages the degenerate case.
 
-The cost function is piece-wise smooth and differentiable with undefined gradients only in parameter contours where the number of predictions $|\predictions|$ changes; this is when $\Psi(\theta)$ is undefined and the inverse of $\frac{\partial G_{\theta}}{\partial (u,p)}$ does not exist. Given a set of solutions to $\rates(u,p)=0$ and locations $p(\theta)$ the gradient $\frac{\partial\loss}{\partial\theta}$ can evaluated using automatic differentiation methods without needing to back-propagate through the solver that obtained the level set $\rates(u,p)=0$ in the forward pass.
+The cost function is piece-wise smooth and differentiable with undefined gradients only in parameter contours where the number of predictions $|\predictions|$ changes; this is when $\Psi(\theta)$ is undefined and the inverse of $\frac{\partial G_{\theta}}{\partial (u,p)}$ does not exist. Given a set of solutions to $\rates(u,p)=0$ and locations $p(\theta)$ the gradient $\frac{\partial\loss}{\partial\theta}$ can be evaluated using automatic differentiation methods \cite{Revels2016Forward-ModeJulia,Flux} without needing to back-propagate through the solver that obtained the level set $\rates(u,p)=0$ in the forward pass.
+
+%\clearpage
 
 \section{Experiments \& Results}
+In this section, we apply the method first to minimal examples that can produce saddle-node and pitchfork bifurcations, and then a more complex model that has multiple parametric regimes that produce saddle-node bifurcations.
 
 \subsection{Minimal Models}
 Figures \ref{fig:minimal-models:results} show example optimisations of $(\theta_1,\theta_2)$ for the minimal saddle-node and pitchfork models respectively. Optimisation trajectories approach lines of global minima in the cost function, which represent a set of geometrically equivalent models, depicted in the right panels. Two bifurcation diagrams are geometrically equivalent if the number, type and locations of bifurcations match the specified targets $\targets$.
@@ -172,23 +194,32 @@ In this section we optimise a model where the states share a Hill function relat
     \partial_t u_2 = \frac{ a_2 + (k u_1)^2}{ 1 + (k u_1)^2 } - \mu_2 u_2
     \label{eq:two-state}
 \end{equation}
-where $a_k$ is the baseline production rate for species $k$ in the absence of the other species. Each species has a finite degradation rate $\mu_k$. Finally we have two half-saturation constants $p$ and $k$, one of which is chosen as our control condition. A baseline production rate $a_k>1$ recovers an inhibitor type hill function for species $k$ and is an activator otherwise. The half-saturation are proportional to the slope of the hill activations. Solving for the steady states and substituting the equation for $u_1$ into $u_2$ gives rise to
+where $a_k$ is the baseline production rate for species $k$ in the absence of the other species. Each species has a finite degradation rate $\mu_k$. Finally we have two half-saturation constants $p$ and $k$, one of which is chosen as our control condition. A baseline production rate $a_k>1$ recovers an inhibitor type hill function for species $k$ and is an activator otherwise. The half-saturation are proportional to the slope of the hill productions. Solving for the steady states,  substituting the equation for $u_1$ into $u_2$ and rearranging gives rise to the relationship
+% \begin{equation}
+%     \mu_2 u_2 = \frac{ a_2 + (\frac{k}{\mu_1}
+%     \frac{ a_1 + (p u_2)^2}{ 1 + (p u_2)^2 })^2}{ 1 + (\frac{k}{\mu_1} 
+%     \frac{ a_1 + (p u_2)^2}{ 1 + (p u_2)^2 }
+%     )^2 }
+%     \label{eq:steady-states}
+% \end{equation}
 \begin{equation}
-    \mu_2 u_2 = \frac{ a_2 + (\frac{k}{\mu_1}
-    \frac{ a_1 + (p u_2)^2}{ 1 + (p u_2)^2 })^2}{ 1 + (\frac{k}{\mu_1} 
-    \frac{ a_1 + (p u_2)^2}{ 1 + (p u_2)^2 }
-    )^2 }
-    \label{eq:steady-states}
+    \dfrac{k}{\mu_1} = \dfrac{(1 + (p u_2)^2) \sqrt{a_2 - \mu_2 u_2} }{ (a_1 + (p u_2)^2) \sqrt{ \mu_2 u_2 - 1 } }
+    \label{eq:steady-states-simplified}
 \end{equation}
-which reveals that only the ratio between half-saturation and degradation $\frac{k}{\mu_1}$ affects the solutions to this equation, and hence the locations of the bifurcations. Figure \ref{fig:minimal-models:results} reveals the results for 800 optimisation runs with 200 ADAM iterations. 98\% of runs converged onto one of the two clusters: mutual activation and mutual inhibition regimes, examples of which are shown as insets.
+
+which reveals that only the ratio between half-saturation and degradation $\frac{k}{\mu_1}$ affects the solutions to this equation, and hence the locations of the bifurcations. Figure \ref{fig:two-state-optima} reveals the results for 800 optimisation runs with 200 ADAM iterations. 98\% of runs converged onto one of the two clusters: mutual activation and mutual inhibition regimes, examples of which are shown as insets.
 \begin{figure}
 \centering
-\includegraphics[width=11cm]{two-state-optima}
+%\includegraphics[width=11cm]{two-state-optima}
+\includegraphics[width=11cm]{two-state-optima.png}
 \caption{Optimal parameter estimates $\theta^*$ for the two state model \eqref{eq:two-state} for the targets $\targets=\{4,5\}$ reveal two clusters of qualitatively different regimes: mutual activation and mutual inhibition. }
 \label{fig:two-state-optima}
 \end{figure}
-\subsection{Complexity}
 
+\subsection{Complexity}
+Performing one iteration of the optimisation requires the computation of the gradient of the cost \eqref{eq:gradient-loss}, requiring a computation of the bifurcation diagram with parameter continuation methods and the evaluation of matrix inversions \eqref{eq:gradient-bifurcation}. We note that while for the supervised term only as many inversions as there are targets are performed, the unsupervised term has one inversion per point along the diagram. This is due to the implicit derivatives taken when applying the generalised Leibniz rule.
+
+Figure \ref{fig:scaling} reveals the $N^3$ complexity for computing the gradient, suggesting that indeed the matrix inversion is the bottleneck. This can be addressed by approximating the inverse Jacobian with low-rank updates, as is done with deep equilibrium models \cite{Bai2019DeepModels}.
 
 \begin{figure}
 \centering
@@ -197,7 +228,12 @@ which reveals that only the ratio between half-saturation and degradation $\frac
 \label{fig:scaling}
 \end{figure}
  
-\section{Conclusion \& Broader Impact | \textit{in progress}}
+\section{Conclusion \& Broader Impact}
+
+In this work, we proposed a gradient-based semi-supervised approach for inferring the parameters of differential equations that produce a user-specified bifurcation diagram. The bifurcation diagram encodes high-level qualitative information defined by state space structures, rather than kinetics. Drawing inspiration from implicit layers \cite{Look2020DifferentiableLayers,Bai2019DeepModels} to calculate gradients. The compute the diagram we use a predictor-corrector method called deflated pseudo-arclength continuation \cite{Farrell2016TheDiagrams,Veltz2019PseudoArcLengthContinuation.jl} developed for partial differential equations. In the case of partial differential equations the computational complexity of calculating a single bifurcation diagram is not bounded since superpositions of localised solutions may give rise to uncountably many branches \cite{Avitabile2010ToEquation}. The complexity of computing a single branch, however, is bounded by the complexities of the chosen eigenvalue solver and corrector, and further decreased by adaptive stepping procedures \cite{Aruliah2016AlgorithmContinuation}.
+
+We find that the cost function landscape contains basins that not only allow us to synthesise models with a desired bifurcation diagram but also allow us to organise models in terms of topological and geometric equivalence. We discuss the relevance of this in model selection. In summary, our paper has the following main contributions:
+
 \begin{itemize}
     \item Taking steps towards an efficient and single method for searching and matching bifurcations
     \item A demonstrating of the powerful combination of differential geometry and implicit layers
@@ -205,14 +241,16 @@ which reveals that only the ratio between half-saturation and degradation $\frac
     \item Computational limitations
 \end{itemize}
 
-% \section*{Checklist}
-% \input{checklist}
-
+\clearpage
 \bibliography{refs}
 \bibliographystyle{ieeetr}
 
+\clearpage
 \section*{Appendix}
 \appendix
 \input{appendix}
 
+\clearpage
+\section*{Checklist}
+\input{checklist}
 \end{document}
