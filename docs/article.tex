@@ -59,7 +59,7 @@ In the context of the differential equations, a co-dimension one bifurcation can
 	\label{eq:predictions}
 \end{align}
 
-To illustrate how the shapes of bifurcation diagrams compare with the determinant of the Jacobian, we show minimal models for saddle-node (Figure \ref{fig:minimal-models}A) and pitchfork bifurcations (Figure \ref{fig:minimal-models}B). Indeed the predictions $\predictions(\theta)$ are defined by zero crossings in the determinant with a finite slope. The location of these crossings in general may not match the targets $\targets$.
+To illustrate how the shapes of bifurcation diagrams compare with the determinant of the Jacobian, we show minimal models for saddle-node (Figure \ref{fig:saddle-node}) and pitchfork bifurcations (Figure \ref{fig:pitchfork}). Indeed the predictions $\predictions(\theta)$ are defined by zero crossings in the determinant with a finite slope. The location of these crossings in general may not match the targets $\targets$.
 
 \begin{figure}[ht]
 \centering
@@ -70,7 +70,7 @@ To illustrate how the shapes of bifurcation diagrams compare with the determinan
 \begin{picture}(0,0) \put(-5.8,10){\subref{fig:saddle-node}} \end{picture}
 \includegraphics[width=6cm]{pitchfork}
 \begin{picture}(0,0) \put(-5.8,10){\subref{fig:pitchfork}} \end{picture}
-\caption{Saddle-node model \ref{fig:saddle-node} $\rates(u,p) = p + \theta_{1}u+\theta_{2}u^3$ and pitchfork model \ref{fig:pitchfork} $\rates(u,p) = \theta_{1} + p u+\theta_{2}u^3$ with $\theta=(5/2,-1),(1/2,-1)$ and targets $\targets=\{-1,1\},\{0\}$ respectively. Lighter shades indicate the determinant crossing zero at locations $\predictions(\theta)$ giving rise to unstable solutions}
+\caption{Illustration of bifurcation diagrams for minimal models of bifurcations. \ref{fig:saddle-node} Saddle-node bifurcations arise for $\rates(u,p) = p + \theta_{1}u+\theta_{2}u^3$ when $\theta = (5/2,-1)$. \ref{fig:pitchfork} Pitchfork bifurcations arise for $\rates(u,p) = \theta_{1} + p u+\theta_{2}u^3$ when $\theta=(1/2,-1)$. Targets are illustrated by light yellow vertical lines. Bifurcation curves are shown as solid blue and red lines, with lighter shades indicating the determinant crossing zero at locations $\predictions(\theta)$ giving rise to unstable solutions.}
 \label{fig:minimal-models}
 \end{figure}
 
@@ -195,18 +195,10 @@ In this section we optimise a model where the states share a Hill function relat
     \label{eq:two-state}
 \end{equation}
 where $a_k$ is the baseline production rate for species $k$ in the absence of the other species. Each species has a finite degradation rate $\mu_k$. Finally we have two half-saturation constants $p$ and $k$, one of which is chosen as our control condition. A baseline production rate $a_k>1$ recovers an inhibitor type hill function for species $k$ and is an activator otherwise. The half-saturation are proportional to the slope of the hill productions. Solving for the steady states,  substituting the equation for $u_1$ into $u_2$ and rearranging gives rise to the relationship
-% \begin{equation}
-%     \mu_2 u_2 = \frac{ a_2 + (\frac{k}{\mu_1}
-%     \frac{ a_1 + (p u_2)^2}{ 1 + (p u_2)^2 })^2}{ 1 + (\frac{k}{\mu_1} 
-%     \frac{ a_1 + (p u_2)^2}{ 1 + (p u_2)^2 }
-%     )^2 }
-%     \label{eq:steady-states}
-% \end{equation}
 \begin{equation}
     \dfrac{k}{\mu_1} = \dfrac{(1 + (p u_2)^2) \sqrt{a_2 - \mu_2 u_2} }{ (a_1 + (p u_2)^2) \sqrt{ \mu_2 u_2 - 1 } }
-    \label{eq:steady-states-simplified}
+    \label{eq:steady-states}
 \end{equation}
-
 which reveals that only the ratio between half-saturation and degradation $\frac{k}{\mu_1}$ affects the solutions to this equation, and hence the locations of the bifurcations. Figure \ref{fig:two-state-optima} reveals the results for 800 optimisation runs with 200 ADAM iterations. 98\% of runs converged onto one of the two clusters: mutual activation and mutual inhibition regimes, examples of which are shown as insets.
 \begin{figure}
 \centering
@@ -217,14 +209,14 @@ which reveals that only the ratio between half-saturation and degradation $\frac
 \end{figure}
 
 \subsection{Complexity}
-Performing one iteration of the optimisation requires the computation of the gradient of the cost \eqref{eq:gradient-loss}, requiring a computation of the bifurcation diagram with parameter continuation methods and the evaluation of matrix inversions \eqref{eq:gradient-bifurcation}. We note that while for the supervised term only as many inversions as there are targets are performed, the unsupervised term has one inversion per point along the diagram. This is due to the implicit derivatives taken when applying the generalised Leibniz rule.
+Performing one iteration of the optimisation requires the computation of the gradient of the cost \eqref{eq:gradient-loss}, requiring a computation of the bifurcation diagram with parameter continuation methods, the evaluation of matrix inversions \eqref{eq:gradient-bifurcation}. However instead of evaluating the inversions directly, we solve a system of linear equations, applying the same strategy as implicit layers \cite{Look2020DifferentiableLayers,Bai2019DeepModels}. This leaves us with the computational bottleneck of calculating the determinant of the state space Jacobian, required in the both the bifurcation measure \eqref{eq:measure} and gradient \eqref{eq:gradient-bifurcation}. This calculation scales like $N^3$ where $N$ is the number of state space variables (Figure \ref{fig:scaling}).
 
-Figure \ref{fig:scaling} reveals the $N^3$ complexity for computing the gradient, suggesting that indeed the matrix inversion is the bottleneck. This can be addressed by approximating the inverse Jacobian with low-rank updates, as is done with deep equilibrium models \cite{Bai2019DeepModels}.
+While still tractable on laptop computers for states $N<100$ our implementation currently does not scale well for partial differential equations where a large the number of states $N$ arises from discretisation of the spatial variables. The only reason we need this determinant is because it is an indicator of bifurcations. We can address the computational bottleneck by finding a more computationally efficient way of calculating this indicator. One approach would be to take the product of a finite subset of eigenvalues of the system.
 
 \begin{figure}
 \centering
 \includegraphics[width=11cm]{scaling}
-\caption{Complexity scaling of calculating the gradient of the cost function}
+\caption{Complexity scaling of calculating the gradient of the cost function. Calculations were performed on an Intel Core i7-6700HQ CPU @ 2.60GHz x 8 without GPU acceleration}
 \label{fig:scaling}
 \end{figure}
  
