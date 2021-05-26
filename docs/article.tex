@@ -196,10 +196,11 @@ In this section we optimise a model where the states share a Hill function relat
 \end{equation}
 where $a_k$ is the baseline production rate for species $k$ in the absence of the other species. Each species has a finite degradation rate $\mu_k$. Finally we have two half-saturation constants $p$ and $k$, one of which is chosen as our control condition. A baseline production rate $a_k>1$ recovers an inhibitor type hill function for species $k$ and is an activator otherwise. The half-saturation are proportional to the slope of the hill productions. Solving for the steady states,  substituting the equation for $u_1$ into $u_2$ and rearranging gives rise to the relationship
 \begin{equation}
-    \dfrac{k}{\mu_1} = \dfrac{(1 + (p u_2)^2) \sqrt{a_2 - \mu_2 u_2} }{ (a_1 + (p u_2)^2) \sqrt{ \mu_2 u_2 - 1 } }
+    \dfrac{k}{\mu_1} = \dfrac{(1 + (\frac{p}{\mu_2} u')^2) \sqrt{a_2 - u'} }{ (a_1 + (\frac{p}{\mu_2} u')^2) \sqrt{ u' - 1 } }
+    \quad\mathrm{where}\quad u':= u_2\mu_2
     \label{eq:steady-states}
 \end{equation}
-which reveals that only the ratio between half-saturation and degradation $\frac{k}{\mu_1}$ affects the solutions to this equation, and hence the locations of the bifurcations. Figure \ref{fig:two-state-optima} reveals the results for 800 optimisation runs with 200 ADAM iterations. 98\% of runs converged onto one of the two clusters: mutual activation and mutual inhibition regimes, examples of which are shown as insets.
+which reveals that only $a_1$,$a_2$ and the ratio between half-saturation and degradation $\frac{k}{\mu_1}$ affect the solutions to this equation, and hence the locations of the bifurcations. Figure \ref{fig:two-state-optima} reveals the results for 800 optimisation runs with 200 ADAM iterations. 98\% of runs converged onto one of the two clusters: mutual activation and mutual inhibition regimes, examples of which are shown as insets.
 \begin{figure}
 \centering
 %\includegraphics[width=11cm]{two-state-optima}
