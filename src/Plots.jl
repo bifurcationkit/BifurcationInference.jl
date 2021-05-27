@@ -26,11 +26,11 @@ function plot(steady_states::Vector{<:Branch},data::StateSpace; determinant=true
 
 			for idx ∈ 1:dim(branch)
 
-				plot!( parameter, map(s->s.z.u[idx],branch), subplot=1,
+				plot!( parameter, map(s->s.z.u[idx],branch), subplot=1, alpha=map(s->window_function(data.parameter,s.z),branch),
 					color=map( stable -> stable ? :darkblue : :lightblue, stability ) )
 			end
 
-			plot!( parameter, determinants, subplot=2,
+			plot!( parameter, determinants, subplot=2, alpha=map(s->window_function(data.parameter,s.z),branch),
 				color=map( stable -> stable ? :red : :pink, stability )
 			)
 		end

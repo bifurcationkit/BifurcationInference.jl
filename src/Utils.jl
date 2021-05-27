@@ -1,13 +1,12 @@
 ############################################################################ hyperparameter updates
-function getParameters(data::StateSpace{N,T}; maxIter::Int=800, tol=1e-6, padding=0.2, kwargs...) where {N,T<:Number}
+function getParameters(data::StateSpace{N,T}; maxIter::Int=800, tol=1e-6, kwargs...) where {N,T<:Number}
 	newtonOptions = NewtonPar(verbose=false,maxIter=maxIter,tol=T(tol))
 
 	# support for StaticArrays github.com/JuliaArrays/StaticArrays.jl/issues/73
 	newtonOptions = @set newtonOptions.linsolver.useFactorization = false
-	padding = padding*(maximum(data.parameter)-minimum(data.parameter))
 	return ContinuationPar(
 
-        pMin=minimum(data.parameter)-padding, pMax=maximum(data.parameter)+padding, maxSteps=10*length(data.parameter),
+        pMin=minimum(data.parameter), pMax=maximum(data.parameter), maxSteps=10*length(data.parameter),
         ds=step(data.parameter), dsmax=step(data.parameter), dsmin=step(data.parameter),
 
 		newtonOptions=newtonOptions, detectFold=false, detectBifurcation=true,

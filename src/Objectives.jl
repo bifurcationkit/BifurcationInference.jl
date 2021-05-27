@@ -5,7 +5,7 @@ function loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVect
 	λ = length(targets.targets)-length(predictions)
 
 	if λ≠0 
-		Φ = measure(F,branches,θ)
+		Φ = measure(F,branches,θ,targets)
 		return errors(predictions,targets) - λ*log(Φ)
 	else
 		return errors(predictions,targets)
@@ -17,17 +17,17 @@ function errors( predictions::AbstractVector{<:BorderedArray}, targets::StateSpa
 	return mean( p′-> mean( z->(z.p-p′)^2, predictions; type=:geometric ), targets.targets; type=:arithmetic )
 end
 
-function measure( F::Function, z::BorderedArray, θ::AbstractVector )
-	return 1 / ( 1 + abs( derivative( z->log(abs(det(∂Fu(F,z,θ)))), z, tangent_field(F,z,θ) ) )^(-1) ) # todo@(gszep) determinant calculation is computational bottleneck
+function measure( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace )
+	return window_function(targets.parameter,z) / ( 1 + abs( derivative( z->log(abs(det(∂Fu(F,z,θ)))), z, tangent_field(F,z,θ) ) )^(-1) ) # todo@(gszep) determinant calculation is computational bottleneck
 end
 
 ################################################################################
-function measure( F::Function, branch::Branch, θ::AbstractVector )
-	return sum( s -> measure(F,s.z,θ)*s.ds, branch )
+function measure( F::Function, branch::Branch, θ::AbstractVector, targets::StateSpace )
+	return sum( s -> measure(F,s.z,θ,targets)*s.ds, branch )
 end
 
-function measure( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector )
-	return sum( branch -> measure(F,branch,θ), branches )
+function measure( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace )
+	return sum( branch -> measure(F,branch,θ,targets), branches )
 end
 
 ########################################################## bifurcation distance and velocity
@@ -44,21 +44,8 @@ function tangent_field( F::Function, z::BorderedArray, θ::AbstractVector )
 end
 
 ################################################################################
-function window_function( parameter::AbstractVector, z::BorderedArray; β::Real=1e16, kwargs... )
-	pMin,pMax = extrema(parameter)
-	return σ(z.p-pMin;β=β) * ( 1 - σ(z.p-pMax;β=β) )
-end
-
-function boundaries( parameter::AbstractVector, z::BorderedArray; β::Real=1e16, kwargs... )
-	pMin,pMax = extrema(parameter)
-	return ℕ(z.p-pMin;β=β) - ℕ(z.p-pMax;β=β)
-end
-
 using SpecialFunctions: erf
-function σ(x;β=10)
-	return ( 1 + erf(β*x/√2) )/2
-end
-
-function ℕ(x;β=10)
-	return β*exp(-(β*x)^2/2)/√(2π)
+function window_function( parameter::AbstractVector, z::BorderedArray; β::Real=10 )
+	pMin,pMax = extrema(parameter)
+	return ( 1 + erf((β*(z.p-pMin)-3)/√2) )/2 * ( 1 - ( 1 + erf((β*(z.p-pMax)+3)/√2) )/2 )
 end

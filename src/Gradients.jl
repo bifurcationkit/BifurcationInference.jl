@@ -5,7 +5,7 @@ function ∇loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractV
 	λ = length(targets.targets)-length(predictions)
 
 	if λ≠0 
-		Φ,∇Φ = measure(F,branches,θ), ∇measure(F,branches,θ)
+		Φ,∇Φ = measure(F,branches,θ,targets), ∇measure(F,branches,θ,targets)
 		return errors(predictions,targets) - λ*log(Φ), ∇errors(F,predictions,θ,targets) - λ*∇Φ/Φ
 	else
 		return errors(predictions,targets), ∇errors(F,predictions,θ,targets)
@@ -17,18 +17,18 @@ function ∇errors( F::Function, predictions::AbstractVector{<:BorderedArray}, �
 	return mean( p′-> mean( z->(z.p-p′)^2, predictions; type=:geometric )*mean( z-> 2velocity(F,z,θ)/(z.p-p′), predictions; type=:arithmetic ), targets.targets; type=:arithmetic )
 end
 
-function ∇measure( F::Function, z::BorderedArray, θ::AbstractVector; newtonOptions=NewtonPar(verbose=false,maxIter=800,tol=1e-6) )
-	∂implicit, _, _ = newtonOptions.linsolver( -∂Fz(F,z,θ)', gradient(z->measure(F,z,θ),z) )
-	return gradient( θ -> measure(F,z,θ) + F(z,θ)'∂implicit , θ ) + measure(F,z,θ)*∇region(F,z,θ)
+function ∇measure( F::Function, z::BorderedArray, θ::AbstractVector, targets::StateSpace; newtonOptions=NewtonPar(verbose=false,maxIter=800,tol=1e-6) )
+	∂implicit, _, _ = newtonOptions.linsolver( -∂Fz(F,z,θ)', gradient(z->measure(F,z,θ,targets),z) )
+	return gradient( θ -> measure(F,z,θ,targets) + F(z,θ)'∂implicit , θ ) + measure(F,z,θ,targets)*∇region(F,z,θ)
 end
 
 ###########################################################################
-function ∇measure( F::Function, branch::Branch, θ::AbstractVector )
-	return sum( s -> ∇measure(F,s.z,θ)*s.ds, branch )
+function ∇measure( F::Function, branch::Branch, θ::AbstractVector, targets::StateSpace )
+	return sum( s -> ∇measure(F,s.z,θ,targets)*s.ds, branch )
 end
 
-function ∇measure( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector )
-	return sum( branch -> ∇measure(F,branch,θ), branches )
+function ∇measure( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace )
+	return sum( branch -> ∇measure(F,branch,θ,targets), branches )
 end
 
 ############################################## gradient term due to changing integration region dz
