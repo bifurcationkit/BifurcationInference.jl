@@ -248,7 +248,7 @@ We demonstrated our approach on models with one bifurcation parameter that can g
 
 Although we did not consider limit cycles, our approach can be modified using the conditions for Andronov-Hopf bifurcations instead of the conditions on the Jacobian determinant. Our approach generalises naturally to bifurcation manifolds such as limit point curves or surfaces. This is because the normal components of implicit derivatives can still be calculated for under-determined systems of equations \cite{Jos2011OnSurface,Tao2016Near-IsometricTracking,Fujisawa2013CalculationInvariance}. In the case of manifolds it would be more appropriate to use isosurface extraction algorithms rather than continuation to obtain the steady-state manifold. Our approach does not depend on the details of the steady-state solver and therefore can still be applied.
 
-% something here about how this helps high-level design of dynamical systems and is useful to the wider scientific machine learning community
+In dynamical systems theory the geometry of state-space determines all of the qualitative behaviours of a system. Our work makes progress towards designing models directly in state-space, rather than the spatial or temporal domain. This is valuable to experimentalists who only have qualitative observations available to them and wish to navigate the space of qualitative behaviours of their system. Our work lies within a trend of progress in the scientific machine learning community, where structured domain-informed models are favoured over flexible models that live in large parameter spaces.
 
 \section{Acknowledgements}
 We would like to acknowledge Kieran Cooney for the fruitful conversations that helped guide the derivations and computational approach.
