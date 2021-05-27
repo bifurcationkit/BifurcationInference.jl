@@ -14,11 +14,12 @@ end
 
 ################################################################################
 function ∇errors( F::Function, predictions::AbstractVector{<:BorderedArray}, θ::AbstractVector, targets::StateSpace)
-	return mean( p′-> mean( z->(z.p-p′)^2, predictions; type=:geometric )*mean( z-> 2∂p(F,z,θ)/(z.p-p′), predictions; type=:arithmetic ), targets.targets; type=:arithmetic )
+	return mean( p′-> mean( z->(z.p-p′)^2, predictions; type=:geometric )*mean( z-> 2velocity(F,z,θ)/(z.p-p′), predictions; type=:arithmetic ), targets.targets; type=:arithmetic )
 end
 
-function ∇measure( F::Function, z::BorderedArray, θ::AbstractVector )
-	return gradient(θ->measure(F,z,θ),θ) + deformation(F,z,θ)'gradient(z->measure(F,z,θ),z) + measure(F,z,θ)*∇region(F,z,θ)
+function ∇measure( F::Function, z::BorderedArray, θ::AbstractVector; newtonOptions=NewtonPar(verbose=false,maxIter=800,tol=1e-6) )
+	∂implicit, _, _ = newtonOptions.linsolver( -∂Fz(F,z,θ)', gradient(z->measure(F,z,θ),z) )
+	return gradient( θ -> measure(F,z,θ) + F(z,θ)'∂implicit , θ ) + measure(F,z,θ)*∇region(F,z,θ)
 end
 
 ###########################################################################
@@ -31,15 +32,16 @@ function ∇measure( F::Function, branches::AbstractVector{<:Branch}, θ::Abstra
 end
 
 ############################################## gradient term due to changing integration region dz
-deformation( F::Function, z::BorderedArray, θ::AbstractVector ) = -∂Fz(F,z,θ)\∂Fθ(F,z,θ)
+deformation( F::Function, z::BorderedArray, θ::AbstractVector ) = -∂Fz(F,z,θ)\∂Fθ(F,z,θ) # todo@(gszep) matrix inverse is computational bottleneck
 function ∇region( F::Function, z::BorderedArray, θ::AbstractVector )
 
 	∇deformation = reshape( jacobian(z->deformation(F,z,θ),z), length(z),length(θ),length(z) )
 	tangent = tangent_field(F,z,θ)
+	t = [tangent.u;tangent.p]
 
 	∇region = similar(θ)
 	for k ∈ 1:length(θ)
-		∇region[k] = tangent'∇deformation[:,k,:]tangent
+		∇region[k] = t'∇deformation[:,k,:]t
 	end
 
 	return ∇region
@@ -51,13 +53,14 @@ end
 ∂Fu(F::Function,z::BorderedArray,θ::AbstractVector) = ∂Fz(F,z,θ)[:,Not(end)]
 
 # parameter jacobian
-∂Fθ(F::Function,z::BorderedArray,θ::AbstractVector) = jacobian( θ -> F(z,θ), θ )
+∂Fθ(F::Function,z::BorderedArray,θ::AbstractVector) = jacobian( θ->F(z,θ), θ )
 
 # augmented jacobian
-∂Fz(F::Function,z::BorderedArray,θ::AbstractVector) = jacobian( z -> F(z,θ), z )
+∂Fz(F::Function,z::BorderedArray,θ::AbstractVector) = jacobian( z->F(z,θ), z )
 
 ############################################################# autodiff wrappers for BorderedArray
-import ForwardDiff: gradient,jacobian
+import ForwardDiff: derivative,gradient,jacobian
+derivative(f,x::BorderedArray,s::BorderedArray) = derivative( λ -> f(x + λ*s), 0.0 )
 
 function gradient( f, z::BorderedArray )
 	return gradient( z -> f( BorderedArray(z[Not(end)],z[end]) ), [z.u; z.p] )

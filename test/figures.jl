@@ -63,16 +63,26 @@ savefig("docs/figures/bifurcation-measure.pdf")
 ####################################################################################################
 ############################################################################################ scaling
 include("scaling/scaling.jl")
+using StatsBase: mean,std
+using LaTeXStrings
 
-Ns,Ms = 1:10,1:5:50
-complexity = scaling.(Ns,Ms')
+complexity_mean = Float64[]
+complexity_std = Float64[]
 
-contourf( Ns,Ms, complexity,
-	xlabel="States", ylabel="Parameters", size=(500,400),
-	colorbar_title="Iteration Execution / sec"
-)
+for n ∈	1:40
+	ts = [scaling(n,3) for _ ∈ 1:10]
+	push!(complexity_mean,mean(ts))
+	push!(complexity_std,std(ts))
+end
+scaling(40,3)
 
-cticks!
+default();default(grid=false)
+plot( 10:30, x->x^3/1800, label=L"N^3", color=:red, linewidth=2, legend=:topleft)
+scatter!( complexity_mean,yerror=complexity_std, label="", yscale=:log10, xscale=:log10, ms=3, color=:black,
+	xlabel=L"\mathrm{States}\,\,N", ylabel=L"\mathrm{Execution\,\,Time}\,\,/\,\,\mathrm{sec}", size=(400,400) )
+
+xticks!([1,3,5,10,20,30],["1","3","5","10","20","30"])
+yticks!([1e-1,1e0,1e1],["0.1","1","10"])
 savefig("docs/figures/scaling.pdf")
 
 ####################################################################################################
@@ -101,33 +111,30 @@ optima = hcat(trajectories...)
 
 @. optima[end,:] = abs(optima[end,:])
 M,N = size(optima)
-clusters = dbscan(optima,0.3,min_cluster_size=500)
+clusters = dbscan(optima,0.5,min_cluster_size=40)
 
 layout = @layout [ a{0.7w} [b{0.5h}; b{0.5h} ] ]
-default(); default(msc=:auto,label="",xlim=(-3,3),ylim=(-1,2),size=(600,450),grid=false)
+default(); default(msc=:auto,label="",size=(600,450),grid=false)
 
 fig = scatter([0],[0],markersize=0,title=L"\mathrm{Parameter\,\ Estimates}\,\,\theta^{*}", layout=layout, subplot=1,
-	ylabel=L"\mathrm{Saturation/Degredation\,\,Ratio}\quad \log_{10}k - \log_{10}\mu_1",xlabel=L"\mathrm{Activation}\quad -\log_{10}a_1")
+	ylabel=L"\mathrm{Sensitivity/Degredation\,\,Ratio}\quad k/\mu_1",xlabel=L"\mathrm{Basal\,\,Production\,\,of}\,\,u_1\,,\quad a_1")
 
-color = [:blue,:pink,:lightblue]
-name = ["1","2"]
-clustered_names = ["1","2"]
-
+color = [:lightblue,:pink]
 include("applied/two-state.jl")
-for (j,cluster) ∈ enumerate(clusters[1:2])
-	x,y = -getindex(optima,3,cluster.core_indices),  log10.(getindex(optima,5,cluster.core_indices)) - getindex(optima,1,cluster.core_indices)
+for (j,cluster) ∈ enumerate(clusters)
+	x,y = 10 .^(getindex(optima,3,cluster.core_indices)), getindex(optima,5,cluster.core_indices) ./ 10 .^getindex(optima,1,cluster.core_indices)
+	@assert all( i -> sign(getindex(optima,3,i)) == sign(getindex(optima,4,i)), cluster.core_indices )
 
-	scatter!(x,y,color=color[j],subplot=1)
-	annotate!(median(x),median(y),name[j],subplot=1)
+	scatter!(x,y,color=color[j],subplot=1,xscale=:log10,xlim=(1e-3,1e3),yscale=:log10,ylim=(1e-1,1e2))
+	annotate!(median(x),median(y),j,subplot=1)
 	
 	parameters = getindex(optima,:,cluster.core_indices)
 	if j == 1 X = StateSpace( 2, 0:0.002:10, [4,5] ) else X = StateSpace( 2, 0:0.01:10, [4,5] ) end
-	if j ∈ [1,2]
-		plot!(F,parameters[:,rand(1:length(cluster.core_indices))],X,
-			determinant=false,xlim=(0,10),ylim=(0.01,100),yscale=:log10,
-			subplot=j+1, framestyle = :box)
-		annotate!(8,30,clustered_names[j],subplot=j+1)
-	end
+
+	plot!(F,parameters[:,rand(1:length(cluster.core_indices))],X,
+		determinant=false,xlim=(0,10),ylim=(0.01,100),yscale=:log10,
+		subplot=j+1, framestyle = :box)
+	annotate!(8.8,30,j,subplot=j+1)
 end
 
 xlabel!("",subplot=2)

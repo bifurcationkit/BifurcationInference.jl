@@ -18,7 +18,7 @@ function errors( predictions::AbstractVector{<:BorderedArray}, targets::StateSpa
 end
 
 function measure( F::Function, z::BorderedArray, θ::AbstractVector )
-	return 1 / ( 1 + abs( det(F,z,θ) / ∂det(F,z,θ)'tangent_field(F,z,θ) ) )
+	return 1 / ( 1 + abs( derivative( z->log(abs(det(∂Fu(F,z,θ)))), z, tangent_field(F,z,θ) ) )^(-1) ) # todo@(gszep) determinant calculation is computational bottleneck
 end
 
 ################################################################################
@@ -30,27 +30,17 @@ function measure( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractV
 	return sum( branch -> measure(F,branch,θ), branches )
 end
 
-########################################################################### determinant
-import LinearAlgebra: det
-det(F::Function,z::BorderedArray,θ::AbstractVector) = det(∂Fu(F,z,θ))
-∂det(F::Function,z::BorderedArray,θ::AbstractVector) = gradient(z->det(F,z,θ),z)
-
 ########################################################## bifurcation distance and velocity
-distance(F::Function,z::BorderedArray,θ::AbstractVector) = [ F(z,θ); det(F,z,θ) ]
-velocity( F::Function, z::BorderedArray, θ::AbstractVector ) = - jacobian(z->distance(F,z,θ),z) \ jacobian(θ->distance(F,z,θ),θ)
-∂p( F::Function, z::BorderedArray, θ::AbstractVector ) = velocity(F,z,θ)[end,:]
+distance(F::Function,z::BorderedArray,θ::AbstractVector) = [ F(z,θ); det(∂Fu(F,z,θ)) ]
+function velocity( F::Function, z::BorderedArray, θ::AbstractVector; newtonOptions=NewtonPar(verbose=false,maxIter=800,tol=1e-6) )
+	∂implicit, _, _ = newtonOptions.linsolver( -jacobian( z->distance(F,z,θ), z )', [zero(z.u);one(z.p)] )
+	return gradient( θ->distance(F,z,θ)'∂implicit, θ )
+end
 
 ################################################################################
 function tangent_field( F::Function, z::BorderedArray, θ::AbstractVector )
-
-	∂F = ∂Fz(F,z,θ)
-	field = similar(∂F[1,:])
-
-	for i ∈ 1:length(z) # construct tangent field T(z) := det[ ẑ , ∂Fz ]
-		field[i] = (-1)^(i+1) * det(∂F[:,Not(i)]) # laplace expansion of det
-	end
-
-	return field / norm(field) # unit tangent field
+	field = kernel(∂Fz(F,z,θ);nullity=length(z.p))
+	return norm(field)^(-1) * BorderedArray( field[Not(end)], field[end] ) # unit tangent field
 end
 
 ################################################################################

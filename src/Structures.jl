@@ -51,7 +51,8 @@ function push!(branch::Branch,state::ContState)
     push!(branch, ( z=z, λ=state.eigvals, ds=norm(∂z)*abs(state.ds), bif=detectBifucation(state) ))
 end
 
-import Base: zero,isapprox,unique ################################## methods for BorderedArray
+import Base: zero,isapprox,unique,+ ################################## methods for BorderedArray
++(x::BorderedArray, y::BorderedArray) = BorderedArray(x.u+y.u,x.p+y.p)
 zero(::Type{BorderedArray{T,U}}; ϵ::Bool=true) where {T<:Union{Number,StaticArray},U<:Union{Number,StaticArray}} = BorderedArray(zero(T).+ϵ*eps(),zero(U).+ϵ*eps())
 isapprox( x::BorderedArray, y::BorderedArray; kwargs... ) = isapprox( [x.u;x.p], [y.u;y.p] ; kwargs...)
 function unique(X::AbstractVector{T}; kwargs...) where T<:BorderedArray
@@ -62,6 +63,16 @@ function unique(X::AbstractVector{T}; kwargs...) where T<:BorderedArray
         end
     end
     return z
+end
+
+function kernel(A::AbstractMatrix; nullity::Int=0)
+
+    if iszero(nullity) # default to SVD
+        return nullspace(A)
+
+    else 
+        return qr(A').Q[:,end+1-nullity:end]
+    end
 end
 
 #################################################### display methods
