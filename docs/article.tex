@@ -23,13 +23,13 @@
 \section{Introduction}
 \label{section:introduction}
 
-Inverse problems \cite{Abdulla2009InverseBiology} arise in biology and engineering in settings when the model is not fully known and the desire is to match model behaviour to a given set of observations. This helps systematically guide both model and experimental design. The collected observations, however, are often indirectly proportional to the variables defined in the model; in microscopy, for example, data are reported in arbitrary fluorescence units allowing the observer to shift and scale data arbitrarily. The model, on the other hand, describes the dynamics of concentrations of relevant proteins. Furthermore, the observed qualitative changes in response to changes in experimental conditions are more robust and reproducible across studies than the quantitative details. For example, several studies are likely to agree that the human immune system activates above a threshold concentration of a pathogen and deactivates at a lower threshold concentration, but may disagree on the exact quantities of the thresholds or the magnitudes of the immune response. Bifurcation theory provides us a framework for studying these qualitative changes in a manner that is independent of quantitative details \cite{Kuznetsov2004TopologicalSystems}. The emerging picture suggests that identification of the qualitative behaviour -- the bifurcation diagram -- should precede any attempt at inferring other properties of a system \cite{Stumpf2019ParameterBifurcations}.
+Inverse problems \cite{Abdulla2009InverseBiology} arise in biology and engineering in settings when the model is not fully known and the desire is to match model behaviour to a given set of observations. This helps systematically guide both model and experimental design. The collected observations, however, are often indirectly proportional to the variables defined in the model. In fluorescence microscopy, a commonly used technique in biological studies, data are reported in arbitrary fluorescence units, allowing the observer to shift and scale data arbitrarily. Models of cellular networks, on the other hand, often seek to describe the dynamics of concentrations of relevant proteins \cite{Tyson2001NetworkPhysiology,Grant2020InterpretationCircuit}. Furthermore, the observed qualitative changes in response to changes in experimental conditions are more robust and reproducible across studies than the quantitative details. For example, several studies are likely to agree that the human immune system activates above a threshold concentration of a pathogen and deactivates at a lower threshold concentration, but may disagree on the exact quantities of the thresholds or the magnitudes of the immune response. Bifurcation theory provides us a framework for studying these qualitative changes in a manner that is independent of quantitative details \cite{Kuznetsov2004TopologicalSystems,Tyson2001NetworkPhysiology}. The emerging picture suggests that identification of the qualitative behaviour -- the bifurcation diagram -- should precede any attempt at inferring other properties of a system \cite{Stumpf2019ParameterBifurcations}.
 
-Inferring the parameters of a model directly from a bifurcation diagram is difficult because it is not obvious how one should change the parameters to create a bifurcation. It could even be impossible for the model to bifurcate in the manner desired. Several approaches exist to place bifurcations to desired locations once a manifold is present \cite{Iwasaki1997AnType,Lu2006InverseSystems,Dobson2004DistanceBifurcations} yet typically resort to sampling techniques to search for them in the first place \cite{Chickarmane2005BifurcationTool,Conrad2006BifurcationClock}. Progress has been made is cases where model structure and stability conditions are used to refine the search space \cite{Otero-Muras2018Optimization-basedModels,Otero-Muras2014ACurves} yet the resulting objectives are still not explicit in the bifurcation targets and also not differentiable. A scalable method for navigating the space of bifurcation diagrams would enable design of differential equations with high-level qualitative constraints. Furthermore one could begin organising models according to qualitatively distinct behaviours.
+Inferring the parameters of a model directly from a bifurcation diagram is difficult because it is not obvious how multiple  parameters in concert control the existence and position of a bifurcation. It could even be impossible for the model to bifurcate in the manner desired. Several approaches exist to place bifurcations to desired locations once a manifold is present \cite{Iwasaki1997AnType,Lu2006InverseSystems,Dobson2004DistanceBifurcations} yet typically resort to sampling techniques to search for them in the first place \cite{Chickarmane2005BifurcationTool,Conrad2006BifurcationClock}. Progress has been made is cases where model structure and stability conditions are used to refine the search space \cite{Otero-Muras2018Optimization-basedModels,Otero-Muras2014ACurves} yet the resulting objectives are still not explicit in the bifurcation targets and also not differentiable. In the emerging field of Scientific machine learning \cite{Rackauckas2017Differentialequations.jlJulia,Rackauckas2018ASolutions,Rackauckas2020UniversalLearning}, parameters of structured mechanistic models are favoured over flexible models in larger parameter spaces. A scalable method for navigating the space of bifurcation diagrams would enable design of differential equations with high-level qualitative constraints. Furthermore one could begin organising models according to qualitatively distinct behaviours. 
 
-Back-propagation through differential equation solvers has been a breakthrough over the past couple of years \cite{Chen2018NeuralEquations,Rackauckas2019DiffEqFlux.jl-AEquations} that enabled scalable parameter inference for differential equations from trajectory data. Although one could use trajectory data to create the aforementioned qualitative constraints \cite{Ranciati2017BayesianParameters,Khadivar2021LearningBifurcations} this would entail over-constraining information originating from the kinetics and dynamical transients of the model. Furthermore, such data usually does not contain sufficient information about dynamical transients in order to identify kinetic parameters. Techniques for back-propagating through implicit equation solvers have also been developed \cite{Look2020DifferentiableLayers,Bai2019DeepModels} although to the best of the authors' knowledge have not been applied to bifurcation diagrams at the time of writing this paper.
+Back-propagation through differential equation solvers has been a breakthrough over the past couple of years \cite{Chen2018NeuralEquations,Rackauckas2019DiffEqFlux.jlEquations} that enabled scalable parameter inference for differential equations from trajectory data. Although one could use trajectory data to create the aforementioned qualitative constraints \cite{Ranciati2017BayesianParameters,Khadivar2021LearningBifurcations} this would entail over-constraining information originating from the kinetics and dynamical transients of the model. Furthermore, such data usually does not contain sufficient information about dynamical transients in order to identify kinetic parameters. Techniques for back-propagating through implicit equation solvers have also been developed \cite{Look2020DifferentiableLayers,Bai2019DeepModels} although to the best of the authors' knowledge have not been applied to bifurcation diagrams at the time of writing this paper.
 
-In this work, we propose a gradient-based semi-supervised approach for inferring the parameters of differential equations that produce a user-specified bifurcation diagram. The bifurcation diagram encodes high-level qualitative information defined by state space structures, rather than kinetics. We apply the strategy of implicit layers \cite{Look2020DifferentiableLayers,Bai2019DeepModels} to calculate gradients. To compute the diagram we use a predictor-corrector method called deflated pseudo-arclength continuation \cite{Farrell2016TheDiagrams,Veltz2019PseudoArcLengthContinuation.jl} developed for partial differential equations. In the case of partial differential equations, the computational complexity of calculating even a single bifurcation diagram can be unbounded since superpositions of localised solutions may give rise to uncountably many branches \cite{Avitabile2010ToEquation}. The complexity of computing a single branch, however, is bounded by the complexities of the chosen eigenvalue solver and corrector, and further decreased by adaptive stepping procedures \cite{Aruliah2016AlgorithmContinuation}.
+In this work, we propose a gradient-based semi-supervised approach for inferring the parameters of differential equation models that give rise to bifurcations at specified values of a control parameter. The bifurcation diagram encodes high-level qualitative information defined by state space structures, rather than kinetics. We apply the strategy of implicit layers \cite{Look2020DifferentiableLayers,Bai2019DeepModels} to calculate gradients. To compute the diagram we use a predictor-corrector method called deflated continuation \cite{Farrell2016TheDiagrams,Veltz2020BifurcationKit.jl} developed for partial differential equations. In the case of partial differential equations, the computational complexity of calculating even a single bifurcation diagram can be unbounded since superpositions of localised solutions may give rise to uncountably many branches \cite{Avitabile2010ToEquation}. The complexity of computing a single branch, however, is bounded by the complexities of the chosen eigenvalue solver and corrector, and further decreased by adaptive stepping procedures \cite{Aruliah2016AlgorithmContinuation}.
 
 We find that the cost function landscape contains basins that not only allow us to synthesise models with a desired bifurcation diagram but also allow us to organise models in terms of topological and geometric equivalence. We discuss the relevance of this in model selection. In summary, our paper has the following main contributions:
 
@@ -75,7 +75,7 @@ To illustrate how the shapes of bifurcation diagrams compare with the determinan
 \label{fig:minimal-models}
 \end{figure}
 
-For a given set of parameters $\theta$ one could compute the set of predicted bifurcations $\predictions(\theta)$ using parameter continuation methods \cite{Veltz2019PseudoArcLengthContinuation.jl,Farrell2016TheDiagrams}. Our goal is to find optimal parameters $\theta^*$ that match predictions $\predictions(\theta^*)$ to specified targets $\targets$. We must design a suitable cost function $\loss$ so that
+For a given set of parameters $\theta$ one could compute the set of predicted bifurcations $\predictions(\theta)$ using parameter continuation methods \cite{Veltz2020BifurcationKit.jl,Farrell2016TheDiagrams}. Our goal is to find optimal parameters $\theta^*$ that match predictions $\predictions(\theta^*)$ to specified targets $\targets$. We must design a suitable cost function $\loss$ so that
 \begin{align}
     \theta^* := \mathrm{argmin}_{\theta} \loss(\theta|\targets)
     \label{eq:optimal-theta}
@@ -91,19 +91,21 @@ To identify parameter sets that give rise to bifurcation diagrams with specified
 
 \subsubsection{Supervised term: matched bifurcations to target locations}
 
-In order for predicted bifurcations $p(\theta)\in\predictions(\theta)$ to match targets $p'\in\targets$ we need to evaluate an error term $|p(\theta)-p'|$. A naive approach might take an average over the norms for each prediction-target pair. However, this can result in multiple predictions matching the same target. Therefore, we choose a geometric mean over the predictions and an arithmetic mean over targets to account for cases where $|\predictions|\neq|\targets|$ and discourage multiple predictions matching the same target (in cases where $|\predictions|\geq|\targets|$). Such an error term is only zero when each target is matched by at least one prediction
-\begin{align}
-    \frac{1}{|\targets|}\sum_{p'\in\targets}
+In order for predicted bifurcations $p(\theta)\in\predictions(\theta)$ to match targets $p'\in\targets$ we need to evaluate an error term $|p(\theta)-p'|$. A naive approach might take an average over the norms for each prediction-target pair. However, this can result in multiple predictions matching the same target. Therefore, we choose a geometric mean over the predictions and an arithmetic mean over targets to account for cases where $|\predictions|\neq|\targets|$ and discourage multiple predictions matching the same target (in cases where $|\predictions|\geq|\targets|$):
+\begin{equation}
+    \error(\theta, \targets) = \frac{1}{|\targets|}\sum_{p'\in\targets}
     \prod_{p(\theta)\in\predictions(\theta)}|p(\theta)-p'|
     ^{\frac{1}{|\predictions|}}
-    \label{eq:error}
-\end{align}
+    %\label{eq:error}
+\end{equation}
+The supervised term is only zero when each target is matched by at least one prediction. 
 
 \subsubsection{Unsupervised term: encouraging bifurcations}
-\begin{wrapfigure}{r}{7cm}
+
+\begin{wrapfigure}{r}{0.5\textwidth}
     \centering
     \includegraphics[width=\linewidth]{bifurcation-measure}
-    \caption{Bifurcation measure $\measure(s)$ and determinant $\Det$ along the arclength $s$ of two different bifurcation curves demonstrating how maximising the measure along the curve maintains the existing bifurcation marked by a circle, while encouraging new bifurcations marked by stars}
+    \caption{Bifurcation measure $\measure(s)$ and determinant $\Det$ along the arclength $s$ of two different bifurcation curves demonstrating how maximising the measure along the curve maintains the existing bifurcation marked by a circle, while encouraging new bifurcations marked by stars.}
     \label{fig:measure}
 \end{wrapfigure}
 
@@ -113,9 +115,12 @@ We can see from Figures \ref{fig:minimal-models} and definitions \eqref{eq:predi
     \left(1+\left|\frac{\Det}{\frac{d}{ds}\Det}\right|\right)^{-1}
     \label{eq:measure}
 \end{equation}
-This measure is maximal at bifurcations and has finite gradients in non-bifurcating regimes (Figure \ref{fig:measure}). More specifically, the measure $\measure(s)$ is one at bifurcation points and goes to zero an odd number of times between bifurcations. This is because $\Det$ must eventually turn around in order to return back to zero, resulting in the directional derivative $\frac{d}{ds}\Det$ going to zero and hence the measure $\measure(s)$ going to zero for each turning point. 
 
-To quantify the overall propensity for bifurcations over a diagram, we define the total bifurcation measure $\Psi(\theta)$ as
+The bifurcation measure $\measure(s)$ is maximal at bifurcations and has finite gradients in non-bifurcating regimes (Figure \ref{fig:measure}). More specifically, the measure $\measure(s)$ is one at bifurcation points and goes to zero an odd number of times between bifurcations. This is because $\Det$ must eventually turn around in order to return back to zero, resulting in the directional derivative $\frac{d}{ds}\Det$ going to zero and hence the measure $\measure(s)$ going to zero for each turning point (see Figure \ref{fig:measure}). As the determinant $\Det$ diverges, we approach regimes far away from any closest bifurcation and hence $\measure(s)\rightarrow0$. But we would still like to have non-zero gradients with respect to $\theta$ in this regime, and so the measure is designed to go to zero slowly. Finally, we note that $\measure(s)$ has the desirable property of being invariant to certain classes of transformations on $\rates(u,p)$ that do not change bifurcation locations (details provided in Appendix \ref{appendix:measure}). 
+
+While the calculation of the determinant is straightforward, its directional derivative is not. Fortunately, a tangent field representation of the bifurcation curve allows us to compute this derivative implicitly; see Appendix \ref{appendix:tangent-fields} for details.
+
+Equipped with a measure that quantifies the appearance of bifurcations along a bifurcation arc, we now define the total measure for a bifurcation diagram as
 \begin{equation}
     \Psi(\theta):=\frac{
         \int_{\rates(u,p)=0}\!
@@ -123,25 +128,23 @@ To quantify the overall propensity for bifurcations over a diagram, we define th
     }{
         \int_{\rates(u,p)=0}\!\
         \mathrm{d}s
-    }
+    }.
 \end{equation}
-Here we denote $\int_{\rates(u,p)=0}\mathrm{d}s$ as the sum of the line integrals in $(u,p)\in\Reals^{N+1}$ defined by the level set $\rates(u,p)=0$ with $s$ being an arbitrary parametrisation of the curves.
+Here we denote $\int_{\rates(u,p)=0}\mathrm{d}s$ as the sum of the line integrals in $(u,p)\in\Reals^{N+1}$ defined by the level set $\rates(u,p)=0$ with $s$ being an arbitrary parametrisation of the curves. The total measure $\Psi(\theta)$ is normalised such that $\Psi(\theta)\rightarrow1$ in the regimes where the controlled condition region $p$ is densely packed with bifurcations. 
 
-While the calculation of the determinant is straightforward, its directional derivative is not. Fortunately, a tangent field representation of the bifurcation curve allows us to compute this derivative implicitly; see Appendix \ref{appendix:tangent-fields} for details.
-
-As the determinant $\Det$ diverges we approach regimes far away from any closest bifurcation and hence $\measure(s)\rightarrow0$. We would still like to have non-zero gradients with respect to $\theta$ in this regime, and therefore $\measure(s)$ was designed to go to zero slowly. The total measure $\Psi(\theta)$ is normalised such that $\Psi(\theta)\rightarrow1$ in the regimes where the controlled condition region $p$ is densely packed with bifurcations. The measure $\measure(s)$ is also invariant under certain classes of transformations on $\rates(u,p)$ which do not change bifurcation locations, proofs of which are provided in Appendix \ref{appendix:measure}. The total measure $\Psi(\theta)$ is added to the supervised term as if it were a likelihood; this defines the semi-supervised cost function as
+The total measure $\Psi(\theta)$ is added to the supervised term as if it were a likelihood. This defines the semi-supervised cost function as
 \begin{align}
     \loss(\theta|\targets):=
     \big(|\predictions|-|\targets|\big)\,\,\lambda \log\Psi(\theta)+
-    \frac{1}{|\targets|}\sum_{p'}
-    \prod_{p(\theta)}|p(\theta)-p'|
-    ^{\frac{1}{|\predictions|}}
+    \error(\theta, \targets),
     \label{eq:loss}
 \end{align}
+where we introduce the hyperparameter $\lambda$ to enable control over the relative contribution of the unsupervised term. The pre-factor $|\targets|-|\predictions|$ in the unsupervised term ensures that the gradients are always pushing optimisers towards a state where $|\targets|=|\predictions|$. This can be seen as a step-wise annealing of the unsupervised term until the desired state is reached.
 
 \subsection{Differentiating the semi-supervised cost function}
 
-The pre-factor $|\targets|-|\predictions|$ in the unsupervised term ensures that the gradients are always pushing optimisers towards a state where $|\targets|=|\predictions|$. This can be seen as a step-wise annealing of the unsupervised term until the desired state is reached. Note that while individual bifurcations $p(\theta)$ depend smoothly on $\theta$, the total number of predictions $|\predictions|$ does not have gradient contributions with respect to $\theta$. We can safely drop the dependency in the prediction counter and now proceed in taking gradients with respect to $\theta$ knowing that the only dependencies we need to track are for individual bifurcations $p(\theta)$ and total measure $\Psi(\theta)$
+To make use of gradient-based optimisers to locate desired bifurcation diagrams, we here show how to differentiate the cost function.
+First, we note that while individual bifurcations $p(\theta)$ depend smoothly on $\theta$, the total number of predictions $|\predictions|$ does not have gradient contributions with respect to $\theta$. Therefore, we can safely drop the dependency in the prediction counter and now proceed in taking gradients with respect to $\theta$ knowing that the only dependencies we need to track are for individual bifurcations $p(\theta)$ (within the definition of $\error$) and the total measure $\Psi(\theta)$. Therefore, 
 \begin{align}
     \frac{\partial\loss}{\partial\theta}=
     \big(|\predictions|-|\targets|\big)\,\lambda\,
@@ -151,6 +154,7 @@ The pre-factor $|\targets|-|\predictions|$ in the unsupervised term ensures that
     \sum_{p(\theta)}\frac{\partial p}{\partial\theta}\left(p(\theta)-p'\right)^{-1}
     \label{eq:gradient-loss}
 \end{align}
+
 In a similar vein to back-propagation through neural differential equations \cite{Chen2018NeuralEquations} we would like to be able to calculate the gradient $\frac{\partial\loss}{\partial\theta}$ without having to differentiate through the operations of the solver that finds the bifurcation diagram $\rates(u,p)=0$ and the bifurcation locations $p(\theta)$. To calculate the gradient of the measure $\frac{\partial \Psi}{\partial\theta}$ we need to differentiate line integrals that depend on $\theta$. Fortunately this can be done by the application of the generalised Leibniz integral rule, details of which can be found in Appendix \ref{appendix:leibniz-rule}.
 
 The gradient of the bifurcation points $\frac{\partial p}{\partial\theta}$ is found by application of the implicit function theorem to a vector function $G_{\theta}:\Reals^{N+1}\rightarrow\Reals^{N+1}$ whose components represent the two constraints $\rates(u,p)=0$ and $\Det=0$. By following a similar strategy to that used by implicit layers \cite{Look2020DifferentiableLayers} we yield an $(N+1)\times M$ Jacobian representing a deformation field \cite{Jos2011OnSurface} for each $\theta$ direction. The gradient we are looking for becomes
@@ -201,8 +205,6 @@ where $a_k$ is the baseline production rate for species $k$ in the absence of th
 \end{equation}
 which reveals that only $a_1$, $a_2$ and the ratio between the sensitivity and degradation parameters, $\frac{k}{\mu_1}$, affect the solutions to this equation, and hence the locations of the bifurcations (Figure \ref{fig:two-state-optima:parameters}). In 98\% of 800 runs, optimisation using the ADAM optimiser \cite{Kingma2014} from \texttt{Flux.jl} with learning rate $\eta=0.1$ converged to one of two clusters: mutual activation ($a_1 < 1, a_2 < 1$; cluster 1) and mutual inhibition ($a_1 > 1, a_2 > 1$; cluster 2) regimes. Example bifurcation diagrams illustrate how the bifurcation curves of each species are positively correlated in mutual activation and negatively correlated for mutual inhibition (Figure \ref{fig:two-state-optima:models}).
 
-In order to maintain biological interpretability, optimisation was restricted to the positive parameter regime by transforming the parameters to log-space $\theta\rightarrow10^\theta$. At the beginning of each optimisation run an initial $\theta$ was chosen in the log-space by sampling from a multivariate normal distribution with mean zero and standard deviation one.
-
 \begin{figure}[ht]
 \centering
 \setlength\unitlength{1cm}
@@ -217,17 +219,20 @@ In order to maintain biological interpretability, optimisation was restricted to
 \label{fig:two-state-optima}
 \end{figure}
 
-\clearpage
+In order to maintain biological interpretability, optimisation was restricted to the positive parameter regime by transforming the parameters to log-space $\theta\rightarrow10^\theta$. At the beginning of each optimisation run an initial $\theta$ was chosen in the log-space by sampling from a multivariate normal distribution with mean zero and standard deviation one.
+
+
+%\clearpage
 \subsection{Complexity}
 
-\begin{wrapfigure}{r}{7cm}
+Performing one iteration of the optimisation requires the computation of the gradient of the cost \eqref{eq:gradient-loss}, requiring a computation of the bifurcation diagram with parameter continuation methods, the evaluation of matrix inversions \eqref{eq:gradient-bifurcation}. However instead of evaluating the inversions directly, we solve a system of linear equations, applying the same strategy as implicit layers \cite{Look2020DifferentiableLayers,Bai2019DeepModels}. This leaves us with the computational bottleneck of calculating the determinant of the state space Jacobian, required in the both the bifurcation measure \eqref{eq:measure} and gradient \eqref{eq:gradient-bifurcation}. This calculation scales like $N^3$ where $N$ is the number of state space variables (Figure \ref{fig:scaling}).
+
+\begin{wrapfigure}{r}{0.5\textwidth}
 \centering
-\includegraphics[width=\linewidth]{scaling}
+\includegraphics[width=0.48\textwidth]{scaling}
 \caption{Complexity scaling of calculating the gradient of the cost function. Calculations were performed on an Intel Core i7-6700HQ CPU @ 2.60GHz x 8 without GPU acceleration}
 \label{fig:scaling}
 \end{wrapfigure}
- 
-Performing one iteration of the optimisation requires the computation of the gradient of the cost \eqref{eq:gradient-loss}, requiring a computation of the bifurcation diagram with parameter continuation methods, the evaluation of matrix inversions \eqref{eq:gradient-bifurcation}. However instead of evaluating the inversions directly, we solve a system of linear equations, applying the same strategy as implicit layers \cite{Look2020DifferentiableLayers,Bai2019DeepModels}. This leaves us with the computational bottleneck of calculating the determinant of the state space Jacobian, required in the both the bifurcation measure \eqref{eq:measure} and gradient \eqref{eq:gradient-bifurcation}. This calculation scales like $N^3$ where $N$ is the number of state space variables (Figure \ref{fig:scaling}).
 
 For this calculation a model \eqref{eq:scaling} was chosen that so that it is extensible both in the number of parameters $M$ and the number of states $N$. In this model only the first state $u_1$ defines the shape of the bifurcation diagram, while the remaining states are merely linearly proportional to the first. The parameters $\mu_n$ contain sums of $\theta_m$ allowing us a flexible choice on the number of parameters while maintaining stable solutions for the bifurcation diagram.
 
@@ -250,8 +255,8 @@ Although we did not consider limit cycles, our approach can be modified using th
 
 In dynamical systems theory the geometry of state-space determines all of the qualitative behaviours of a system. Our work makes progress towards designing models directly in state-space, rather than the spatial or temporal domain. This is valuable to experimentalists who only have qualitative observations available to them and wish to navigate the space of qualitative behaviours of their system. Our work lies within a trend of progress in the scientific machine learning community, where structured domain-informed models are favoured over flexible models that live in large parameter spaces.
 
-\section{Acknowledgements}
-We would like to acknowledge Kieran Cooney for the fruitful conversations that helped guide the derivations and computational approach.
+% \section{Acknowledgements}
+% We would like to acknowledge Kieran Cooney for the fruitful conversations that helped guide the derivations and computational approach.
 
 \bibliography{refs}
 \bibliographystyle{ieeetr}
