@@ -59,6 +59,30 @@ where $\hat{\tangent}(z)$ is the unit tangent field.
 \section{Conditions for Bifurcations}
 \label{appendix:conditions}
 
+A saddle-node bifurcation is the generic bifurcation of equilibria and additional conditions are required at a bifurcation point to obtain a transcritical or pitchfork bifurcations \cite{Kuznetsov2004TopologicalSystems}. If we are not specifically looking for transcritical or pitchfork bifurcations, it is sufficient to consider a non-zero Hessian determinant and non-zero vector slope
+\begin{equation}
+    \left|\frac{\partial^2\rates}{\partial u^2}\right| \neq 0\qquad \frac{\partial\rates}{\partial p}\neq 0
+    \label{eq:conditions}
+\end{equation}
+In the multidimensional case we would like to express the above conditions succinctly in terms of a scalar derivative. Let us consider the non-degeneracy condition along the equilibrium manifold in terms of the state-space determinant
+\begin{equation}
+    \frac{d}{ds}\left|\frac{\partial\rates}{\partial u}\right|\neq 0
+\end{equation}
+Applying Jacobi's formula and expanding the directional derivative in terms of basis vectors $\hat{u}(s)$ and $\hat{p}(s)$ that are tangent to the equilibrium manifold at a particular location $s$ we get
+\begin{equation}
+     \hat{p}(s)\,\mathrm{Tr}\left[
+        \frac{\partial^2\rates}{\partial u\partial p}
+        \,\mathrm{adj}\frac{\partial\rates}{\partial u}
+        \right]
+        +
+    \sum_{n=1}^N\hat{u}_{n}(s)\,\mathrm{Tr}\left[
+        \frac{\partial^2\rates}{\partial u \partial u_n}
+        \,\mathrm{adj}\frac{\partial F}{\partial u}
+        \right]
+  \neq 0
+\end{equation}
+We can see this expression contains the vector Hessian $\frac{\partial^2\rates}{\partial u^2}$ whos determinant is non-zero for the non-degenerate case. The slope $\frac{\partial\rates}{\partial p}$ is non-zero when the transversality condition holds. 
+
 \section{Leibniz Rule for Space Curves}
 \label{appendix:leibniz-rule}
 
@@ -154,28 +178,3 @@ To summarise we now have the gradient of our line integral only in terms of the 
     \frac{\partial F}{\partial\theta}
 \end{align}
 We have settled on choosing normal deformations which we will call $\varphi_\theta(z)$. The above result can be seen a the generalised Leibniz rule \cite{Flanders1973DifferentiationSign} for the case of line integration regions. The last integrand term can be seen as the divergence the vector field $\varphi_\theta(z)$ projected onto the one dimensional space curve.
-
-
-% \section{Simplification of two-state model}
-
-% Consider the general two-state model:
-% \begin{equation}
-%     \dfrac{dv_i}{dt} = \dfrac{a_i + b_i (K_i v_j)^2}{1 + (K_i v_j)^2} - \mu_i v_i
-% \end{equation}
-
-% Without loss of generality, we can rescale $v_i = U_i u_i$. Then,
-% \begin{equation}
-%     \dfrac{U_idu_i}{dt} = \dfrac{a_i + b_i (K_i U_j u_j)^2}{1 + (K_i U_j u_j)^2} - \mu_i U_i u_i
-% \end{equation}
-
-% Dividing through by $U_i$, we obtain
-% \begin{equation}
-%     \dfrac{du_i}{dt} = \dfrac{\frac{a_i}{U_i} + \frac{b_i}{U_i} (K_i U_j u_j)^2}{1 + (K_i U_j u_j)^2} - \mu_i u_i
-% \end{equation}
-
-% By choosing $U_i = b_i$, the model reduces to:
-% \begin{equation}
-%     \dfrac{du_1}{dt} = \dfrac{\hat{a}_1 + (p u_2)^2}{1 + (p u_2)^2} - \mu_1 u_1, \quad
-%     \dfrac{du_2}{dt} = \dfrac{\hat{a}_2 + (k u_1)^2}{1 + (k u_1)^2} - \mu_2 u_2
-% \end{equation}
-% where $p = \frac{K_1}{\sqrt{b_1}}$ and $k = \frac{K_2}{\sqrt{b_2}}$.
