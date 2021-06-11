@@ -59,29 +59,42 @@ where $\hat{\tangent}(z)$ is the unit tangent field.
 \section{Conditions for Bifurcations}
 \label{appendix:conditions}
 
-A saddle-node bifurcation is the generic bifurcation of equilibria and additional conditions are required at a bifurcation point to obtain a transcritical or pitchfork bifurcations \cite{Kuznetsov2004TopologicalSystems}. If we are not specifically looking for transcritical or pitchfork bifurcations, it is sufficient to consider a non-zero Hessian determinant and non-zero vector slope
+The conditions for bifurcations \eqref{eq:predictions} are expressed at a parametrised location $s\in\Reals$ on the equilibrium manifold. A local bifurcation \textit{not involving limit cycles} can be defined as a change of sign of the real part of an eigenvalue of the state-space Jacobian. In this section we show that the conditions
 \begin{equation}
-    \left|\frac{\partial^2\rates}{\partial u^2}\right| \neq 0\qquad \frac{\partial\rates}{\partial p}\neq 0
+    \Det_{s=s^*} = 0
+    \qquad
+    \frac{d}{ds}\Det_{s=s^*} \neq 0
     \label{eq:conditions}
 \end{equation}
-In the multidimensional case we would like to express the above conditions succinctly in terms of a scalar derivative. Let us consider the non-degeneracy condition along the equilibrium manifold in terms of the state-space determinant
+are sufficient for a local bifurcation to occur at a specific location $s^*$ along the equilibrium manifold. Here we denote $\Det$ as the determinant of the state-space Jacobian. We begin by expressing the determinant is the product of eigenvalues
 \begin{equation}
-    \frac{d}{ds}\left|\frac{\partial\rates}{\partial u}\right|\neq 0
+    \Det=\prod_{n=1}^N\lambda_n(s)
+    \label{eq:determinant}
 \end{equation}
-Applying Jacobi's formula and expanding the directional derivative in terms of basis vectors $\hat{u}(s)$ and $\hat{p}(s)$ that are tangent to the equilibrium manifold at a particular location $s$ we get
+Applying the product rule when differentiating yields
 \begin{equation}
-     \hat{p}(s)\,\mathrm{Tr}\left[
-        \frac{\partial^2\rates}{\partial u\partial p}
-        \,\mathrm{adj}\frac{\partial\rates}{\partial u}
-        \right]
-        +
-    \sum_{n=1}^N\hat{u}_{n}(s)\,\mathrm{Tr}\left[
-        \frac{\partial^2\rates}{\partial u \partial u_n}
-        \,\mathrm{adj}\frac{\partial F}{\partial u}
-        \right]
-  \neq 0
+    \frac{d}{ds}\Det=
+    \sum_{n=1}^N\frac{d\lambda_n}{ds}\prod_{n'\neq n}\lambda_{n'}(s)
 \end{equation}
-We can see this expression contains the vector Hessian $\frac{\partial^2\rates}{\partial u^2}$ whos determinant is non-zero for the non-degenerate case. The slope $\frac{\partial\rates}{\partial p}$ is non-zero when the transversality condition holds. 
+As $\Det_{s=s^*}=0$ then by \eqref{eq:determinant} one of the eigenvalues must vanish, say $\lambda^*(s)$ at  $s=s^*$ then
+\begin{equation}
+    \frac{d}{ds}\left|\frac{\partial\rates}{\partial u}\right|_{s=s^*}=
+    \frac{d\lambda^*}{ds}\prod_{\lambda\neq\lambda^*}\lambda(s)\,\bigg|_{s=s^*}
+\end{equation}
+which implies the following conditions on the eigenvalues
+\begin{align}
+    \left.\lambda^*(s)\right|_{s=s^*}=0
+    \qquad
+    \left.\frac{d\lambda^*}{ds}\right|_{s=s^*}\neq 0
+    \label{eq:sufficient-necessary}
+    \\
+    \lambda(s^*) \neq 0\quad\forall\lambda\neq\lambda*
+    \qquad\quad
+    \label{eq:sufficient}
+\end{align}
+Conditions \eqref{eq:sufficient-necessary} guarantee that eigenvalue $\lambda^*(s)$ crosses zero at $s^*$ with a finite slope and are therefore sufficient and necessary for a local non-degenerate bifurcation not involving limit cycles. Condition \eqref{eq:sufficient} restricts the bifurcation at $s^*$ to be such that only one eigenvalue may vanish with all others being finite. Therefore conditions \eqref{eq:conditions} are sufficient \textit{but not necessary} for local non-degenerate bifurcations at $s^*$ not involving limit cycles.
+
+In the case where more than one eigenvalue vanishes at the bifurcation the second condition \eqref{eq:conditions} is broken. This is because the determinant scales like $(s-s^*)^k$ where $k$ is the number of eigenvalues crossing zero. When the second condition \eqref{eq:conditions} is broken the measure \eqref{eq:measure} becomes zero. This means that the unsupervised term does not encourage bifurcations which have more than one eigenvalue crossing zero.
 
 \section{Leibniz Rule for Space Curves}
 \label{appendix:leibniz-rule}

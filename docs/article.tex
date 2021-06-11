@@ -1,4 +1,35 @@
-\input{style}
+\documentclass{article}
+\PassOptionsToPackage{numbers,compress}{natbib}
+\usepackage{lipsum}
+
+% \usepackage{neurips_2021}
+\usepackage[preprint]{neurips_2021}
+% \usepackage[final]{neurips_2021}
+
+\usepackage[T1]{fontenc}
+\usepackage[latin1]{inputenc}
+\usepackage{url}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=blue,
+    citecolor=blue,      
+    urlcolor=cyan,
+}
+
+\usepackage{graphicx,xcolor,float}
+\graphicspath{{./figures/}{docs/figures/}}
+
+\usepackage{booktabs,amsmath,amsfonts}
+\usepackage{nicefrac,microtype}
+
+\usepackage{caption,subcaption}
+\renewcommand\thesubfigure{\Alph{subfigure}}
+
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{wrapfig}
 
 \title{Parameter Inference\\with Bifurcation Diagrams}
 \author{
@@ -13,7 +44,20 @@
 }
 
 \begin{document}
-\input{notation}
+
+\newcommand{\rates}{F_{\theta}}
+\newcommand{\tangent}{T_{\theta}}
+\newcommand{\steadystates}{\partial S_{\theta}}
+
+\newcommand{\Det}{\left| \frac{\partial\rates}{\partial u} \right|}
+\newcommand{\measure}{\varphi_{\theta}}
+
+\newcommand{\predictions}{\mathcal{P}}
+\newcommand{\targets}{\mathcal{D}}
+\newcommand{\loss}{L}
+\newcommand{\error}{E}
+\newcommand{\Reals}{\mathbb{R}}
+
 \maketitle
 \begin{abstract}
     Estimation of parameters in differential equation models can be achieved by applying learning algorithms to quantitative time-series data. However, sometimes it is only possible to measure qualitative changes of a system in response to a controlled condition. In dynamical systems theory, such change points are known as \textit{bifurcations} and lie on a function of the controlled condition called the \textit{bifurcation diagram}. In this work, we propose a gradient-based semi-supervised approach for inferring the parameters of differential equations that produce a user-specified bifurcation diagram. The cost function contains a supervised error term that is minimal when the model bifurcations match the specified targets and an unsupervised bifurcation measure which has gradients that push optimisers towards bifurcating parameter regimes. The gradients can be computed without the need to differentiate through the operations of the solver that was used to compute the diagram. We demonstrate parameter inference with minimal models which explore the space of saddle-node and pitchfork diagrams and the genetic toggle switch from synthetic biology. Furthermore, the cost landscape allows us to organise models in terms of topological and geometric equivalence.
@@ -50,7 +94,7 @@ For the purposes of introducing this work, we will consider the simplest class o
 	\rates : \Reals^{N+1}\rightarrow\Reals^N
 	\label{eq:model}
 \end{align}
-In the context of the differential equations, and not considering limit cycles for now, a co-dimension one bifurcation can be defined by a set of conditions on the determinant of the Jacobian $\Det$. The determinant of the Jacobian quantifies the rate at which trajectories in a local patch of state-space $u\in\Reals^N$ converge or diverge. The determinant approaching zero means that the dynamics of the system are slowing down, which is an important indicator for the onset of a transition between qualitative behaviours. Furthermore, the slowing down must necessarily be followed by breakdown of stability; for this to be true it is sufficient \textit{but not necessary} to require that the determinant cross zero with a finite slope, meaning that its directional derivative along the diagram $\frac{d}{ds}\Det$ is not zero. The set of predicted values for the control condition $\predictions(\theta)\subset\Reals$ at which bifurcations occur are defined as
+In the context of the differential equations, and not considering limit cycles for now, a co-dimension one bifurcation can be defined by a set of conditions on the determinant of the Jacobian $\Det$. The determinant of the Jacobian quantifies the rate at which trajectories in a local patch of state-space $u\in\Reals^N$ converge or diverge. Let $s\in\Reals$ parametrise the curves that trace out the bifurcation diagram. Any location on the curve $u(s)$ and $p(s)$ must satisfy the steady-state of equations \eqref{eq:model}. The determinant approaching zero along the diagram means that the dynamics of the system are slowing down, which is an important indicator for the onset of a transition between qualitative behaviours. Furthermore, the slowing down must necessarily be followed by a breakdown of stability; for this to be true it is sufficient \textit{but not necessary} to require that the determinant cross zero with a finite slope, meaning that its directional derivative along the diagram $\frac{d}{ds}\Det$ is not zero. The set of predicted values for the control condition $\predictions(\theta)\subset\Reals$ at which bifurcations occur are defined as
 \begin{align}
 	\predictions(\theta):=\left\{\,
 	p\,\,\exists\,\,u:\,\,\rates(u,p)=0,\,\,\Det=0,
@@ -58,17 +102,17 @@ In the context of the differential equations, and not considering limit cycles f
 	\,\right\}
 	\label{eq:predictions}
 \end{align}
-The most common bifurcations between steady states, not including limit cycles, are saddle-nodes and pitchforks \cite{Haragus2011LocalSystems}. The relationships between our conditions for bifurcation \eqref{eq:predictions} and the conditions for saddle-node are detailed in Appendix \ref{appendix:conditions}. Saddle-node bifurcations, which often appear in pairs (Figure \ref{fig:saddle-node}) are defined by stable and unstable fixed points meeting and disappearing. Pitchfork bifurcations are special cases of the saddle-node where a single steady state splits into two stable and one unstable steady state (Figure \ref{fig:pitchfork}). To illustrate these bifurcations, we define minimal models (Figure \ref{fig:minimal-models}) that span the space of saddle-node and pitchforks, where indeed zero crossings in the determinant with a finite slope define the set of prediction $\predictions(\theta)$. The location of these crossings in general may not match the targets $\targets$.
+A proof of how the conditions \eqref{eq:predictions} are sufficient but not necessary for local bifurcations is detailed in Appendix \ref{appendix:conditions}. The most common bifurcations between steady states, not including limit cycles, are saddle-nodes and pitchforks \cite{Haragus2011LocalSystems}. Saddle-node bifurcations, which often appear in pairs (Figure \ref{fig:saddle-node}) are defined by stable and unstable fixed points meeting and disappearing. Pitchfork bifurcations are special cases of the saddle-node where a single steady state splits into two stable and one unstable steady state (Figure \ref{fig:pitchfork}). To illustrate these bifurcations, we define minimal models (Figure \ref{fig:minimal-models}) that span the space of saddle-node and pitchforks, where indeed zero crossings in the determinant with a finite slope define the set of prediction $\predictions(\theta)$. The location of these crossings in general may not match the targets $\targets$.
 
 \begin{figure}[ht]
 \centering
 \setlength\unitlength{1cm}
 {\phantomsubcaption\label{fig:saddle-node}}
 {\phantomsubcaption\label{fig:pitchfork}}
-\includegraphics[width=6cm]{saddle-node}
-\begin{picture}(0,0) \put(-5.8,10){\subref{fig:saddle-node}} \end{picture}
-\includegraphics[width=6cm]{pitchfork}
-\begin{picture}(0,0) \put(-5.8,10){\subref{fig:pitchfork}} \end{picture}
+\includegraphics[width=5.5cm]{saddle-node}
+\begin{picture}(0,0)\put(-5.5,9){\subref{fig:saddle-node}} \end{picture}
+\includegraphics[width=5.5cm]{pitchfork}
+\begin{picture}(0,0)\put(-5.5,9){\subref{fig:pitchfork}} \end{picture}
 \caption{Illustration of bifurcation diagrams for minimal models of bifurcations. \subref{fig:saddle-node}. Saddle-node bifurcations arise for $\rates(u,p) = p + \theta_{1}u+\theta_{2}u^3$ when $\theta = (\frac{5}{2},-1)$. \subref{fig:pitchfork}. Pitchfork bifurcations arise for $\rates(u,p) = \theta_{1} + p u+\theta_{2}u^3$ when $\theta=(\frac{1}{2},-1)$. Targets are illustrated by light yellow vertical lines. Bifurcation curves are shown as solid blue and red lines, with lighter shades indicating the determinant crossing zero at locations $\predictions(\theta)$ giving rise to unstable solutions.}
 \label{fig:minimal-models}
 \end{figure}
@@ -267,10 +311,6 @@ We would like to acknowledge Kieran Cooney for the fruitful conversations that h
 
 \bibliography{refs}
 \bibliographystyle{ieeetr}
-
-% \clearpage\pagenumbering{gobble}
-% \section*{Checklist}
-% \input{checklist}
 
 \clearpage\pagenumbering{arabic}\setcounter{page}{1}
 \section*{Appendix}
