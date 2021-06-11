@@ -8,7 +8,7 @@ This library implements the method described in **Szep, G. Dalchau, N. and Csika
 ## Basic Usage
 The model definition requires a distpatched method on `F(z::BorderedArray,θ::AbstractVector)` where `BorderedArray` is a type that contains the state vector `u` and control condition `p` used by the library [`BifurcationKit.jl`](https://github.com/rveltz/BifurcationKit.jl). `θ` is a vector of parameters to be optimised.
 ```julia
-using FluxContinuation, StaticArrays
+using BifurcationFit, StaticArrays
 
 F(z::BorderedArray,θ::AbstractVector) = F(z.u,(θ=θ,p=z.p))
 function F(u::AbstractVector,parameters::NamedTuple)

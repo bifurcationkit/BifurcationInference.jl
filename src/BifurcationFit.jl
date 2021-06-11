@@ -1,4 +1,4 @@
-module FluxContinuation
+module BifurcationFit
 
 	using BifurcationKit: ContIterable, newton, ContinuationPar, NewtonPar, DeflationOperator
 	using BifurcationKit: BorderedArray, AbstractLinearSolver, AbstractEigenSolver, BorderingBLS
