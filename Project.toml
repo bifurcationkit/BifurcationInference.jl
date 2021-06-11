@@ -17,6 +17,16 @@ SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
+BifurcationKit = "0.1"
+Flux = "0.12"
+ForwardDiff = "0.10"
+InvertedIndices = "1"
+LaTeXStrings = "1"
+Parameters = "0.12"
+Plots = "1"
+Setfield = "0.7"
+SpecialFunctions = "1.5"
+StaticArrays = "1.2"
 julia = "1"
 
 [extras]
