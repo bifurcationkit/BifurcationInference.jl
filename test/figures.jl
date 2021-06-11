@@ -1,4 +1,4 @@
-using FluxContinuation
+using BifurcationInference
 using ForwardDiff
 
 using LaTeXStrings,Plots
@@ -66,29 +66,51 @@ include("scaling/scaling.jl")
 using StatsBase: mean,std
 using LaTeXStrings
 
-complexity_mean = Float64[]
-complexity_std = Float64[]
+continuation_mean = Float64[]
+continuation_std = Float64[]
 
-for n ∈	1:40
-	ts = [scaling(n,3) for _ ∈ 1:10]
-	push!(complexity_mean,mean(ts))
-	push!(complexity_std,std(ts))
+forward_mean = Float64[]
+forward_std = Float64[]
+
+backward_mean = Float64[]
+backward_std = Float64[]
+
+for n ∈	41:100
+
+	ts = [scaling_continuation(n,3) for _ ∈ 1:10]
+	push!(continuation_mean,mean(ts))
+	push!(continuation_std,std(ts))
+
+	ts = [scaling_forward(n,3) for _ ∈ 1:10]
+	push!(forward_mean,mean(ts))
+	push!(forward_std,std(ts))
+
+	# ts = [scaling_backward(n,3) for _ ∈ 1:10]
+	# push!(backward_mean,mean(ts))
+	# push!(backward_std,std(ts))	
 end
-scaling(40,3)
 
-default();default(grid=false)
-plot( 10:30, x->x^3/1800, label=L"N^3", color=:red, linewidth=2, legend=:topleft)
-scatter!( complexity_mean,yerror=complexity_std, label="", yscale=:log10, xscale=:log10, ms=3, color=:black,
-	xlabel=L"\mathrm{States}\,\,N", ylabel=L"\mathrm{Execution\,\,Time}\,\,/\,\,\mathrm{sec}", size=(400,400) )
+default();default(grid=false,label="", yscale=:log10, xscale=:log10,ms=3, ylim=(8e-2,1e1), msc=:auto, lc=:black,
+	xlabel=L"\mathrm{States}\,\,N",ylabel=L"\mathrm{Execution\,\,Time}\,\,/\,\,\mathrm{sec}", size=(400,400),
+	linewidth=2, legend=:topleft)
 
-xticks!([1,3,5,10,20,30],["1","3","5","10","20","30"])
+plot( 10:40, x->x^2/180, label=L"N^2", lc=:red )
+scatter!( 1:40, backward_mean,yerror=backward_std, color=:black, label="Cost Gradient" )
+
+# plot!( 1:100, x->x^3/205800, lc=:red )
+# scatter!( 1:83, forward_mean, yerror=forward_std, color=:gray, label="Cost Function" )
+
+# plot!( 20:60, x->x^2/1580, lc=:red )
+# scatter!( 1:83, continuation_mean, yerror=continuation_std, color=:gold, label="Continuation" )
+
+xticks!([1,3,5,10,20,40],["1","3","5","10","20","40"])
 yticks!([1e-1,1e0,1e1],["0.1","1","10"])
 savefig("docs/figures/scaling.pdf")
 
 ####################################################################################################
 ####################################################################################################
 ################################################################################ two-state-optima
-using FluxContinuation,Plots,StaticArrays
+using BifurcationInference,Plots,StaticArrays
 using Clustering,JLD
 using StatsBase: median
 

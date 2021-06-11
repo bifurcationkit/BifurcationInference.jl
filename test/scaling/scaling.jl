@@ -18,7 +18,7 @@ function F(u::AbstractVector{T},parameters::NamedTuple,N::Int,M::Int) where T<:N
 	return F
 end
 
-function scaling(N::Int,M::Int)
+function scaling_backward(N::Int,M::Int)
 	f(u,p) = F(u,p,N,M)
 
 	X = StateSpace(N,-π:0.01:π,[0.0])
@@ -27,4 +27,27 @@ function scaling(N::Int,M::Int)
 	println("N = $N M = $M")
 	@time ∇loss(f,θ,X)
 	return @elapsed ∇loss(f,θ,X)
+end
+
+function scaling_forward(N::Int,M::Int)
+	f(u,p) = F(u,p,N,M)
+
+	X = StateSpace(N,-π:0.01:π,[0.0])
+	θ = SizedVector{M}(ones(M))
+
+	println("N = $N M = $M")
+	@time loss(f,θ,X)
+	return @elapsed loss(f,θ,X)
+end
+
+function scaling_continuation(N::Int,M::Int)
+	f(u,p) = F(u,p,N,M)
+
+	X = StateSpace(N,-π:0.01:π,[0.0])
+	parameters = (θ=SizedVector{M}(ones(M)),p=minimum(X.parameter))
+	hyperparameters = getParameters(X)
+
+	println("N = $N M = $M")
+	@time deflationContinuation(f,X.roots,parameters,hyperparameters)
+	return @elapsed deflationContinuation(f,X.roots,parameters,hyperparameters)
 end
