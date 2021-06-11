@@ -1,15 +1,15 @@
-# BifurcationFit.jl : Inference with Bifurcation Diagrams
+# BifurcationInference.jl : Inference with Bifurcation Diagrams
 
 This library implements the method described in **Szep, G. Dalchau, N. and Csikasz-Nagy, A. 2021. [Parameter Inference with Bifurcation Diagrams](https://arxiv.org/abs/2106.04243)** using parameter continuation library [`BifurcationKit.jl`](https://github.com/rveltz/BifurcationKit.jl) and auto-differentiation [`ForwardDiff.jl`](https://github.com/JuliaDiff/ForwardDiff.jl). This implementation enables continuation methods can be used as layers in machine learning proceedures, and inference can be run end-to-end directly on the geometry of state space.
 
-[![Build Status](https://travis-ci.com/gszep/BifurcationFit.jl.svg?branch=master)](https://travis-ci.com/gszep/BifurcationFit.jl)
-[![Coverage](https://codecov.io/gh/gszep/BifurcationFit.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/gszep/BifurcationFit.jl)
+[![Build Status](https://travis-ci.com/gszep/BifurcationInference.jl.svg?branch=master)](https://travis-ci.com/gszep/BifurcationInference.jl)
+[![Coverage](https://codecov.io/gh/gszep/BifurcationInference.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/gszep/BifurcationInference.jl)
 [![arXiv](https://img.shields.io/badge/arXiv-2106.04243-b31b1b.svg)](https://arxiv.org/abs/2106.04243)
 
 ## Basic Usage
 The model definition requires a distpatched method on `F(z::BorderedArray,θ::AbstractVector)` where `BorderedArray` is a type that contains the state vector `u` and control condition `p` used by the library [`BifurcationKit.jl`](https://github.com/rveltz/BifurcationKit.jl). `θ` is a vector of parameters to be optimised.
 ```julia
-using BifurcationFit, StaticArrays
+using BifurcationInference, StaticArrays
 
 F(z::BorderedArray,θ::AbstractVector) = F(z.u,(θ=θ,p=z.p))
 function F(u::AbstractVector,parameters::NamedTuple)

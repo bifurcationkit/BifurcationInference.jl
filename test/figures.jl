@@ -1,4 +1,4 @@
-using BifurcationFit
+using BifurcationInference
 using ForwardDiff
 
 using LaTeXStrings,Plots
@@ -110,7 +110,7 @@ savefig("docs/figures/scaling.pdf")
 ####################################################################################################
 ####################################################################################################
 ################################################################################ two-state-optima
-using BifurcationFit,Plots,StaticArrays
+using BifurcationInference,Plots,StaticArrays
 using Clustering,JLD
 using StatsBase: median
 

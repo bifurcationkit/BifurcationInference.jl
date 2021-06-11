@@ -1,4 +1,4 @@
-module BifurcationFit
+module BifurcationInference
 
 	using BifurcationKit: ContIterable, newton, ContinuationPar, NewtonPar, DeflationOperator
 	using BifurcationKit: BorderedArray, AbstractLinearSolver, AbstractEigenSolver, BorderingBLS

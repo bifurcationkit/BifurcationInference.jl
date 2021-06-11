@@ -1,5 +1,5 @@
 using FiniteDiff: finite_difference_gradient
-using BifurcationFit, Test
+using BifurcationInference, Test
 
 error_tolerance = 0.05
 @testset "Gradients" begin

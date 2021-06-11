@@ -1,5 +1,5 @@
-name = "BifurcationFit"
-uuid = "47d09c00-5f3c-4df8-b294-580a3cc966fd"
+name = "BifurcationInference"
+uuid = "7fe238d6-d31e-4646-aa16-9d8429fd6da8"
 authors = ["gszep <gregory.szep@gmail.com>"]
 version = "0.1.0"
 
