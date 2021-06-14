@@ -108,8 +108,6 @@ module BifurcationInference
 					try
 						iterator = ContIterable( f, J, u, parameters, (@lens _.p), hyperparameters, linsolver, verbosity=verbosity)
 						for state ∈ iterator
-
-							computeEigenvalues!(iterator,state)
 							push!(branch,state)
 						end
 
