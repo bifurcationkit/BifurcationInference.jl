@@ -28,7 +28,7 @@ end
 ```
 The targets are specified with `StateSpace( dimension::Integer, condition::AbstractRange, targets::AbstractVector )`. It contains the dimension of the state space, which must match that of the defined model, the control condition range that we would like to perform the continuation method in, and a vector of target conditions we would like to match.
 ```julia
-X = StateSpace( 2, 0:0.01:10, [4,5] )
+X = StateSpace( 2, 0.01:0.01:10, [4,5] )
 ```
 The optimisation needs to be initialised using a `NamedTuple` containing the initial guess for `θ` and the initial value `p` from which to begin the continuation.
 ```julia
