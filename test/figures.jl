@@ -64,38 +64,26 @@ savefig("docs/figures/bifurcation-measure.pdf")
 ############################################################################################ scaling
 include("scaling/scaling.jl")
 using StatsBase: mean,std
-using LaTeXStrings
+using Plots,LaTeXStrings
+using Optim
 
-continuation_mean = Float64[]
-continuation_std = Float64[]
+states = 1:60
 
-forward_mean = Float64[]
-forward_std = Float64[]
+gradient_free = zeros(length(states))
+cost_gradient = zeros(length(states))
 
-backward_mean = Float64[]
-backward_std = Float64[]
-
-for n ∈	41:100
-
-	ts = [scaling_continuation(n,3) for _ ∈ 1:10]
-	push!(continuation_mean,mean(ts))
-	push!(continuation_std,std(ts))
-
-	ts = [scaling_forward(n,3) for _ ∈ 1:10]
-	push!(forward_mean,mean(ts))
-	push!(forward_std,std(ts))
-
-	# ts = [scaling_backward(n,3) for _ ∈ 1:10]
-	# push!(backward_mean,mean(ts))
-	# push!(backward_std,std(ts))	
+Threads.@threads for n ∈ states
+	gradient_free[n] = scaling_gradient_free(n,3)
+	cost_gradient[n] = scaling_backward(n,3)
 end
 
 default();default(grid=false,label="", yscale=:log10, xscale=:log10,ms=3, ylim=(8e-2,1e1), msc=:auto, lc=:black,
 	xlabel=L"\mathrm{States}\,\,N",ylabel=L"\mathrm{Execution\,\,Time}\,\,/\,\,\mathrm{sec}", size=(400,400),
 	linewidth=2, legend=:topleft)
 
-plot( 10:40, x->x^2/180, label=L"N^2", lc=:red )
-scatter!( 1:40, backward_mean,yerror=backward_std, color=:black, label="Cost Gradient" )
+plot( states, x->x^2/310, label=L"N^2", lc=:red )
+scatter!( states, cost_gradient, color=:black, label="Cost Gradient" )
+scatter!( states, gradient_free, color=:gray, label="Gradient-free" )
 
 # plot!( 1:100, x->x^3/205800, lc=:red )
 # scatter!( 1:83, forward_mean, yerror=forward_std, color=:gray, label="Cost Function" )

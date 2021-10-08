@@ -1,12 +1,10 @@
 ################################################################################
 function ∇loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
-
 	predictions = unique([ s.z for branch ∈ branches for s ∈ branch if s.bif ], atol=3*step(targets.parameter) )
-	λ = length(targets.targets)-length(predictions)
 
-	if λ≠0 
+	if length(targets.targets)≠length(predictions)
 		Φ,∇Φ = measure(F,branches,θ,targets), ∇measure(F,branches,θ,targets)
-		return errors(predictions,targets) - λ*log(Φ), ∇errors(F,predictions,θ,targets) - λ*∇Φ/Φ
+		return errors(predictions,targets) - log(Φ), ∇errors(F,predictions,θ,targets) - ∇Φ/Φ
 	else
 		return errors(predictions,targets), ∇errors(F,predictions,θ,targets)
 	end

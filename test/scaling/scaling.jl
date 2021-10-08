@@ -40,6 +40,17 @@ function scaling_forward(N::Int,M::Int)
 	return @elapsed loss(f,θ,X)
 end
 
+function scaling_gradient_free(N::Int,M::Int)
+	f(u,p) = F(u,p,N,M)
+
+	X = StateSpace(N,-π:0.01:π,[0.0])
+	θ = SizedVector{M}(ones(M))
+
+	println("N = $N M = $M")
+	@time optimize(θ->loss(f,θ,X), θ, NelderMead(), Optim.Options(iterations=10))
+	return @elapsed(optimize(θ->loss(f,θ,X), θ, NelderMead(), Optim.Options(iterations=10)))/10
+end
+
 function scaling_continuation(N::Int,M::Int)
 	f(u,p) = F(u,p,N,M)
 
