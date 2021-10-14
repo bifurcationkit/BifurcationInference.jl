@@ -4,7 +4,7 @@ module BifurcationInference
 	using BifurcationKit: BorderedArray, AbstractLinearSolver, AbstractEigenSolver, BorderingBLS
 	using BifurcationKit: ContState, solution, computeEigenvalues!, detectBifucation
 
-	using ForwardDiff: gradient,jacobian
+	using ForwardDiff: Dual,tagtype,derivative,gradient,jacobian
 	using Flux: Momentum,update!
 
 	using Setfield: @lens,@set,setproperties
