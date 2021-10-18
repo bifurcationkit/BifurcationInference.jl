@@ -53,6 +53,9 @@ function plot(steady_states::Vector{<:Branch},data::StateSpace; determinant=true
 
 			plot!( parameter, asinh.(maxreal), subplot=2, alpha=alpha, fillalpha=0.1,
 				color=map(x -> x ? :gray : :red, stability), ribbon=( asinh.(maxreal).-asinh.(minreal), zeros(length(parameter))) )
+
+			plot!( parameter, asinh.(minimag), fillrange=asinh.(maximag), subplot=2, alpha=alpha,
+				color=:darkgreen, fillalpha=0.1, linewidth=0 )
 		end
 
 		xticks!([NaN],subplot=1)
