@@ -113,7 +113,7 @@ module BifurcationInference
 
 						midpoint = sum( s -> s.z.p, branch ) / length(branch)
 						if minimum(pRange) < midpoint && midpoint < maximum(pRange)
-							push!(branches,branch) end
+							push!(branches,pMin < 0 ? reverse(branch) : branch) end
 
 					catch error
 						printstyled(color=:red,"Continuation Error at f(u,p)=$(f(u,parameters))\nu=$u, p=$(parameters.p), θ=$(parameters.θ)\n")
@@ -126,6 +126,6 @@ module BifurcationInference
 
 		hyperparameters = @set hyperparameters.ds = ds
 		updateParameters!(hyperparameters,branches;resolution=resolution)
-		return branches
+		return unique(branches; atol=10*hyperparameters.ds)
 	end
 end

@@ -33,14 +33,28 @@ error_tolerance = 0.05
 end
 
 using Flux: Optimise
-@testset "Gradients" begin
+error_tolerance = 0.1
+
+@testset "Optimisations" begin
 include("applied/two-state.jl")
 
-	parameters = ( θ=SizedVector{5}(0.5,0.5,0.5470,2.0,7.5), p=minimum(X.parameter) )
-	trajectory = train!( F, parameters, X;  iter=100, optimiser=Optimise.ADAM(0.01) )
+	@testset "Mutual Inhibition" begin
+		parameters = ( θ=SizedVector{5}(0.5,0.5,0.5470,1.0,1.5), p=minimum(X.parameter) )
+		trajectory = train!( F, parameters, X;  iter=300, optimiser=Optimise.ADAM(0.01) )
 
-	steady_states = deflationContinuation(F,X.roots,(p=minimum(X.parameter),θ=trajectory[end]),getParameters(X))
-	bifurcations = unique([ s.z for branch ∈ steady_states for s ∈ branch if s.bif ], atol=3*step(X.parameter) )
+		steady_states = deflationContinuation(F,X.roots,(p=minimum(X.parameter),θ=trajectory[end]),getParameters(X))
+		bifurcations = [ s.z for branch ∈ steady_states for s ∈ branch if s.bif ]
 
-	@test length(bifurcations) == 2
+		@test all( z->any(isapprox.(X.targets,z.p; atol=error_tolerance)), bifurcations)
+	end
+
+	@testset "Mutual Activation" begin
+		parameters = ( θ=SizedVector{5}(0.246,-1.113,-0.87,-1.36,1.28), p=minimum(X.parameter) )
+		trajectory = train!( F, parameters, X;  iter=300, optimiser=Optimise.ADAM(0.01) )
+
+		steady_states = deflationContinuation(F,X.roots,(p=minimum(X.parameter),θ=trajectory[end]),getParameters(X))
+		bifurcations = [ s.z for branch ∈ steady_states for s ∈ branch if s.bif ]
+
+		@test all( z->any(isapprox.(X.targets,z.p; atol=error_tolerance)), bifurcations)
+	end
 end

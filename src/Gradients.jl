@@ -1,7 +1,7 @@
 ################################################################################
 function ∇loss( F::Function, branches::AbstractVector{<:Branch}, θ::AbstractVector, targets::StateSpace; kwargs...)
 
-	predictions = unique([ s.z for branch ∈ branches for s ∈ branch if s.bif ], atol=3*step(targets.parameter) )
+	predictions = [ s.z for branch ∈ branches for s ∈ branch if s.bif ]
 	λ = length(targets.targets)-length(predictions)
 
 	if λ≠0 
