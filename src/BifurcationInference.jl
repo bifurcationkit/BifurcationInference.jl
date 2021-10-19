@@ -52,6 +52,15 @@ module BifurcationInference
     		u, residual, converged, niter = newton( f, J, u.+hyperparameters.ds, parameters,
 				hyperparameters.newtonOptions, deflation)
 
+				i = 0
+				while any(isnan.(residual)) & (i<hyperparameters.newtonOptions.maxIter)
+					u .= randn(length(u))
+	
+					u, residual, converged, niter = newton( f, J, u.+hyperparameters.ds, parameters,
+						hyperparameters.newtonOptions, deflation)
+					i += 1
+				end	
+
 			@assert( !any(isnan.(residual)), "f(u,p) = $(residual[end]) at u = $u, p = $(parameters.p), θ = $(parameters.θ)")
     		if converged push!(deflation,u) else break end
         end

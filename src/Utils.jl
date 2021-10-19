@@ -1,5 +1,5 @@
 ############################################################################ hyperparameter updates
-function getParameters(data::StateSpace{N,T}; maxIter::Int=800, tol=1e-6, kwargs...) where {N,T<:Number}
+function getParameters(data::StateSpace{N,T}; maxIter::Int=800, tol=1e-12, kwargs...) where {N,T<:Number}
 	newtonOptions = NewtonPar(verbose=false,maxIter=maxIter,tol=T(tol))
 
 	# support for StaticArrays github.com/JuliaArrays/StaticArrays.jl/issues/73
@@ -28,7 +28,8 @@ end
 
 ############################################################################# training loop
 function train!( F::Function, parameters::NamedTuple, data::StateSpace;
-				 iter::Int=200, optimiser=Momentum(0.001), plot_solution = false, kwargs...)
+				 iter::Int=200, optimiser=Momentum(0.001), plot_solution = false, 
+				 convergence = 0.01, kwargs...)
 
 	hyperparameters = getParameters(data;kwargs...)
 	Loss = steady_states = nothing
@@ -48,11 +49,17 @@ function train!( F::Function, parameters::NamedTuple, data::StateSpace;
 		printstyled(color=:blue,"$steady_states\n")
 		println("Parameters\t$(parameters.θ)")
 		println("Gradients\t$(∇Loss)")
-		if isinf(Loss) throw("infinite loss") end
 
-		update!(optimiser, parameters.θ, ∇Loss )
+		if isinf(Loss) throw("infinite loss") end
 		push!(trajectory,copy(parameters.θ))
+
+		predictions = [ s.z for branch ∈ steady_states for s ∈ branch if s.bif ]
+		if (Loss < convergence) & (length(predictions) == length(data.targets))
+			break
+		end
+
 		if plot_solution>0 if i%plot_solution==0 plot(steady_states,data) end end
+		update!(optimiser, parameters.θ, ∇Loss )
 	end
 
 	return trajectory

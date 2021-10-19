@@ -1,7 +1,8 @@
 using FiniteDiff: finite_difference_gradient
 using BifurcationInference, Test
+using Flux: Optimise
 
-error_tolerance = 0.05
+error_tolerance = 0.003
 @testset "Gradients" begin
 
 	@testset "Saddle Node" begin
@@ -32,9 +33,7 @@ error_tolerance = 0.05
 	end
 end
 
-using Flux: Optimise
 error_tolerance = 0.1
-
 @testset "Optimisations" begin
 include("applied/two-state.jl")
 
