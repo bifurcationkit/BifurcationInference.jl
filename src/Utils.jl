@@ -29,7 +29,7 @@ end
 ############################################################################# training loop
 function train!( F::Function, parameters::NamedTuple, data::StateSpace;
 				 iter::Int=200, optimiser=Momentum(0.001), plot_solution = false, 
-				 convergence = 0.01, kwargs...)
+				 convergence = 0.02, kwargs...)
 
 	hyperparameters = getParameters(data;kwargs...)
 	Loss = steady_states = nothing
