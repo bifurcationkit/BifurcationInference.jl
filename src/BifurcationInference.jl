@@ -121,7 +121,7 @@ module BifurcationInference
 						end
 
 						midpoint = sum( s -> s.z.p, branch ) / length(branch)
-						if minimum(pRange) < midpoint && midpoint < maximum(pRange)
+						if minimum(pRange) < midpoint < maximum(pRange)
 							push!(branches,pMin < 0 ? reverse(branch) : branch) end
 
 					catch error
