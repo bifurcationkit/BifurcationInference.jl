@@ -56,4 +56,15 @@ include("applied/two-state.jl")
 
 		@test all( z->any(isapprox.(X.targets,z.p; atol=error_tolerance)), bifurcations)
 	end
+
+	include("applied/double-exclusive.jl")
+	@testset "Double Exclusive" begin
+		parameters = ( θ=SizedVector{21}(-0.5498107083383627, -0.30983502459648393, 0.631939862866151, -1.3407390261868093, 0.6331343612914606, -0.4049028383285403, -0.8524704190293824, -0.11432918583984555, -1.7299987854365662, -2.079032179004907, 0.4916870522978877, -0.010788745553567142, -0.3878513750140796, -0.08334187371052072, -0.2772816729274815, 0.8285363415116678, 0.054887187754647675, -0.49494957503215126, -0.8693294194842291, 0.9289938806228071, 0.22800165770588346), p=minimum(X.parameter) )
+		trajectory = train!( F, parameters, X;  iter=300, optimiser=Optimise.ADAM(0.01) )
+
+		steady_states = deflationContinuation(F,X.roots,(p=minimum(X.parameter),θ=trajectory[end]),getParameters(X))
+		bifurcations = [ s.z for branch ∈ steady_states for s ∈ branch if s.bif ]
+
+		@test all( z->any(isapprox.(X.targets,z.p; atol=error_tolerance)), bifurcations)
+	end
 end
