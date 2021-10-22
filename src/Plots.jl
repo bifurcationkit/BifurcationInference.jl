@@ -6,9 +6,9 @@ import Plots: plot,plot!
 function plot(steady_states::Vector{<:Branch},data::StateSpace; kwargs...)
 
 	layout = @layout [a;b{1.0w,0.5h}]
-	default(); default( ; grid=false,label="",margin=1mm,linewidth=2, lims=:round, kwargs...)
+	default(); default( ; grid=false,label="",margin=1mm,linewidth=2,lims=:round, kwargs...)
 
-	figure = plot(layout = layout, link = :x, size=(300,500), ylabel=L"\mathrm{steady\,\,states}\quad |\,u\,\,|" )
+	figure = plot(layout = layout, link = :x, xlim=extrema(data.parameter), size=(300,500), ylabel=L"\mathrm{steady\,\,states}\quad |\,u\,\,|" )
 	hline!( [0],subplot=2,linewidth=1,color=:black, xlabel=L"\mathrm{control\,\,condition,}p",
 		xmirror=true, topmargin=-5mm, ylabel=L"\mathrm{spectrum}\,\quad \rho(\lambda)")
 	

@@ -2,9 +2,9 @@ module BifurcationInference
 
 	using BifurcationKit: ContIterable, newton, ContinuationPar, NewtonPar, DeflationOperator
 	using BifurcationKit: BorderedArray, AbstractLinearSolver, AbstractEigenSolver, BorderingBLS
-	using BifurcationKit: ContState, solution, computeEigenvalues!, detectBifucation
+	using BifurcationKit: ContState, detectBifucation
 
-	using ForwardDiff: gradient,jacobian
+	using ForwardDiff: Dual,tagtype,derivative,gradient,jacobian
 	using Flux: Momentum,update!
 
 	using Setfield: @lens,@set,setproperties
