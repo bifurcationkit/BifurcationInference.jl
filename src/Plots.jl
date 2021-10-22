@@ -3,62 +3,45 @@ using LaTeXStrings
 using Plots
 
 import Plots: plot,plot!
-function plot(steady_states::Vector{<:Branch},data::StateSpace; determinant=true, kwargs...)
+function plot(steady_states::Vector{<:Branch},data::StateSpace; kwargs...)
 
-	if determinant
+	layout = @layout [a;b{1.0w,0.5h}]
+	default(); default( ; grid=false,label="",margin=1mm,linewidth=2, lims=:round, kwargs...)
 
-		layout = @layout [a;b{1.0w,0.5h}]
-		default(); default( ; grid=false,label="",margin=1mm,linewidth=2,kwargs...)
-		figure = plot(layout = layout, link = :x, size=(300,500) )
+	figure = plot(layout = layout, link = :x, size=(300,500), ylabel=L"\mathrm{steady\,\,states}\quad |\,u\,\,|" )
+	hline!( [0],subplot=2,linewidth=1,color=:black, xlabel=L"\mathrm{control\,\,condition,}p",
+		xmirror=true, topmargin=-5mm, ylabel=L"\mathrm{spectrum}\,\quad \rho(\lambda)")
+	
+	vline!(data.targets,subplot=1,linewidth=1,color=:gold)
+	vline!(data.targets,subplot=2,linewidth=1,color=:gold)
 
-		hline!([0],subplot=1,linewidth=0,color=:black, ylabel=L"\mathrm{steady\,\,states}\quad F_{\theta}(u,p)=0")
-		hline!([0],subplot=2,linewidth=1,color=:black, xlabel=L"\mathrm{control\,\,condition,}p", xmirror=true, topmargin=-5mm,
-			ylabel=L"\mathrm{determinant}\,\quad\left|\!\!\!\!\frac{\partial F_{\theta}}{\partial u}\right|")
-		
-		vline!(data.targets,subplot=1,linewidth=1,color=:gold)
-		vline!(data.targets,subplot=2,linewidth=1,color=:gold)
+	for branch ∈ steady_states
 
-		for branch ∈ steady_states
+		alpha = map(s->window_function(data.parameter,s.z),branch)
+		parameter = map( s -> s.z.p, branch)
+		states = map(s-> norm(s.z.u), branch)
 
-			stability = map( s -> all(real(s.λ).<0), branch)
-			determinants = map( s -> prod(real(s.λ)), branch)
-			parameter = map( s -> s.z.p, branch)
+		realExtrema = map( s->extrema(real(s.λ)), branch)
+		imagExtrema = map( s->extrema(imag(s.λ)), branch)
 
-			for idx ∈ 1:dim(branch)
+		plot!( parameter, states, subplot=1, alpha=alpha, color=:lightgreen,
+			linewidth=map(r->any(λ->λ≠0,r) ? 5 : 0, imagExtrema) )
 
-				plot!( parameter, map(s->s.z.u[idx],branch), subplot=1, alpha=map(s->window_function(data.parameter,s.z),branch),
-					color=map( stable -> stable ? :darkblue : :lightblue, stability ) )
-			end
+		plot!( parameter, states, subplot=1, alpha=alpha,
+			color=map(r->last(r)<0 ? :darkblue : :lightblue, realExtrema) )
 
-			plot!( parameter, determinants, subplot=2, alpha=map(s->window_function(data.parameter,s.z),branch),
-				color=map( stable -> stable ? :red : :pink, stability )
-			)
-		end
+		plot!( parameter, map(r->asinh(first(r)),imagExtrema), fillrange=map(r->asinh(last(r)),imagExtrema),
+			subplot=2, alpha=alpha, color=:lightgreen, fillalpha=0.25*alpha, linewidth=0 )
 
-		xticks!([NaN],subplot=1)
-		return figure
-
-	else 
-		default(); default(; grid=false,label="",margin=1mm,linewidth=2,kwargs...)
-		figure = plot( size=(300,300) )
-
-		hline!([0],linewidth=0,color=:black, ylabel=L"\mathrm{steady\,\,states}\quad F_{\theta}(u,p)=0", xlabel=L"\mathrm{control\,\,condition,}p")
-		vline!(data.targets,linewidth=1,color=:gold)
-
-		for branch ∈ steady_states
-
-			stability = map( s -> all(real(s.λ).<0), branch)
-			parameter = map( s -> s.z.p, branch)
-
-			for idx ∈ 1:dim(branch)
-
-				plot!( parameter, map(s->s.z.u[idx],branch),
-					color=map( stable -> stable ? :darkblue : :lightblue, stability ) )
-			end
-		end
-
-		return figure
+		plot!( parameter, map(r->asinh(last(r)),realExtrema), ribbon=( map(r->asinh(last(r))-asinh(first(r)),realExtrema), zeros(length(parameter))),
+			color=map(r->last(r)<0 ? :darkblue : :lightblue, realExtrema),
+			subplot=2, alpha=alpha, fillalpha=0.2*alpha )
 	end
+
+	plot!( [NaN], [NaN], fillrange=[NaN], color=:lightgreen, fillalpha=0.25, linewidth=0, subplot=2, label=L"\Im\mathrm{m}\lambda" )
+	plot!( [NaN], [NaN], fillrange=[NaN], color=:darkblue, fillalpha=0.2, subplot=2, label=L"\Re\mathrm{e}\lambda" )
+	xticks!([NaN],subplot=1)
+	return figure
 end
 
 function plot!(steady_states::Vector{<:Branch},data::StateSpace; determinant=false, kwargs...)
