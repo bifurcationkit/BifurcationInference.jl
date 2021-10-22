@@ -91,6 +91,6 @@ end
 
 #################################################### display methods
 show(io::IO, branches::Vector{Branch{V,T}}) where {V,T} = print(io,
-    "Vector{Branch}[dim=$(dim(first(branches))) bifurcations=$(length([ s.z for branch ∈ branches for s ∈ branch if s.bif ])) branches=$(length(branches)), states=$(sum(branch->length(branch),branches))]")
+    "Vector{Branch}[dim=$(dim(first(branches))) bifurcations=$(length(unique([ s.z for branch ∈ branches for s ∈ branch if s.bif ]; atol=0.1))) branches=$(length(branches)), states=$(sum(branch->length(branch),branches))]")
 show(io::IO, M::MIME"text/plain", branches::Vector{Branch{V,T}}) where {V,T} = show(io,branches)
 show(io::IO, states::StateSpace{N,T}) where {N,T} = print(io,"StateSpace{$N,$T}(parameters=$(states.parameter),targets=$(states.targets))")

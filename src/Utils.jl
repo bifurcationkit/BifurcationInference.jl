@@ -53,7 +53,7 @@ function train!( F::Function, parameters::NamedTuple, data::StateSpace;
 		if isinf(Loss) throw("infinite loss") end
 		push!(trajectory,copy(parameters.θ))
 
-		predictions = [ s.z for branch ∈ steady_states for s ∈ branch if s.bif ]
+		predictions = unique([ s.z for branch ∈ steady_states for s ∈ branch if s.bif ]; atol=2*step(data.parameter))
 		if (Loss < convergence) & (length(predictions) == length(data.targets))
 			break
 		end
