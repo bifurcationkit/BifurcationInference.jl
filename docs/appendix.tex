@@ -217,7 +217,21 @@ We have settled on choosing normal deformations which we will call $\varphi_\the
 
 \section{A More Complex Model}
 \label{appendix:double-exclusive}
-To demonstrate the wider reaching applicability of our method we optimise the \emph{double exclusive reporter} \cite{Grant2020InterpretationCircuit}, a synthetic \emph{E. Coli} designed to exhibit a cusp bifurcation with respect to two input signals. Figure \ref{fig:double-exclusive-trajectories} shows the cost function with respect to iteration for sample trajectories. We note that due to a
+To demonstrate the wider reaching applicability of our method we optimise the \emph{double exclusive reporter} \cite{Grant2020InterpretationCircuit}, a synthetic \emph{E. Coli} designed to exhibit a cusp bifurcation with respect to two input signals. Let one of the input signals be the control condition $p$ while the other input is held constant at $1$. Figure \ref{fig:double-exclusive-optima} shows the cost function with respect to iteration for sample trajectories. We note that due to a
+
+
+\begin{figure}[ht]
+\centering
+\setlength\unitlength{1cm}
+{\phantomsubcaption\label{fig:double-exclusive-optima:parameters}}
+{\phantomsubcaption\label{fig:double-exclusive-optima:models}}
+\includegraphics[width=13cm]{double-exclusive-optima}
+\begin{picture}(0,0) \put(-9,6.3){\subref{fig:double-exclusive-optima:parameters}} \end{picture}
+\begin{picture}(0,0) \put(-3,6.3){\subref{fig:double-exclusive-optima:models}}
+\end{picture}
+\caption{Bifurcation inference for the \emph{double exclusive reporter}. \subref{fig:double-exclusive-optima:parameters}. Optimal parameter estimates $\theta^*$ for the targets $\targets=\{4,5\}$ reveal four clusters of qualitatively different regimes: mutual activation ($a_1 < 1$; cluster 1) and mutual inhibition ($a_1 > 1$; cluster 2). \subref{fig:double-exclusive-optima:models}. Example bifurcation diagrams indicate positively and negatively correlated dependencies between the two model states, as a function of the control condition.}
+\label{fig:double-exclusive-optima}
+\end{figure}
 
 \section{Steady State Solvers}
 \label{appendix:stedy-state-solvers}
