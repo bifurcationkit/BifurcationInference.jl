@@ -56,45 +56,68 @@ Figure \ref{fig:determinant-field} reveals that $\Det=0$ is also a level set and
 \end{align}
 where $\hat{\tangent}(z)$ is the unit tangent field.
 
-\section{Conditions for Bifurcations}
+\clearpage
+\section{Bifurcation Measure Properties}
 \label{appendix:conditions}
-
-The conditions for bifurcations \eqref{eq:predictions} are expressed at a parametrised location $s\in\Reals$ on the equilibrium manifold. A local bifurcation \textit{not involving limit cycles} can be defined as a change of sign of the real part of an eigenvalue of the state-space Jacobian. In this section we show that the conditions
-\begin{equation}
-    \Det_{s=s^*} = 0
+Consider a vector $v(s)\in\Reals^N$ parameterised by $s\in\Reals$ that is tangent to an equilibrium manifold defined by $\rates(u)=0$. The conditions for a non-degenerate static bifurcation at $s^*$ along such a tangent can be expressed in terms of an eigenvalue $\lambda(s)$ of the state-space Jacobian crossing zero with a finite slope. A bifurcation exists at $s^*$ if
+\begin{align}
+    \frac{\partial\rates}{\partial u}v(s)=\lambda(s) \,v(s)
+    \quad\exists\lambda:\quad
+    \left.\lambda(s)\right|_{s=s^*}=0
     \qquad
-    \frac{d}{ds}\Det_{s=s^*} \neq 0
+    \left.\frac{d\lambda}{ds}\right|_{s=s^*}\neq 0
     \label{eq:conditions}
-\end{equation}
-are sufficient for a local bifurcation to occur at a specific location $s^*$ along the equilibrium manifold. Here we denote $\Det$ as the determinant of the state-space Jacobian. We begin by expressing the determinant is the product of eigenvalues
+\end{align}
+These conditions are necessary and sufficient for a non-degenerate static local breakdown of stability. For now we do not consider dynamic bifurcations involving limit cycles or imaginary parts of eigenvalues and restrict $\lambda\in\Reals$. Cases where both $\left.\lambda(s)\right|_{s=s^*}=0$ and $\left.\frac{d\lambda}{ds}\right|_{s=s^*}=0$ require investigation into higher order derivatives $\frac{d^n\lambda}{ds^n}$. These are the cases we refer to as \emph{degenerate} and are not considered here.
+
+Instead of considering conditions on each eigenvalue individually it is possible to use the determinant of the state-space Jacobian to detect whether the conditions \eqref{eq:conditions} are satisfied. The determinant can be expressed as the product of eigenvalues
 \begin{equation}
     \Det=\prod_{n=1}^N\lambda_n(s)
     \label{eq:determinant}
 \end{equation}
 Applying the product rule when differentiating yields
-\begin{equation}
-    \frac{d}{ds}\Det=
-    \sum_{n=1}^N\frac{d\lambda_n}{ds}\prod_{n'\neq n}\lambda_{n'}(s)
-\end{equation}
-As $\Det_{s=s^*}=0$ then by \eqref{eq:determinant} one of the eigenvalues must vanish, say $\lambda^*(s)$ at  $s=s^*$ then
-\begin{equation}
-    \frac{d}{ds}\left|\frac{\partial\rates}{\partial u}\right|_{s=s^*}=
-    \frac{d\lambda^*}{ds}\prod_{\lambda\neq\lambda^*}\lambda(s)\,\bigg|_{s=s^*}
-\end{equation}
-which implies the following conditions on the eigenvalues
 \begin{align}
-    \left.\lambda^*(s)\right|_{s=s^*}=0
-    \qquad
-    \left.\frac{d\lambda^*}{ds}\right|_{s=s^*}\neq 0
-    \label{eq:sufficient-necessary}
-    \\
-    \lambda(s^*) \neq 0\quad\forall\lambda\neq\lambda*
-    \qquad\quad
-    \label{eq:sufficient}
+    \frac{d}{ds}\Det&=
+    \sum_{n=1}^N\frac{d\lambda_n}{ds}\prod_{n'\neq n}\lambda_{n'}(s)\\
+    &=\Det\sum_{n=1}^N\frac{d\lambda_n}{ds}\lambda_{n}(s)^{-1}
 \end{align}
-Conditions \eqref{eq:sufficient-necessary} guarantee that eigenvalue $\lambda^*(s)$ crosses zero at $s^*$ with a finite slope and are therefore sufficient and necessary for a local non-degenerate bifurcation not involving limit cycles. Condition \eqref{eq:sufficient} restricts the bifurcation at $s^*$ to be such that only one eigenvalue may vanish with all others being finite. Therefore conditions \eqref{eq:conditions} are sufficient \textit{but not necessary} for local non-degenerate bifurcations at $s^*$ not involving limit cycles.
+Substituting this expression into measure \eqref{eq:measure}
+\begin{equation}
+    \measure(s)=
+    \left(1+\left|\sum_{n=1}^N\frac{d\lambda_n}{ds}\lambda_{n}(s)^{-1}\right|^{-1}\right)^{-1}
+\end{equation}
+Which implies the following
+\begin{equation}
+    \exists\lambda:\quad
+    \begin{cases}
+        \,\lambda(s)=0 \quad\frac{d\lambda}{ds}\neq 0\\
+        \,\lambda(s)\neq0 \quad\frac{d\lambda}{ds}\rightarrow\pm\infty
+    \end{cases}
+    \implies
+    \measure(s)=1
+\end{equation}
+If there exists an eigenvalue that satisfies conditions \eqref{eq:conditions} then the measure is equal to one. The measure also approaches one in cases where the rate of change of an eigenvalue with respect to a manifold $s$ location  diverges while not crossing zero. This gives rise to finite gradients in the eigenvalue term in regimes far away from any bifurcation.
 
-In the case where more than one eigenvalue vanishes at the bifurcation the second condition \eqref{eq:conditions} is broken. This is because the determinant scales like $(s-s^*)^k$ where $k$ is the number of eigenvalues crossing zero. When the second condition \eqref{eq:conditions} is broken the measure \eqref{eq:measure} becomes zero. This means that the unsupervised term does not encourage bifurcations which have more than one eigenvalue crossing zero.
+\section{Extension for Hopf Bifurcations}
+\label{appendix:hopf}
+
+In order to detect bifurcations involving limit cycles, the measure must be extended to detect changes in the real part $\Re\mathrm{e}[\lambda(s)]$ for any eigenvalue of the Jacobian. These conditions can no longer be compactly written in terms of the determinant. Instead, the measure can be defined as the sum of eigenvalue terms 
+\begin{align}
+    \measure(s):=\sum_{\lambda(s)\in\frac{\partial\rates}{\partial u}}
+    \left(\left|\frac{d}{ds}\log\Re\mathrm{e}[\lambda(s)]\right|^{-1}+1\right)^{-1}
+    \label{eq:hopf-measure}
+\end{align}
+
+The directional derivative of the logarithm diverges under two conditions: when eigenvalues vanish $\lambda(s)=0$ and when the directional derivative $\frac{d}{ds}\Re\mathrm{e}[\lambda(s)]$ diverges. These properties are sufficient for detecting the onset of damped oscillations and emergence of limit cycles via Hopf bifurcation as shown in Figure \ref{fig:hopf-measure}. Eigenvalues with negative real part which gain a finite imaginary part give rise to damped oscillations. At this onset we observe a discontinuity in the derivative $\frac{d}{ds}\Re\mathrm{e}[\lambda(s)]$ which is detected by equation \eqref{eq:hopf-measure}. Once damped oscillations exist, flipping the stability of the stable fixed point gives rise to a limit cycle, which can be detected by inspecting $\Re\mathrm{e}[\lambda(s)]$.
+
+\begin{figure}[H]
+\centering
+    \includegraphics[width=60mm]{hopf-measure}
+    \caption{Bifurcation measure $\measure(s)$ and eigenvalues $\lambda(s)$ along the arclength $s$ for two different bifurcation curves demonstrating how the measure detects non-zero imaginary parts $\Im\mathrm{m}[\lambda]$ (onset of damped oscillations marked by circle) and sign changes in real parts $\Re\mathrm{e}[\lambda]$ (Hopf bifurcations marked by stars)}
+    \label{fig:hopf-measure}
+\end{figure}
+
+In principle it is possible to construct measures to detect a variety of bifurcations as long as the conditions can be expressed in terms of derivatives with respect to fixed-point manifold direction $s$. Measures can be used sequentially or in parallel to encourage optimisers to run through a sequence of bifurcations or place specific bifurcation types next to each other.
 
 \section{Leibniz Rule for Space Curves}
 \label{appendix:leibniz-rule}
@@ -191,3 +214,10 @@ To summarise we now have the gradient of our line integral only in terms of the 
     \frac{\partial F}{\partial\theta}
 \end{align}
 We have settled on choosing normal deformations which we will call $\varphi_\theta(z)$. The above result can be seen a the generalised Leibniz rule \cite{Flanders1973DifferentiationSign} for the case of line integration regions. The last integrand term can be seen as the divergence the vector field $\varphi_\theta(z)$ projected onto the one dimensional space curve.
+
+\section{A More Complex Model}
+\label{appendix:double-exclusive}
+To demonstrate the wider reaching applicability of our method we optimise the \emph{double exclusive reporter} \cite{Grant2020InterpretationCircuit}, a synthetic \emph{E. Coli} designed to exhibit a cusp bifurcation with respect to two input signals. Figure \ref{fig:double-exclusive-trajectories} shows the cost function with respect to iteration for sample trajectories. We note that due to a
+
+\section{Steady State Solvers}
+\label{appendix:stedy-state-solvers}
