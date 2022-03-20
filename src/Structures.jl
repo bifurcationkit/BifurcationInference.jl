@@ -47,7 +47,7 @@ Branch{V,T} = Vector{BranchPoint{V,T}}
 dim(branch::Branch) = length(branch) > 0 ? length(first(branch).z)-1 : 0
 
 function push!(branch::Branch,state::ContState)
-    z,∂z = copy(state.z_old), [state.tau.u;state.tau.p]
+    z,∂z = copy(state.z), [state.τ.u;state.τ.p]
     push!(branch, ( z=z, λ=state.eigvals, ds=norm(∂z)*abs(state.ds), bif=detectBifucation(state) ))
 end
 
