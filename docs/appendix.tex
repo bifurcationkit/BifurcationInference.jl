@@ -56,10 +56,9 @@ Figure \ref{fig:determinant-field} reveals that $\Det=0$ is also a level set and
 \end{align}
 where $\hat{\tangent}(z)$ is the unit tangent field.
 
-\clearpage
 \section{Bifurcation Measure Properties}
 \label{appendix:conditions}
-Consider a vector $v(s)\in\Reals^N$ parameterised by $s\in\Reals$ that is tangent to an equilibrium manifold defined by $\rates(u)=0$. The conditions for a non-degenerate static bifurcation at $s^*$ along such a tangent can be expressed in terms of an eigenvalue $\lambda(s)$ of the state-space Jacobian crossing zero with a finite slope. A bifurcation exists at $s^*$ if
+Consider a vector $v(s)\in\Reals^N$ parametrised by $s\in\Reals$ that is tangent to an equilibrium manifold defined by $\rates(u)=0$. The conditions for a non-degenerate static bifurcation at $s^*$ along such a tangent can be expressed in terms of an eigenvalue $\lambda(s)$ of the state-space Jacobian crossing zero with a finite slope. A bifurcation exists at $s^*$ if
 \begin{align}
     \frac{\partial\rates}{\partial u}v(s)=\lambda(s) \,v(s)
     \quad\exists\lambda:\quad
@@ -95,34 +94,14 @@ Which implies the following
     \end{cases}
     \implies
     \measure(s)=1
+    \label{eq:measure-conditions}
 \end{equation}
 If there exists an eigenvalue that satisfies conditions \eqref{eq:conditions} then the measure is equal to one. The measure also approaches one in cases where the rate of change of an eigenvalue with respect to a manifold $s$ location  diverges while not crossing zero. This gives rise to finite gradients in the eigenvalue term in regimes far away from any bifurcation.
-
-\section{Extension for Hopf Bifurcations}
-\label{appendix:hopf}
-
-In order to detect bifurcations involving limit cycles, the measure must be extended to detect changes in the real part $\Re\mathrm{e}[\lambda(s)]$ for any eigenvalue of the Jacobian. These conditions can no longer be compactly written in terms of the determinant. Instead, the measure can be defined as the sum of eigenvalue terms 
-\begin{align}
-    \measure(s):=\sum_{\lambda(s)\in\frac{\partial\rates}{\partial u}}
-    \left(\left|\frac{d}{ds}\log\Re\mathrm{e}[\lambda(s)]\right|^{-1}+1\right)^{-1}
-    \label{eq:hopf-measure}
-\end{align}
-
-The directional derivative of the logarithm diverges under two conditions: when eigenvalues vanish $\lambda(s)=0$ and when the directional derivative $\frac{d}{ds}\Re\mathrm{e}[\lambda(s)]$ diverges. These properties are sufficient for detecting the onset of damped oscillations and emergence of limit cycles via Hopf bifurcation as shown in Figure \ref{fig:hopf-measure}. Eigenvalues with negative real part which gain a finite imaginary part give rise to damped oscillations. At this onset we observe a discontinuity in the derivative $\frac{d}{ds}\Re\mathrm{e}[\lambda(s)]$ which is detected by equation \eqref{eq:hopf-measure}. Once damped oscillations exist, flipping the stability of the stable fixed point gives rise to a limit cycle, which can be detected by inspecting $\Re\mathrm{e}[\lambda(s)]$.
-
-\begin{figure}[H]
-\centering
-    \includegraphics[width=60mm]{hopf-measure}
-    \caption{Bifurcation measure $\measure(s)$ and eigenvalues $\lambda(s)$ along the arclength $s$ for two different bifurcation curves demonstrating how the measure detects non-zero imaginary parts $\Im\mathrm{m}[\lambda]$ (onset of damped oscillations marked by circle) and sign changes in real parts $\Re\mathrm{e}[\lambda]$ (Hopf bifurcations marked by stars)}
-    \label{fig:hopf-measure}
-\end{figure}
-
-In principle it is possible to construct measures to detect a variety of bifurcations as long as the conditions can be expressed in terms of derivatives with respect to fixed-point manifold direction $s$. Measures can be used sequentially or in parallel to encourage optimisers to run through a sequence of bifurcations or place specific bifurcation types next to each other.
 
 \section{Leibniz Rule for Space Curves}
 \label{appendix:leibniz-rule}
 
-Suppose there exists a one dimensional space curve $\mathcal{C(\theta)}$ embedded in $z\in\Reals^{N+1}$ whose geometry changes depending on input parameters $\theta\in\Reals^M$. This curve could be open or closed and changes in $\theta$ could change the curve topology as well. Let the function $\gamma_{\theta}:\Reals\rightarrow\Reals^{N+1}$ be a parameterisation of the position vector along the curve within a fixed domain $s\in\mathcal{S}$. Note that the choice of parameterisation is arbitrary and our results should not depend on this choice. Furthermore, if we parametrise the curve $\mathcal{C}(\theta)$ with respect to a fixed domain $\mathcal{S}$ the dependence on $\theta$ is picked up by the parameterisation $\gamma_{\theta}(s)$. We can write a line integral of any scalar function $L_{\theta}:\Reals^{N+1}\rightarrow\Reals$ on the curve as
+Suppose there exists a one dimensional space curve $\mathcal{C(\theta)}$ embedded in $z\in\Reals^{N+1}$ whose geometry changes depending on input parameters $\theta\in\Reals^M$. This curve could be open or closed and changes in $\theta$ could change the curve topology as well. Let the function $\gamma_{\theta}:\Reals\rightarrow\Reals^{N+1}$ be a parametrisation of the position vector along the curve within a fixed domain $s\in\mathcal{S}$. Note that the choice of parametrisation is arbitrary and our results should not depend on this choice. Furthermore, if we parametrise the curve $\mathcal{C}(\theta)$ with respect to a fixed domain $\mathcal{S}$ the dependence on $\theta$ is picked up by the parametrisation $\gamma_{\theta}(s)$. We can write a line integral of any scalar function $L_{\theta}:\Reals^{N+1}\rightarrow\Reals$ on the curve as
 \begin{align}
     L(\theta):=
     \int_\mathcal{C(\theta)}\! L_{\theta}(z)\,\mathrm{d}z
@@ -184,7 +163,7 @@ We can rearrange for $\frac{d z}{d \theta}$ using the Moore-Penrose inverse of t
     \right)^{-1}
     \frac{\partial F}{\partial\theta}
 \end{align}
-The tangential component of the deformation field is not uniquely determined because there is no unique way of parameterising a surface. This is the subject of many computer graphics papers \cite{Jos2011OnSurface,Tao2016Near-IsometricTracking,Fujisawa2013CalculationInvariance}. We are however not interested in the continuous propagation of a mesh - as is the subject of those papers. In fact we are looking for a deformation field that is orthogonal to the tangent vector $\hat{\tangent}(z) \cdot\frac{d z}{d\theta} =0$ for the space curve, and therefore letting the tangential component of the deformation equal zero is a valid choice and we can it instead of the parameterised deformation
+The tangential component of the deformation field is not uniquely determined because there is no unique way of parametrising a surface. This is the subject of many computer graphics papers \cite{Jos2011OnSurface,Tao2016Near-IsometricTracking,Fujisawa2013CalculationInvariance}. We are however not interested in the continuous propagation of a mesh - as is the subject of those papers. In fact we are looking for a deformation field that is orthogonal to the tangent vector $\hat{\tangent}(z) \cdot\frac{d z}{d\theta} =0$ for the space curve, and therefore letting the tangential component of the deformation equal zero is a valid choice and we can it instead of the parametrised deformation
 \begin{align}
     \frac{d \gamma_{\theta}}{d\theta} \rightarrow \frac{d z}{d\theta}
 \end{align}
@@ -215,10 +194,14 @@ To summarise we now have the gradient of our line integral only in terms of the 
 \end{align}
 We have settled on choosing normal deformations which we will call $\varphi_\theta(z)$. The above result can be seen a the generalised Leibniz rule \cite{Flanders1973DifferentiationSign} for the case of line integration regions. The last integrand term can be seen as the divergence the vector field $\varphi_\theta(z)$ projected onto the one dimensional space curve.
 
-\section{A More Complex Model}
-\label{appendix:double-exclusive}
-To demonstrate the wider reaching applicability of our method we optimise the \emph{double exclusive reporter} \cite{Grant2020InterpretationCircuit}, a synthetic \emph{E. Coli} designed to exhibit a cusp bifurcation with respect to two input signals. Let one of the input signals be the control condition $p$ while the other input is held constant at $1$. Figure \ref{fig:double-exclusive-optima} shows the cost function with respect to iteration for sample trajectories. We note that due to a
+\clearpage
 
+\section{Application of Bifurcation Inference to a Complex Model}
+\label{appendix:double-exclusive}
+
+To demonstrate the wider reaching applicability of our method we optimise the \emph{double exclusive reporter} \cite{Grant2020InterpretationCircuit}, a synthetic gene circuit in \emph{E. coli} that was designed to exhibit a cusp bifurcation. The circuit behaviour is observed by measuring a fluorescent protein whose expression is controlled by transcription factors (regulatory proteins) LacI $(L)$ and TetR $(T)$, whose expression is in turn controlled by externally controllable \emph{input} signals $c_{6}$ and $c_{12}$. To apply the method, we consider one of the input signals be the control condition $c_{6}=p$, with the other packed together with the remaining 20 parameters into vector $\theta$. Once the optima $\theta^*$ have been obtained, we perform dimensionality reduction using \texttt{GigaSOM.jl} \cite{Kratochvil2020GigaSOM.jl:Datasets} so that the results can be visualised in a two dimensional embedding (Figure \ref{fig:double-exclusive-optima:parameters}).
+
+The embedding reveals four optimal parameter regions. We find that, as with the two-state model in the main text \eqref{eq:two-state}, there are two qualitatively distinct regimes: mutual activation (region 1) and inhibition (regions 2-4). The mutual inhibition region can be further subdivided into three regions that are geometrically equivalent, but kinetically distinct: region 3 has swapped kinetic roles for regulatory proteins LacI and TetR compared to region 2, and region 4 has additional damped oscillations in the dynamics across the whole range of \emph{input} $c_{6}$ (Figure \ref{fig:double-exclusive-optima:models}). The two dimensional embedding of sampled optima $\theta^*$ enables navigation the space of qualitative behaviours of the \emph{double exclusive reporter} and organisation in terms of geometric and kinetic equivalence.
 
 \begin{figure}[ht]
 \centering
@@ -226,12 +209,38 @@ To demonstrate the wider reaching applicability of our method we optimise the \e
 {\phantomsubcaption\label{fig:double-exclusive-optima:parameters}}
 {\phantomsubcaption\label{fig:double-exclusive-optima:models}}
 \includegraphics[width=13cm]{double-exclusive-optima}
-\begin{picture}(0,0) \put(-9,6.3){\subref{fig:double-exclusive-optima:parameters}} \end{picture}
-\begin{picture}(0,0) \put(-3,6.3){\subref{fig:double-exclusive-optima:models}}
+\begin{picture}(0,0) \put(-13,7){\subref{fig:double-exclusive-optima:parameters}} \end{picture}
+\begin{picture}(0,0) \put(-7,7){\subref{fig:double-exclusive-optima:models}}
 \end{picture}
-\caption{Bifurcation inference for the \emph{double exclusive reporter}. \subref{fig:double-exclusive-optima:parameters}. Optimal parameter estimates $\theta^*$ for the targets $\targets=\{4,5\}$ reveal four clusters of qualitatively different regimes: mutual activation ($a_1 < 1$; cluster 1) and mutual inhibition ($a_1 > 1$; cluster 2). \subref{fig:double-exclusive-optima:models}. Example bifurcation diagrams indicate positively and negatively correlated dependencies between the two model states, as a function of the control condition.}
+\caption{Bifurcation inference for the \emph{double exclusive reporter}. \subref{fig:double-exclusive-optima:parameters}. Optimal parameter estimates $\theta^*$ for the targets $\targets=\{1,2\}$ (indicated by yellow lines in panel B) reveal four regions  with two geometrically different regimes: mutual activation (region 1) and mutual inhibition (regions 2-4). \subref{fig:double-exclusive-optima:models}. Example bifurcation diagrams indicate that region 2 has swapped kinetics between $L$ and $T$ to region 3. Region 4 has models with non-zero imaginary parts to eigenvalues indicating damped oscillations (shown in light green).}
 \label{fig:double-exclusive-optima}
 \end{figure}
 
-\section{Steady State Solvers}
-\label{appendix:stedy-state-solvers}
+These results were obtained with a modification of the bifurcation measure \eqref{eq:measure} to improve convergence rates. In parameter regimes where bifurcations are not present, according to conditions \eqref{eq:measure-conditions}, maximising the measure $\measure(s)$ can lead to a divergence in directional derivative $\frac{d\lambda}{ds}\rightarrow\pm\infty$ rather than a creation of a bifurcation. To discourage this from happening we can flatten out the gradients in that regime by applying the $\tanh$ non-linearity to the determinant. This leads to
+\begin{align}
+    \measure(s):=
+    \left(1+\left|\frac{\tanh\Det}{\frac{d}{ds}\tanh\Det}\right|\right)^{-1}
+    \label{eq:measure-tanh}
+\end{align}
+
+\clearpage
+\section{Extension for Hopf Bifurcations}
+\label{appendix:hopf}
+
+In order to detect bifurcations involving limit cycles, the measure must be extended to detect changes in the real part $\Re\mathrm{e}[\lambda(s)]$ for any eigenvalue of the Jacobian. These conditions can no longer be compactly written in terms of the determinant. Instead, the measure can be defined as the sum of eigenvalue terms 
+\begin{align}
+    \measure(s):=\sum_{\lambda(s)\in\frac{\partial\rates}{\partial u}}
+    \left(\left|\frac{d}{ds}\log\Re\mathrm{e}[\lambda(s)]\right|^{-1}+1\right)^{-1}
+    \label{eq:hopf-measure}
+\end{align}
+
+The directional derivative of the logarithm diverges under two conditions: when eigenvalues vanish $\lambda(s)=0$ and when the directional derivative $\frac{d}{ds}\Re\mathrm{e}[\lambda(s)]$ diverges. These properties are sufficient for detecting the onset of damped oscillations and emergence of limit cycles via Hopf bifurcation as shown in Figure \ref{fig:hopf-measure}. Eigenvalues with negative real part which gain a finite imaginary part give rise to damped oscillations. At this onset we observe a discontinuity in the derivative $\frac{d}{ds}\Re\mathrm{e}[\lambda(s)]$ which is detected by equation \eqref{eq:hopf-measure}. Once damped oscillations exist, flipping the stability of the stable fixed point gives rise to a limit cycle, which can be detected by inspecting $\Re\mathrm{e}[\lambda(s)]$.
+
+\begin{figure}[H]
+\centering
+    \includegraphics[width=60mm]{hopf-measure}
+    \caption{Bifurcation measure $\measure(s)$ and eigenvalues $\lambda(s)$ along the arclength $s$ for two different bifurcation curves demonstrating how the measure detects non-zero imaginary parts $\Im\mathrm{m}[\lambda]$ (onset of damped oscillations marked by circle) and sign changes in real parts $\Re\mathrm{e}[\lambda]$ (Hopf bifurcations marked by stars)}
+    \label{fig:hopf-measure}
+\end{figure}
+
+In principle it is possible to construct measures to detect a variety of bifurcations as long as the conditions can be expressed in terms of derivatives with respect to fixed-point manifold direction $s$. Measures can be used sequentially or in parallel to encourage optimisers to run through a sequence of bifurcations or place specific bifurcation types next to each other.
