@@ -18,7 +18,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 BifurcationKit = "0.1.5, 0.1"
-Flux = "0.12"
+Flux = "0.12, 0.13"
 ForwardDiff = "0.10"
 InvertedIndices = "1"
 LaTeXStrings = "1"
